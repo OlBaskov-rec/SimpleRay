@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SimpleRay.Core\SimpleRay.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Bundled runtime deps (sing-box.exe, wintun.dll, geo *.srs) are fetched by
+       scripts\fetch-deps.ps1 into runtime\ and copied next to the exe as core\ / geo\. -->
+  <ItemGroup>
+    <None Include="runtime\**\*" Exclude="runtime\**\config.json">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace>SimpleRay.App</RootNamespace>
+    <AssemblyName>SimpleRay</AssemblyName>
+  </PropertyGroup>
+
+</Project>

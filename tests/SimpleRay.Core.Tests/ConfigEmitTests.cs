@@ -1,0 +1,43 @@
+using System.IO;
+using SimpleRay.Core.Config;
+using SimpleRay.Core.Models;
+using SimpleRay.Core.Profiles;
+using Xunit;
+
+namespace SimpleRay.Core.Tests;
+
+/// <summary>
+/// Dev helper: emits a real config.json to a path so it can be validated with
+/// `sing-box check`. No-op unless SR_EMIT_CONFIG is set, so normal runs ignore it.
+/// </summary>
+public class ConfigEmitTests
+{
+    [Fact]
+    public void EmitRealConfig()
+    {
+        var outPath = Environment.GetEnvironmentVariable("SR_EMIT_CONFIG");
+        if (string.IsNullOrEmpty(outPath))
+            return;
+
+        var geoDir = Environment.GetEnvironmentVariable("SR_GEO_DIR") ?? "geo";
+
+        var profile = ShareLinkParser.Parse(
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443" +
+            "?security=reality&sni=www.microsoft.com&fp=chrome" +
+            "&pbk=66dK2tcRJ1R6fc4cbukmnRBZPZh6tLMcRR58KCLt6AU&sid=ab12" +
+            "&type=tcp&flow=xtls-rprx-vision#test");
+
+        var routing = new RoutingSettings
+        {
+            Mode = RoutingMode.Rule,
+            DirectGeosite = new() { "geosite-private", "geosite-category-ru" },
+            DirectGeoip = new() { "geoip-ru" },
+            BlockAds = true,
+            ProxyProcesses = new() { "chrome" },
+        };
+
+        var json = SingBoxConfigGenerator.GenerateJson(
+            profile, routing, new GeneratorOptions { RuleSetDirectory = geoDir });
+        File.WriteAllText(outPath, json);
+    }
+}
