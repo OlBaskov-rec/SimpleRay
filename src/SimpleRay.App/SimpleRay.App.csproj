@@ -12,6 +12,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+  </ItemGroup>
+
+  <!-- Tray / window icon (embedded as a WPF resource, addressable via pack URI). -->
+  <ItemGroup>
+    <Resource Include="Resources\tray.ico" />
+  </ItemGroup>
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -20,6 +29,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\tray.ico</ApplicationIcon>
     <RootNamespace>SimpleRay.App</RootNamespace>
     <AssemblyName>SimpleRay</AssemblyName>
   </PropertyGroup>

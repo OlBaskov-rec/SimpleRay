@@ -1,8 +1,11 @@
 <Window x:Class="SimpleRay.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
         Title="SimpleRay" Height="560" Width="760"
         WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Resources/tray.ico"
+        StateChanged="Window_StateChanged"
         FontFamily="Segoe UI" FontSize="13">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
@@ -13,6 +16,21 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+
+        <!-- System tray icon (not rendered in the layout) -->
+        <tb:TaskbarIcon x:Name="TrayIcon"
+                        IconSource="pack://application:,,,/Resources/tray.ico"
+                        ToolTipText="SimpleRay"
+                        TrayMouseDoubleClick="Tray_ShowWindow">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Показать" Click="Tray_ShowWindow" />
+                    <MenuItem Header="Подключить / Отключить" Click="Tray_ToggleConnect" />
+                    <Separator />
+                    <MenuItem Header="Выход" Click="Tray_Exit" />
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
 
         <!-- Profile list -->
         <ListBox Grid.Row="0" Grid.Column="0"
@@ -35,11 +53,16 @@
         </ListBox>
 
         <!-- Profile actions -->
-        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
+        <WrapPanel Grid.Row="1" Grid.Column="0" Margin="0,8,0,0">
             <Button Content="Из буфера" Command="{Binding ImportClipboardCommand}"
-                    Padding="10,4" Margin="0,0,6,0" />
-            <Button Content="Удалить" Command="{Binding RemoveCommand}" Padding="10,4" />
-        </StackPanel>
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт ссылок из буфера обмена" />
+            <Button Content="QR из файла" Command="{Binding ImportQrFileCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт из изображения с QR-кодом" />
+            <Button Content="QR из буфера" Command="{Binding ImportQrClipboardCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Распознать QR из картинки в буфере обмена" />
+            <Button Content="Удалить" Command="{Binding RemoveCommand}"
+                    Padding="10,4" Margin="0,0,0,6" />
+        </WrapPanel>
 
         <!-- Right panel -->
         <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Margin="12,0,0,0">

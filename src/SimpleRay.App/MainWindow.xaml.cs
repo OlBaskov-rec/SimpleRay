@@ -12,6 +12,34 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
-        Closed += async (_, _) => await _viewModel.ShutdownAsync();
+        Closed += async (_, _) =>
+        {
+            TrayIcon.Dispose();
+            await _viewModel.ShutdownAsync();
+        };
     }
+
+    // Minimize hides the window to the tray instead of the taskbar.
+    private void Window_StateChanged(object sender, System.EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            Hide();
+            ShowInTaskbar = false;
+        }
+    }
+
+    private void Tray_ShowWindow(object sender, RoutedEventArgs e)
+    {
+        ShowInTaskbar = true;
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void Tray_ToggleConnect(object sender, RoutedEventArgs e) =>
+        _viewModel.ConnectCommand.Execute(null);
+
+    private void Tray_Exit(object sender, RoutedEventArgs e) =>
+        Application.Current.Shutdown();
 }

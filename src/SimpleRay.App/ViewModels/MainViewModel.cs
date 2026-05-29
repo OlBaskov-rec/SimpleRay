@@ -50,6 +50,8 @@ public sealed class MainViewModel : ObservableObject
 
         ConnectCommand = new RelayCommand(ToggleConnectionAsync);
         ImportClipboardCommand = new RelayCommand(ImportFromClipboard);
+        ImportQrFileCommand = new RelayCommand(ImportQrFromFile);
+        ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboard);
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
     }
@@ -92,6 +94,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand ConnectCommand { get; }
     public RelayCommand ImportClipboardCommand { get; }
+    public RelayCommand ImportQrFileCommand { get; }
+    public RelayCommand ImportQrClipboardCommand { get; }
     public RelayCommand RemoveCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
 
@@ -230,10 +234,83 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        AddLinks(text, "В буфере нет распознанных ссылок");
+    }
+
+    private void ImportQrFromFile()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Выберите изображение с QR-кодом",
+            Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp|Все файлы|*.*",
+        };
+        if (dlg.ShowDialog() != true)
+            return;
+
+        string? text;
+        try
+        {
+            text = QrDecoder.DecodeFile(dlg.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Не удалось прочитать изображение: " + ex.Message;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            StatusText = "QR-код не распознан";
+            return;
+        }
+        AddLinks(text, "В QR-коде нет распознанных ссылок");
+    }
+
+    private void ImportQrFromClipboard()
+    {
+        System.Windows.Media.Imaging.BitmapSource? image;
+        try
+        {
+            image = Clipboard.ContainsImage() ? Clipboard.GetImage() : null;
+        }
+        catch (Exception)
+        {
+            StatusText = "Не удалось прочитать изображение из буфера";
+            return;
+        }
+
+        if (image is null)
+        {
+            StatusText = "В буфере нет изображения";
+            return;
+        }
+
+        string? text;
+        try
+        {
+            text = QrDecoder.Decode(image);
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Ошибка распознавания: " + ex.Message;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            StatusText = "QR-код не распознан";
+            return;
+        }
+        AddLinks(text, "В QR-коде нет распознанных ссылок");
+    }
+
+    /// <summary>Parses share-links from <paramref name="text"/>, adds new ones, persists.</summary>
+    private void AddLinks(string text, string noneFoundMessage)
+    {
         var parsed = ShareLinkParser.ParseMany(text);
         if (parsed.Count == 0)
         {
-            StatusText = "В буфере нет распознанных ссылок";
+            StatusText = noneFoundMessage;
             return;
         }
 
