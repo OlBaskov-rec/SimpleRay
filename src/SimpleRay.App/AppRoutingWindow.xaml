@@ -1,0 +1,69 @@
+<Window x:Class="SimpleRay.App.AppRoutingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Маршрутизация по приложениям" Height="520" Width="640"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI" FontSize="13">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Foreground="#555" Margin="0,0,0,8"
+                   Text="Выберите запущенный процесс или впишите имя, затем отправьте его «Через VPN» или «Напрямую». Имена — без .exe." />
+
+        <!-- Picker row -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ComboBox Grid.Column="0" IsEditable="True"
+                      ItemsSource="{Binding RunningProcesses}"
+                      Text="{Binding ManualName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      SelectedItem="{Binding SelectedRunning, Mode=TwoWay}" />
+            <Button Grid.Column="1" Content="↻" ToolTip="Обновить список процессов"
+                    Command="{Binding RefreshCommand}" Padding="8,4" Margin="6,0,0,0" />
+            <Button Grid.Column="2" Content="→ Через VPN"
+                    Command="{Binding AddProxyCommand}" Padding="8,4" Margin="6,0,0,0" />
+            <Button Grid.Column="3" Content="→ Напрямую"
+                    Command="{Binding AddDirectCommand}" Padding="8,4" Margin="6,0,0,0" />
+        </Grid>
+
+        <!-- Two lists -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Через VPN" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <ListBox Grid.Row="1" Grid.Column="0" ItemsSource="{Binding ProxyApps}"
+                     SelectedItem="{Binding SelectedProxy, Mode=TwoWay}" />
+            <Button Grid.Row="2" Grid.Column="0" Content="Убрать" HorizontalAlignment="Left"
+                    Command="{Binding RemoveProxyCommand}" Padding="10,4" Margin="0,6,0,0" />
+
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="Напрямую (минуя VPN)" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <ListBox Grid.Row="1" Grid.Column="2" ItemsSource="{Binding DirectApps}"
+                     SelectedItem="{Binding SelectedDirect, Mode=TwoWay}" />
+            <Button Grid.Row="2" Grid.Column="2" Content="Убрать" HorizontalAlignment="Left"
+                    Command="{Binding RemoveDirectCommand}" Padding="10,4" Margin="0,6,0,0" />
+        </Grid>
+
+        <Button Grid.Row="3" Content="Готово" IsDefault="True" IsCancel="True"
+                HorizontalAlignment="Right" Padding="16,5" Margin="0,12,0,0"
+                Click="Done_Click" />
+    </Grid>
+</Window>

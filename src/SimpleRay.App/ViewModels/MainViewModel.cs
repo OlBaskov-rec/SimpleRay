@@ -51,6 +51,7 @@ public sealed class MainViewModel : ObservableObject
         ConnectCommand = new RelayCommand(ToggleConnectionAsync);
         ImportClipboardCommand = new RelayCommand(ImportFromClipboard);
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
+        OpenAppsCommand = new RelayCommand(OpenAppRouting);
     }
 
     public ObservableCollection<ProfileConfig> Profiles { get; } = new();
@@ -92,6 +93,14 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ConnectCommand { get; }
     public RelayCommand ImportClipboardCommand { get; }
     public RelayCommand RemoveCommand { get; }
+    public RelayCommand OpenAppsCommand { get; }
+
+    private void OpenAppRouting()
+    {
+        var dlg = new AppRoutingWindow(_routing) { Owner = Application.Current?.MainWindow };
+        dlg.ShowDialog();
+        SaveRouting(); // dialog mutated _routing in place
+    }
 
     // --- Routing settings -------------------------------------------------
 
