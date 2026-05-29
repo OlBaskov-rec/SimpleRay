@@ -27,6 +27,9 @@ public static class AppPaths
 
     public static string ProfilesFile => Path.Combine(DataDir, "profiles.json");
 
+    /// <summary>Persisted routing settings (mode, geo presets, per-app rules).</summary>
+    public static string SettingsFile => Path.Combine(DataDir, "settings.json");
+
     /// <summary>Where the generated sing-box config is written at runtime.</summary>
     public static string RuntimeDir
     {

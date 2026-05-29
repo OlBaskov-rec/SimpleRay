@@ -16,9 +16,15 @@ public sealed class MainViewModel : ObservableObject
     private const int MaxLogChars = 20_000;
 
     private readonly ProfileStore _store = new();
+    private readonly SettingsStore _settingsStore = new();
     private readonly EngineManager _engine;
-    private readonly RoutingSettings _routing = new();
+    private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
+
+    // geosite/geoip tags backing the routing presets (must exist as *.srs in GeoDir).
+    private const string TagRuSites = "geosite-category-ru";
+    private const string TagRuIp = "geoip-ru";
+    private const string TagPrivate = "geosite-private";
 
     private ProfileConfig? _selectedProfile;
     private bool _isConnected;
@@ -28,6 +34,7 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel()
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        _routing = _settingsStore.Load();
 
         foreach (var p in _store.Load())
             Profiles.Add(p);
@@ -85,6 +92,78 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ConnectCommand { get; }
     public RelayCommand ImportClipboardCommand { get; }
     public RelayCommand RemoveCommand { get; }
+
+    // --- Routing settings -------------------------------------------------
+
+    public sealed record RoutingModeItem(string Label, RoutingMode Mode);
+
+    public IReadOnlyList<RoutingModeItem> Modes { get; } = new[]
+    {
+        new RoutingModeItem("Глобально — весь трафик через VPN", RoutingMode.Global),
+        new RoutingModeItem("По правилам — разделять (geo)", RoutingMode.Rule),
+        new RoutingModeItem("Напрямую — без VPN", RoutingMode.Direct),
+    };
+
+    public RoutingMode SelectedMode
+    {
+        get => _routing.Mode;
+        set
+        {
+            if (_routing.Mode == value) return;
+            _routing.Mode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsRuleMode));
+            SaveRouting();
+        }
+    }
+
+    /// <summary>Geo-based direct rules only apply in Rule mode; used to enable/disable toggles.</summary>
+    public bool IsRuleMode => _routing.Mode == RoutingMode.Rule;
+
+    /// <summary>Russian sites bypass the VPN (geosite-category-ru).</summary>
+    public bool DirectRuSites
+    {
+        get => _routing.DirectGeosite.Contains(TagRuSites);
+        set { if (ToggleTag(_routing.DirectGeosite, TagRuSites, value)) { OnPropertyChanged(); SaveRouting(); } }
+    }
+
+    /// <summary>Russian IP ranges bypass the VPN (geoip-ru).</summary>
+    public bool DirectRuIp
+    {
+        get => _routing.DirectGeoip.Contains(TagRuIp);
+        set { if (ToggleTag(_routing.DirectGeoip, TagRuIp, value)) { OnPropertyChanged(); SaveRouting(); } }
+    }
+
+    /// <summary>LAN / private addresses bypass the VPN (geosite-private).</summary>
+    public bool DirectLan
+    {
+        get => _routing.DirectGeosite.Contains(TagPrivate);
+        set { if (ToggleTag(_routing.DirectGeosite, TagPrivate, value)) { OnPropertyChanged(); SaveRouting(); } }
+    }
+
+    /// <summary>Block ads/trackers (geosite-category-ads-all); applies in all modes.</summary>
+    public bool BlockAds
+    {
+        get => _routing.BlockAds;
+        set { if (_routing.BlockAds != value) { _routing.BlockAds = value; OnPropertyChanged(); SaveRouting(); } }
+    }
+
+    private static bool ToggleTag(List<string> list, string tag, bool present)
+    {
+        if (present)
+        {
+            if (list.Contains(tag)) return false;
+            list.Add(tag);
+            return true;
+        }
+        return list.Remove(tag);
+    }
+
+    private void SaveRouting()
+    {
+        try { _settingsStore.Save(_routing); }
+        catch (Exception ex) { StatusText = "Не удалось сохранить настройки: " + ex.Message; }
+    }
 
     private async Task ToggleConnectionAsync()
     {
