@@ -21,6 +21,27 @@ public sealed class EngineOptions
     public required string WorkingDirectory { get; init; }
 
     public string ConfigFileName { get; init; } = "config.json";
+
+    /// <summary>
+    /// Optional platform-specific graceful terminator. When set, <see cref="EngineManager.StopAsync"/>
+    /// asks it to stop the process cleanly (so sing-box can tear down the TUN adapter and
+    /// routes) before falling back to a hard kill. Left null on platforms without one.
+    /// </summary>
+    public IProcessTerminator? Terminator { get; init; }
+
+    /// <summary>How long to wait for a graceful stop before hard-killing.</summary>
+    public TimeSpan GracefulStopTimeout { get; init; } = TimeSpan.FromSeconds(5);
+}
+
+/// <summary>
+/// Strategy for stopping the engine process cleanly. Implementations are
+/// platform-specific (e.g. sending CTRL+C on Windows) and must never throw —
+/// returning false lets the caller hard-kill instead.
+/// </summary>
+public interface IProcessTerminator
+{
+    /// <summary>Attempt a graceful stop. Returns true only if the process exited within <paramref name="timeout"/>.</summary>
+    Task<bool> TryGracefulStopAsync(Process process, TimeSpan timeout);
 }
 
 /// <summary>
@@ -78,7 +99,8 @@ public sealed class EngineManager : IAsyncDisposable
         var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         process.OutputDataReceived += (_, e) => { if (e.Data is not null) LogReceived?.Invoke(this, e.Data); };
         process.ErrorDataReceived += (_, e) => { if (e.Data is not null) LogReceived?.Invoke(this, e.Data); };
-        process.Exited += OnProcessExited;
+        // The crash handler is attached only once we know the process is up, so the
+        // fail-fast probe below can read HasExited/ExitCode without racing a disposal.
 
         lock (_gate)
         {
@@ -87,6 +109,7 @@ public sealed class EngineManager : IAsyncDisposable
 
         if (!process.Start())
         {
+            ClearProcess(process);
             SetState(EngineState.Faulted);
             throw new InvalidOperationException("Failed to start sing-box.");
         }
@@ -107,11 +130,14 @@ public sealed class EngineManager : IAsyncDisposable
 
         if (process.HasExited)
         {
+            int code = process.ExitCode;
+            ClearProcess(process);
             SetState(EngineState.Faulted);
             throw new InvalidOperationException(
-                $"sing-box exited immediately (code {process.ExitCode}). Check logs / admin rights for TUN.");
+                $"sing-box exited immediately (code {code}). Check logs / admin rights for TUN.");
         }
 
+        process.Exited += OnProcessExited;
         SetState(EngineState.Running);
     }
 
@@ -133,7 +159,23 @@ public sealed class EngineManager : IAsyncDisposable
         process.Exited -= OnProcessExited;
         try
         {
-            if (!process.HasExited)
+            // 1) Try a graceful stop so sing-box removes the TUN adapter/routes itself.
+            bool exited = false;
+            if (_options.Terminator is { } terminator && !process.HasExited)
+            {
+                try
+                {
+                    exited = await terminator.TryGracefulStopAsync(process, _options.GracefulStopTimeout)
+                        .ConfigureAwait(false);
+                }
+                catch
+                {
+                    exited = false; // never let a terminator failure block shutdown
+                }
+            }
+
+            // 2) Hard-kill fallback if it didn't exit cleanly.
+            if (!process.HasExited && !exited)
             {
                 process.Kill(entireProcessTree: true);
                 await process.WaitForExitAsync().ConfigureAwait(false);
@@ -149,8 +191,22 @@ public sealed class EngineManager : IAsyncDisposable
 
     private void OnProcessExited(object? sender, EventArgs e)
     {
-        // Only fires for unexpected exits; StopAsync detaches this handler first.
+        // Fires only for unexpected exits; StopAsync detaches this handler first.
+        if (sender is Process p)
+            ClearProcess(p);
         SetState(EngineState.Faulted);
+    }
+
+    /// <summary>Detaches, clears and disposes the process if it is the current one.</summary>
+    private void ClearProcess(Process process)
+    {
+        lock (_gate)
+        {
+            if (ReferenceEquals(_process, process))
+                _process = null;
+        }
+        try { process.Exited -= OnProcessExited; } catch { /* ignore */ }
+        try { process.Dispose(); } catch { /* ignore */ }
     }
 
     private async Task<(int exitCode, string output)> RunOnceAsync(string arguments, CancellationToken ct)

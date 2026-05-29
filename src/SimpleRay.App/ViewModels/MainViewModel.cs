@@ -44,6 +44,7 @@ public sealed class MainViewModel : ObservableObject
         {
             ExecutablePath = AppPaths.CoreExe,
             WorkingDirectory = AppPaths.RuntimeDir,
+            Terminator = new ConsoleCtrlTerminator(),
         });
         _engine.StateChanged += OnEngineStateChanged;
         _engine.LogReceived += OnEngineLog;
