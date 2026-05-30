@@ -53,14 +53,19 @@ public static class SingBoxConfigGenerator
             throw new ArgumentException("At least one profile is required.", nameof(profiles));
         options ??= new GeneratorOptions();
 
+        var topology = BuildProxyTopology(profiles, routing.Failover);
+
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
             ["dns"] = BuildDns(),
             ["inbounds"] = new JsonArray { BuildTunInbound(options) },
-            ["outbounds"] = BuildOutbounds(profiles, routing.Failover),
+            ["outbounds"] = topology.Outbounds,
             ["route"] = BuildRoute(routing, options),
         };
+        // WireGuard servers live in "endpoints" (sing-box 1.11+); only emit when present.
+        if (topology.Endpoints.Count > 0)
+            root["endpoints"] = topology.Endpoints;
         return root;
     }
 
@@ -88,14 +93,27 @@ public static class SingBoxConfigGenerator
         ["stack"] = "system",
     };
 
-    private static JsonArray BuildOutbounds(IReadOnlyList<ProfileConfig> profiles, GroupSettings group)
+    /// <summary>Proxy nodes split into plain outbounds and WireGuard endpoints (plus the direct outbound).</summary>
+    private readonly record struct ProxyTopology(JsonArray Outbounds, JsonArray Endpoints);
+
+    private static ProxyTopology BuildProxyTopology(IReadOnlyList<ProfileConfig> profiles, GroupSettings group)
     {
         var outbounds = new JsonArray();
+        var endpoints = new JsonArray();
+
+        // WireGuard goes to "endpoints"; everything else to "outbounds". Both expose a tag.
+        void AddNode(ProfileConfig p, string tag)
+        {
+            if (p.Protocol == ProxyProtocol.WireGuard)
+                endpoints.Add(BuildWireGuardEndpoint(p, tag));
+            else
+                outbounds.Add(BuildProxyOutbound(p, tag));
+        }
 
         if (profiles.Count == 1)
         {
             // Single server: it directly owns the "proxy" tag used by routing/DNS.
-            outbounds.Add(BuildProxyOutbound(profiles[0], GeneratorOptions.ProxyTag));
+            AddNode(profiles[0], GeneratorOptions.ProxyTag);
         }
         else
         {
@@ -104,14 +122,43 @@ public static class SingBoxConfigGenerator
             for (int i = 0; i < profiles.Count; i++)
             {
                 var tag = $"{GeneratorOptions.ProxyTag}-{i + 1}";
-                outbounds.Add(BuildProxyOutbound(profiles[i], tag));
+                AddNode(profiles[i], tag);
                 memberTags.Add(tag);
             }
             outbounds.Add(BuildGroupOutbound(memberTags, group));
         }
 
         outbounds.Add(new JsonObject { ["type"] = "direct", ["tag"] = GeneratorOptions.DirectTag });
-        return outbounds;
+        return new ProxyTopology(outbounds, endpoints);
+    }
+
+    private static JsonObject BuildWireGuardEndpoint(ProfileConfig p, string tag)
+    {
+        var wg = p.Wg ?? new WireGuardSettings();
+
+        var endpoint = new JsonObject
+        {
+            ["type"] = "wireguard",
+            ["tag"] = tag,
+            ["address"] = new JsonArray(wg.LocalAddresses.Select(a => (JsonNode)a!).ToArray()),
+            ["private_key"] = wg.PrivateKey,
+        };
+        if (wg.Mtu is int mtu) endpoint["mtu"] = mtu;
+
+        var peer = new JsonObject
+        {
+            ["address"] = p.Server,
+            ["port"] = p.Port,
+            ["public_key"] = wg.PeerPublicKey,
+            ["allowed_ips"] = new JsonArray(
+                (wg.AllowedIps.Count > 0 ? wg.AllowedIps : new List<string> { "0.0.0.0/0", "::/0" })
+                .Select(a => (JsonNode)a!).ToArray()),
+        };
+        if (!string.IsNullOrEmpty(wg.PreSharedKey)) peer["pre_shared_key"] = wg.PreSharedKey;
+        if (wg.PersistentKeepalive is int ka) peer["persistent_keepalive_interval"] = ka;
+
+        endpoint["peers"] = new JsonArray { peer };
+        return endpoint;
     }
 
     private static JsonObject BuildGroupOutbound(JsonArray memberTags, GroupSettings group)

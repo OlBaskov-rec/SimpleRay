@@ -70,4 +70,31 @@ public class ConfigEmitTests
             profiles, routing, new GeneratorOptions { RuleSetDirectory = geoDir });
         File.WriteAllText(outPath, json);
     }
+
+    /// <summary>Emits a WireGuard config for `sing-box check`. Gated on SR_EMIT_WG.</summary>
+    [Fact]
+    public void EmitWireGuardConfig()
+    {
+        var outPath = Environment.GetEnvironmentVariable("SR_EMIT_WG");
+        if (string.IsNullOrEmpty(outPath))
+            return;
+
+        var geoDir = Environment.GetEnvironmentVariable("SR_GEO_DIR") ?? "geo";
+
+        var profile = WireGuardConfParser.Parse(
+            "[Interface]\n" +
+            "PrivateKey = SC7/JBU2Flu24hIOfr7GTnyciTSnFzBKTJ2+K68wB2w=\n" +
+            "Address = 10.66.66.2/32, fd42::2/128\n" +
+            "MTU = 1420\n\n" +
+            "[Peer]\n" +
+            "PublicKey = ERKwnts0P6QNOLZqJUQM7g723+bp7sNgjbeUm44pEFI=\n" +
+            "AllowedIPs = 0.0.0.0/0, ::/0\n" +
+            "Endpoint = wg.example.com:51820\n" +
+            "PersistentKeepalive = 25\n");
+
+        var routing = new RoutingSettings { Mode = RoutingMode.Rule, BlockAds = true };
+        var json = SingBoxConfigGenerator.GenerateJson(
+            profile, routing, new GeneratorOptions { RuleSetDirectory = geoDir });
+        File.WriteAllText(outPath, json);
+    }
 }

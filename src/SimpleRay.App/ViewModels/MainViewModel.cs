@@ -52,6 +52,7 @@ public sealed class MainViewModel : ObservableObject
 
         ConnectCommand = new RelayCommand(ToggleConnectionAsync);
         ImportClipboardCommand = new RelayCommand(ImportFromClipboard);
+        ImportFileCommand = new RelayCommand(ImportFromFile);
         ImportQrFileCommand = new RelayCommand(ImportQrFromFile);
         ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboard);
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
@@ -97,6 +98,7 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand ConnectCommand { get; }
     public RelayCommand ImportClipboardCommand { get; }
+    public RelayCommand ImportFileCommand { get; }
     public RelayCommand ImportQrFileCommand { get; }
     public RelayCommand ImportQrClipboardCommand { get; }
     public RelayCommand RemoveCommand { get; }
@@ -293,6 +295,30 @@ public sealed class MainViewModel : ObservableObject
         }
 
         AddLinks(text, "В буфере нет распознанных ссылок");
+    }
+
+    private void ImportFromFile()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Выберите файл профиля (.conf / .txt со ссылками)",
+            Filter = "Профили|*.conf;*.txt;*.conf.txt|Все файлы|*.*",
+        };
+        if (dlg.ShowDialog() != true)
+            return;
+
+        string text;
+        try
+        {
+            text = File.ReadAllText(dlg.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Не удалось прочитать файл: " + ex.Message;
+            return;
+        }
+
+        AddLinks(text, "В файле нет распознанных профилей");
     }
 
     private void ImportQrFromFile()

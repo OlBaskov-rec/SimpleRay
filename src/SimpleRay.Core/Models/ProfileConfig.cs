@@ -5,7 +5,8 @@ public enum ProxyProtocol
     VLESS,
     VMess,
     Trojan,
-    Shadowsocks
+    Shadowsocks,
+    WireGuard
 }
 
 /// <summary>
@@ -34,11 +35,42 @@ public sealed class ProfileConfig
 
     public TlsSettings? Tls { get; set; }
 
+    /// <summary>WireGuard-specific settings (only when <see cref="Protocol"/> is WireGuard).</summary>
+    public WireGuardSettings? Wg { get; set; }
+
     /// <summary>Original share link, kept for round-tripping / debugging.</summary>
     public string? Raw { get; set; }
 
     /// <summary>Whether this server is a member of the failover group (UI state, persisted).</summary>
     public bool InGroup { get; set; }
+}
+
+/// <summary>
+/// WireGuard tunnel parameters parsed from a standard [Interface]/[Peer] .conf.
+/// The peer endpoint host/port live on <see cref="ProfileConfig.Server"/>/<see cref="ProfileConfig.Port"/>.
+/// </summary>
+public sealed class WireGuardSettings
+{
+    /// <summary>Interface PrivateKey.</summary>
+    public string PrivateKey { get; set; } = "";
+
+    /// <summary>Peer PublicKey.</summary>
+    public string PeerPublicKey { get; set; } = "";
+
+    /// <summary>Peer PresharedKey (optional).</summary>
+    public string? PreSharedKey { get; set; }
+
+    /// <summary>Interface Address list (local tunnel addresses, e.g. 10.0.0.2/32).</summary>
+    public List<string> LocalAddresses { get; set; } = new();
+
+    /// <summary>Peer AllowedIPs.</summary>
+    public List<string> AllowedIps { get; set; } = new() { "0.0.0.0/0", "::/0" };
+
+    /// <summary>Interface MTU (optional).</summary>
+    public int? Mtu { get; set; }
+
+    /// <summary>Peer PersistentKeepalive seconds (optional).</summary>
+    public int? PersistentKeepalive { get; set; }
 }
 
 public sealed class TlsSettings

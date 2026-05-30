@@ -63,7 +63,9 @@
         <!-- Profile actions -->
         <WrapPanel Grid.Row="1" Grid.Column="0" Margin="0,8,0,0">
             <Button Content="Из буфера" Command="{Binding ImportClipboardCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт ссылок из буфера обмена" />
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт ссылок / WireGuard-конфига из буфера обмена" />
+            <Button Content="Файл…" Command="{Binding ImportFileCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт из файла .conf (WireGuard) или .txt со ссылками" />
             <Button Content="QR из файла" Command="{Binding ImportQrFileCommand}"
                     Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт из изображения с QR-кодом" />
             <Button Content="QR из буфера" Command="{Binding ImportQrClipboardCommand}"

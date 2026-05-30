@@ -54,6 +54,14 @@ public static class ShareLinkParser
         if (string.IsNullOrWhiteSpace(text))
             return result;
 
+        // A WireGuard .conf is a multi-line block, not a per-line share link.
+        if (WireGuardConfParser.LooksLikeConf(text) &&
+            WireGuardConfParser.TryParse(text, out var wg) && wg is not null)
+        {
+            result.Add(wg);
+            return result;
+        }
+
         foreach (var rawLine in text.Replace("\r", "\n").Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
             var line = rawLine.Trim();
