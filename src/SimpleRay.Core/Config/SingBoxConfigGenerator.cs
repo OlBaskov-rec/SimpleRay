@@ -37,7 +37,20 @@ public static class SingBoxConfigGenerator
         => Generate(profile, routing, options).ToJsonString(WriteOptions);
 
     public static JsonObject Generate(ProfileConfig profile, RoutingSettings routing, GeneratorOptions? options = null)
+        => Generate(new[] { profile }, routing, options);
+
+    /// <summary>
+    /// Builds a config for one or more servers. With a single server the proxy
+    /// outbound is tagged "proxy" directly; with several, each becomes proxy-N and a
+    /// failover group (urltest/selector) takes the "proxy" tag that routing uses.
+    /// </summary>
+    public static string GenerateJson(IReadOnlyList<ProfileConfig> profiles, RoutingSettings routing, GeneratorOptions? options = null)
+        => Generate(profiles, routing, options).ToJsonString(WriteOptions);
+
+    public static JsonObject Generate(IReadOnlyList<ProfileConfig> profiles, RoutingSettings routing, GeneratorOptions? options = null)
     {
+        if (profiles is null || profiles.Count == 0)
+            throw new ArgumentException("At least one profile is required.", nameof(profiles));
         options ??= new GeneratorOptions();
 
         var root = new JsonObject
@@ -45,7 +58,7 @@ public static class SingBoxConfigGenerator
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
             ["dns"] = BuildDns(),
             ["inbounds"] = new JsonArray { BuildTunInbound(options) },
-            ["outbounds"] = BuildOutbounds(profile),
+            ["outbounds"] = BuildOutbounds(profiles, routing.Failover),
             ["route"] = BuildRoute(routing, options),
         };
         return root;
@@ -75,17 +88,63 @@ public static class SingBoxConfigGenerator
         ["stack"] = "system",
     };
 
-    private static JsonArray BuildOutbounds(ProfileConfig p) => new()
+    private static JsonArray BuildOutbounds(IReadOnlyList<ProfileConfig> profiles, GroupSettings group)
     {
-        BuildProxyOutbound(p),
-        new JsonObject { ["type"] = "direct", ["tag"] = GeneratorOptions.DirectTag },
-    };
+        var outbounds = new JsonArray();
 
-    private static JsonObject BuildProxyOutbound(ProfileConfig p)
+        if (profiles.Count == 1)
+        {
+            // Single server: it directly owns the "proxy" tag used by routing/DNS.
+            outbounds.Add(BuildProxyOutbound(profiles[0], GeneratorOptions.ProxyTag));
+        }
+        else
+        {
+            // Several servers: proxy-1..N members + a group that takes the "proxy" tag.
+            var memberTags = new JsonArray();
+            for (int i = 0; i < profiles.Count; i++)
+            {
+                var tag = $"{GeneratorOptions.ProxyTag}-{i + 1}";
+                outbounds.Add(BuildProxyOutbound(profiles[i], tag));
+                memberTags.Add(tag);
+            }
+            outbounds.Add(BuildGroupOutbound(memberTags, group));
+        }
+
+        outbounds.Add(new JsonObject { ["type"] = "direct", ["tag"] = GeneratorOptions.DirectTag });
+        return outbounds;
+    }
+
+    private static JsonObject BuildGroupOutbound(JsonArray memberTags, GroupSettings group)
+    {
+        if (group.Mode == FailoverMode.Selector)
+        {
+            return new JsonObject
+            {
+                ["type"] = "selector",
+                ["tag"] = GeneratorOptions.ProxyTag,
+                ["outbounds"] = memberTags.DeepClone(),
+                ["default"] = memberTags[0]!.DeepClone(),
+                ["interrupt_exist_connections"] = true,
+            };
+        }
+
+        return new JsonObject
+        {
+            ["type"] = "urltest",
+            ["tag"] = GeneratorOptions.ProxyTag,
+            ["outbounds"] = memberTags.DeepClone(),
+            ["url"] = group.TestUrl,
+            ["interval"] = $"{Math.Max(10, group.IntervalSeconds)}s",
+            ["tolerance"] = Math.Max(0, group.ToleranceMs),
+            ["interrupt_exist_connections"] = true,
+        };
+    }
+
+    private static JsonObject BuildProxyOutbound(ProfileConfig p, string tag)
     {
         var o = new JsonObject
         {
-            ["tag"] = GeneratorOptions.ProxyTag,
+            ["tag"] = tag,
             ["server"] = p.Server,
             ["server_port"] = p.Port,
         };
@@ -115,7 +174,7 @@ public static class SingBoxConfigGenerator
         }
 
         // Reorder so "type" is first for readability.
-        var ordered = new JsonObject { ["type"] = o["type"]!.DeepClone(), ["tag"] = GeneratorOptions.ProxyTag };
+        var ordered = new JsonObject { ["type"] = o["type"]!.DeepClone(), ["tag"] = tag };
         foreach (var kv in o)
         {
             if (kv.Key is "type" or "tag") continue;

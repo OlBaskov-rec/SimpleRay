@@ -30,6 +30,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _isConnected;
     private string _statusText = "Отключено";
     private string _log = "";
+    private string _activeLabel = "";
 
     public MainViewModel()
     {
@@ -55,6 +56,7 @@ public sealed class MainViewModel : ObservableObject
         ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboard);
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
+        GroupChangedCommand = new RelayCommand(OnGroupChanged);
     }
 
     public ObservableCollection<ProfileConfig> Profiles { get; } = new();
@@ -99,6 +101,48 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ImportQrClipboardCommand { get; }
     public RelayCommand RemoveCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
+    public RelayCommand GroupChangedCommand { get; }
+
+    // --- Failover group ---------------------------------------------------
+
+    public sealed record FailoverModeItem(string Label, FailoverMode Mode);
+
+    public IReadOnlyList<FailoverModeItem> FailoverModes { get; } = new[]
+    {
+        new FailoverModeItem("Авто по скорости (urltest)", FailoverMode.UrlTest),
+        new FailoverModeItem("Ручной выбор (selector)", FailoverMode.Selector),
+    };
+
+    public FailoverMode SelectedFailoverMode
+    {
+        get => _routing.Failover.Mode;
+        set
+        {
+            if (_routing.Failover.Mode == value) return;
+            _routing.Failover.Mode = value;
+            OnPropertyChanged();
+            SaveRouting();
+        }
+    }
+
+    /// <summary>Hint about the current failover group composition.</summary>
+    public string GroupHint
+    {
+        get
+        {
+            int n = Profiles.Count(p => p.InGroup);
+            return n >= 2
+                ? $"В группе серверов: {n} — подключение пойдёт через группу с автопереключением"
+                : "Отметьте 2+ сервера, чтобы включить автопереключение между каналами";
+        }
+    }
+
+    /// <summary>Called when a profile's group membership toggles: persist + refresh hint.</summary>
+    private void OnGroupChanged()
+    {
+        _store.Save(Profiles);
+        OnPropertyChanged(nameof(GroupHint));
+    }
 
     private void OpenAppRouting()
     {
@@ -187,9 +231,10 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        if (SelectedProfile is null)
+        var targets = ResolveConnectTargets();
+        if (targets.Count == 0)
         {
-            StatusText = "Выберите профиль";
+            StatusText = "Выберите профиль или отметьте серверы в группу";
             return;
         }
 
@@ -211,15 +256,27 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
+            _activeLabel = targets.Count > 1
+                ? $"группа ({targets.Count}, {(SelectedFailoverMode == FailoverMode.UrlTest ? "авто" : "ручной")})"
+                : targets[0].Tag;
             StatusText = "Подключение…";
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
-            var configJson = SingBoxConfigGenerator.GenerateJson(SelectedProfile, _routing, options);
+            var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _engine.StartAsync(configJson);
         }
         catch (Exception ex)
         {
             StatusText = "Ошибка: " + ex.Message;
         }
+    }
+
+    /// <summary>Servers to connect: the failover group if ≥2 are marked, else the selected one.</summary>
+    private List<ProfileConfig> ResolveConnectTargets()
+    {
+        var group = Profiles.Where(p => p.InGroup).ToList();
+        if (group.Count >= 2) return group;
+        if (SelectedProfile is not null) return new List<ProfileConfig> { SelectedProfile };
+        return new List<ProfileConfig>();
     }
 
     private void ImportFromClipboard()
@@ -344,7 +401,7 @@ public sealed class MainViewModel : ObservableObject
             IsConnected = state == EngineState.Running;
             StatusText = state switch
             {
-                EngineState.Running => $"Подключено: {SelectedProfile?.Tag}",
+                EngineState.Running => $"Подключено: {_activeLabel}",
                 EngineState.Starting => "Подключение…",
                 EngineState.Stopping => "Отключение…",
                 EngineState.Faulted => "Сбой движка — см. лог",

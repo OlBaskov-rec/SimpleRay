@@ -38,16 +38,24 @@
                  SelectedItem="{Binding SelectedProfile, Mode=TwoWay}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Margin="2">
-                        <TextBlock Text="{Binding Tag}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Foreground="Gray" FontSize="11">
-                            <Run Text="{Binding Protocol}" />
-                            <Run Text=" · " />
-                            <Run Text="{Binding Server}" />
-                            <Run Text=":" />
-                            <Run Text="{Binding Port}" />
-                        </TextBlock>
-                    </StackPanel>
+                    <DockPanel Margin="2" LastChildFill="True">
+                        <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,2,0"
+                                  Content="в группу"
+                                  IsChecked="{Binding InGroup, Mode=TwoWay}"
+                                  Command="{Binding DataContext.GroupChangedCommand,
+                                            RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                  ToolTip="Включить этот сервер в группу автопереключения" />
+                        <StackPanel>
+                            <TextBlock Text="{Binding Tag}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Foreground="Gray" FontSize="11">
+                                <Run Text="{Binding Protocol}" />
+                                <Run Text=" · " />
+                                <Run Text="{Binding Server}" />
+                                <Run Text=":" />
+                                <Run Text="{Binding Port}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </DockPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -108,6 +116,16 @@
                     <Button Content="Приложения…" Command="{Binding OpenAppsCommand}"
                             HorizontalAlignment="Left" Padding="10,4" Margin="0,12,0,0"
                             ToolTip="Выбрать приложения: через VPN или напрямую" />
+
+                    <Separator Margin="0,12,0,8" />
+
+                    <TextBlock Text="Группа каналов (автопереключение)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding FailoverModes}"
+                              DisplayMemberPath="Label"
+                              SelectedValuePath="Mode"
+                              SelectedValue="{Binding SelectedFailoverMode, Mode=TwoWay}" />
+                    <TextBlock Text="{Binding GroupHint}" Foreground="#666" FontSize="11"
+                               TextWrapping="Wrap" Margin="0,4,0,0" />
                 </StackPanel>
             </GroupBox>
 

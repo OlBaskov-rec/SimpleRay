@@ -34,4 +34,7 @@ public sealed class RoutingSettings
 
     /// <summary>Process names (without .exe) forced to bypass the proxy.</summary>
     public List<string> DirectProcesses { get; set; } = new();
+
+    /// <summary>Failover group settings, used when more than one server is connected together.</summary>
+    public GroupSettings Failover { get; set; } = new();
 }

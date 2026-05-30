@@ -36,6 +36,9 @@ public sealed class ProfileConfig
 
     /// <summary>Original share link, kept for round-tripping / debugging.</summary>
     public string? Raw { get; set; }
+
+    /// <summary>Whether this server is a member of the failover group (UI state, persisted).</summary>
+    public bool InGroup { get; set; }
 }
 
 public sealed class TlsSettings
