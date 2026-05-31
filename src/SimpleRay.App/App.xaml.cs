@@ -14,6 +14,19 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Diagnostic: verify the (portable/single-file) exe resolves its bundled deps.
+        if (e.Args.Contains("--paths"))
+        {
+            var report =
+                $"BaseDir={Infrastructure.AppPaths.BaseDir}\n" +
+                $"CoreExe={Infrastructure.AppPaths.CoreExe} exists={File.Exists(Infrastructure.AppPaths.CoreExe)}\n" +
+                $"GeoDir={Infrastructure.AppPaths.GeoDir} exists={Directory.Exists(Infrastructure.AppPaths.GeoDir)}\n" +
+                $"Version={System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}\n";
+            File.WriteAllText(Path.Combine(Path.GetTempPath(), "simpleray_paths.txt"), report);
+            Shutdown();
+            return;
+        }
+
         // Dev-only headless probe of the WinRT camera pipeline (init → frames → BGRA copy).
         if (e.Args.Contains("--camera-selftest"))
         {

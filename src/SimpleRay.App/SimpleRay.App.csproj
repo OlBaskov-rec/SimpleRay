@@ -10,6 +10,10 @@
     <None Include="runtime\**\*" Exclude="runtime\**\config.json">
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Keep these as real files beside the exe for `dotnet run`/Debug, but DON'T let the
+           single-file publish bundler embed sing-box.exe/wintun.dll. The publish script copies
+           core\ and geo\ next to the published exe explicitly. -->
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -35,6 +39,11 @@
     <ApplicationIcon>Resources\tray.ico</ApplicationIcon>
     <RootNamespace>SimpleRay.App</RootNamespace>
     <AssemblyName>SimpleRay</AssemblyName>
+
+    <!-- Product version (source of truth for the in-app updater; compared to GitHub release tag). -->
+    <Version>0.1.0</Version>
+    <Company>OlBaskov-rec</Company>
+    <Product>SimpleRay</Product>
   </PropertyGroup>
 
 </Project>

@@ -488,6 +488,10 @@ $RECYCLE.BIN/
 # are still ignored by the rules above / below).
 !src/SimpleRay.App/
 
+# --- SimpleRay release output ---
+/publish/
+/dist/
+
 # --- SimpleRay bundled runtime deps (fetched by scripts/fetch-deps.ps1) ---
 # Binaries are intentionally not committed; run the script after cloning.
 src/SimpleRay.App/runtime/core/sing-box.exe
