@@ -26,6 +26,7 @@
                 <ContextMenu>
                     <MenuItem Header="Показать" Click="Tray_ShowWindow" />
                     <MenuItem Header="Подключить / Отключить" Click="Tray_ToggleConnect" />
+                    <MenuItem Header="Проверить обновления" Click="Tray_CheckUpdates" />
                     <Separator />
                     <MenuItem Header="Выход" Click="Tray_Exit" />
                 </ContextMenu>
@@ -83,6 +84,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <Button Grid.Row="0" Content="{Binding ConnectButtonText}"
@@ -137,6 +139,15 @@
                      IsReadOnly="True" FontFamily="Consolas" FontSize="11"
                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                      TextWrapping="NoWrap" Background="#FAFAFA" BorderBrush="#DDD" BorderThickness="1" />
+
+            <!-- Footer: version + updates -->
+            <DockPanel Grid.Row="4" Margin="0,8,0,0" LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding AppVersion}"
+                           Foreground="#999" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Content="Обновления"
+                        Command="{Binding CheckUpdatesCommand}" Padding="10,4"
+                        ToolTip="Проверить и установить обновление с GitHub" />
+            </DockPanel>
         </Grid>
     </Grid>
 </Window>

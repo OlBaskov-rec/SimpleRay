@@ -14,6 +14,15 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Updater branch: this is a temp copy of the exe swapping files into the app dir.
+        if (e.Args.Length > 0 && e.Args[0] == "--apply-update")
+        {
+            try { Services.UpdateService.RunApplyUpdate(e.Args); }
+            catch { /* best-effort; nothing we can surface here */ }
+            Shutdown();
+            return;
+        }
+
         // Diagnostic: verify the (portable/single-file) exe resolves its bundled deps.
         if (e.Args.Contains("--paths"))
         {

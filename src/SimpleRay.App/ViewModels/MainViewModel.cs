@@ -17,6 +17,7 @@ public sealed class MainViewModel : ObservableObject
 
     private readonly ProfileStore _store = new();
     private readonly SettingsStore _settingsStore = new();
+    private readonly UpdateService _updateService = new();
     private readonly EngineManager _engine;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
@@ -59,7 +60,10 @@ public sealed class MainViewModel : ObservableObject
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
+        CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
     }
+
+    public string AppVersion => "v" + UpdateService.CurrentVersion.ToString(3);
 
     public ObservableCollection<ProfileConfig> Profiles { get; } = new();
 
@@ -106,6 +110,59 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RemoveCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
+    public RelayCommand CheckUpdatesCommand { get; }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (IsConnected)
+        {
+            StatusText = "Сначала отключитесь, потом обновляйтесь";
+            return;
+        }
+
+        StatusText = "Проверка обновлений…";
+        SimpleRay.Core.Update.ReleaseInfo? info;
+        try
+        {
+            info = await _updateService.CheckAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Не удалось проверить обновления: " + ex.Message;
+            return;
+        }
+
+        if (info is null)
+        {
+            StatusText = $"У вас последняя версия ({AppVersion})";
+            return;
+        }
+
+        var consent = MessageBox.Show(
+            $"Доступна версия {info.Version.ToString(3)} (у вас {UpdateService.CurrentVersion.ToString(3)}).\n\n" +
+            "Скачать и обновить сейчас? Приложение перезапустится.",
+            "Обновление SimpleRay", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (consent != MessageBoxResult.Yes)
+        {
+            StatusText = "Обновление отложено";
+            return;
+        }
+
+        try
+        {
+            var progress = new Progress<double>(p => StatusText = $"Загрузка обновления… {p:P0}");
+            var staging = await _updateService.DownloadAndStageAsync(info, progress);
+
+            StatusText = "Применение обновления…";
+            await _engine.DisposeAsync(); // stop sing-box so its files aren't locked
+            _updateService.ApplyAndRestart(staging);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Ошибка обновления: " + ex.Message;
+        }
+    }
 
     // --- Failover group ---------------------------------------------------
 

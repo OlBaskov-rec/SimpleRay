@@ -40,6 +40,9 @@ public partial class MainWindow : Window
     private void Tray_ToggleConnect(object sender, RoutedEventArgs e) =>
         _viewModel.ConnectCommand.Execute(null);
 
+    private void Tray_CheckUpdates(object sender, RoutedEventArgs e) =>
+        _viewModel.CheckUpdatesCommand.Execute(null);
+
     private void Tray_Exit(object sender, RoutedEventArgs e) =>
         Application.Current.Shutdown();
 }
