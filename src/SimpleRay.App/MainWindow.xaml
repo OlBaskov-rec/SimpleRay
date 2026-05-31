@@ -70,6 +70,8 @@
                     Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт из изображения с QR-кодом" />
             <Button Content="QR из буфера" Command="{Binding ImportQrClipboardCommand}"
                     Padding="10,4" Margin="0,0,6,6" ToolTip="Распознать QR из картинки в буфере обмена" />
+            <Button Content="QR с камеры" Command="{Binding ImportQrWebcamCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Сканировать QR-код с web-камеры" />
             <Button Content="Удалить" Command="{Binding RemoveCommand}"
                     Padding="10,4" Margin="0,0,0,6" />
         </WrapPanel>

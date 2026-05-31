@@ -55,6 +55,7 @@ public sealed class MainViewModel : ObservableObject
         ImportFileCommand = new RelayCommand(ImportFromFile);
         ImportQrFileCommand = new RelayCommand(ImportQrFromFile);
         ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboard);
+        ImportQrWebcamCommand = new RelayCommand(ImportQrFromWebcam);
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
@@ -101,6 +102,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ImportFileCommand { get; }
     public RelayCommand ImportQrFileCommand { get; }
     public RelayCommand ImportQrClipboardCommand { get; }
+    public RelayCommand ImportQrWebcamCommand { get; }
     public RelayCommand RemoveCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
@@ -386,6 +388,14 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
         AddLinks(text, "В QR-коде нет распознанных ссылок");
+    }
+
+    private void ImportQrFromWebcam()
+    {
+        var dlg = new WebcamQrWindow { Owner = Application.Current?.MainWindow };
+        var ok = dlg.ShowDialog();
+        if (ok == true && !string.IsNullOrWhiteSpace(dlg.Result))
+            AddLinks(dlg.Result, "В QR-коде нет распознанных ссылок");
     }
 
     /// <summary>Parses share-links from <paramref name="text"/>, adds new ones, persists.</summary>

@@ -28,7 +28,19 @@ public static class QrDecoder
         var pixels = new byte[stride * h];
         bgra.CopyPixels(pixels, stride, 0);
 
-        var luminance = new RGBLuminanceSource(pixels, w, h, RGBLuminanceSource.BitmapFormat.BGRA32);
+        return DecodeBgra32(pixels, w, h);
+    }
+
+    /// <summary>
+    /// Decodes a QR code from raw BGRA32 pixels (4 bytes/pixel, tightly packed).
+    /// Shared by the WPF image path and the live-webcam path (SoftwareBitmap frames).
+    /// </summary>
+    public static string? DecodeBgra32(byte[] bgra, int width, int height)
+    {
+        if (bgra is null || width <= 0 || height <= 0 || bgra.Length < width * height * 4)
+            return null;
+
+        var luminance = new RGBLuminanceSource(bgra, width, height, RGBLuminanceSource.BitmapFormat.BGRA32);
         var reader = new BarcodeReaderGeneric
         {
             AutoRotate = true,
