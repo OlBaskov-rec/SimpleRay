@@ -98,12 +98,21 @@ public static class ShareLinkParser
         string b64 = link["vmess://".Length..];
         string json = Encoding.UTF8.GetString(DecodeBase64(b64));
 
-        using var doc = JsonDocument.Parse(json);
+        using var doc = ParseVmessJson(json);
         var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            throw new FormatException("Invalid vmess payload: not a JSON object.");
 
+        // Tolerate any JSON value kind: strings and numbers are used, the rest
+        // (null/bool/object/array) read as absent instead of throwing.
         string Get(string name) =>
             root.TryGetProperty(name, out var v)
-                ? (v.ValueKind == JsonValueKind.Number ? v.GetRawText() : v.GetString() ?? "")
+                ? v.ValueKind switch
+                {
+                    JsonValueKind.String => v.GetString() ?? "",
+                    JsonValueKind.Number => v.GetRawText(),
+                    _ => "",
+                }
                 : "";
 
         var p = new ProfileConfig
@@ -292,6 +301,20 @@ public static class ShareLinkParser
         int.TryParse(s, out var port) && port is > 0 and <= 65535
             ? port
             : throw new FormatException($"Invalid port '{s}'.");
+
+    // The class contract is "malformed link => FormatException" (TryParse relies on
+    // it), so JSON errors are converted rather than left to escape as JsonException.
+    private static JsonDocument ParseVmessJson(string json)
+    {
+        try
+        {
+            return JsonDocument.Parse(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new FormatException("Invalid vmess JSON payload.", ex);
+        }
+    }
 
     private static byte[] DecodeBase64(string s)
     {

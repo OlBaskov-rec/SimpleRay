@@ -26,8 +26,9 @@ public sealed class SettingsStore
             var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<RoutingSettings>(json, Options) ?? new RoutingSettings();
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
+            // A corrupt or unreadable file must not prevent the app from starting.
             return new RoutingSettings();
         }
     }
@@ -35,6 +36,6 @@ public sealed class SettingsStore
     public void Save(RoutingSettings settings)
     {
         var json = JsonSerializer.Serialize(settings, Options);
-        File.WriteAllText(AppPaths.SettingsFile, json);
+        AtomicFile.WriteAllText(AppPaths.SettingsFile, json);
     }
 }

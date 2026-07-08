@@ -10,6 +10,35 @@ namespace SimpleRay.App;
 
 public partial class App : Application
 {
+    public App()
+    {
+        // Last-resort safety net: an unhandled exception must not silently kill the
+        // process — a running sing-box with strict_route would be orphaned and the
+        // user left without network. Report, log, and keep the app alive.
+        DispatcherUnhandledException += (_, e) =>
+        {
+            ReportCrash(e.Exception);
+            e.Handled = true;
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) => e.SetObserved();
+    }
+
+    private static void ReportCrash(Exception ex)
+    {
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(Infrastructure.AppPaths.DataDir, "last-error.txt"),
+                $"{DateTime.Now:O}{Environment.NewLine}{ex}");
+        }
+        catch { /* crash reporting must never throw */ }
+
+        MessageBox.Show(
+            "Непредвиденная ошибка: " + ex.Message +
+            "\n\nПодробности сохранены в last-error.txt (папка данных приложения).",
+            "SimpleRay", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

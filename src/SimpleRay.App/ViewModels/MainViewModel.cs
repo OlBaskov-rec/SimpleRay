@@ -201,7 +201,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Called when a profile's group membership toggles: persist + refresh hint.</summary>
     private void OnGroupChanged()
     {
-        _store.Save(Profiles);
+        SaveProfiles();
         OnPropertyChanged(nameof(GroupHint));
     }
 
@@ -282,6 +282,12 @@ public sealed class MainViewModel : ObservableObject
     {
         try { _settingsStore.Save(_routing); }
         catch (Exception ex) { StatusText = "Не удалось сохранить настройки: " + ex.Message; }
+    }
+
+    private void SaveProfiles()
+    {
+        try { _store.Save(Profiles); }
+        catch (Exception ex) { StatusText = "Не удалось сохранить профили: " + ex.Message; }
     }
 
     private async Task ToggleConnectionAsync()
@@ -475,7 +481,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedProfile ??= Profiles.FirstOrDefault();
-        _store.Save(Profiles);
+        SaveProfiles();
         StatusText = added > 0 ? $"Добавлено профилей: {added}" : "Профили уже есть в списке";
     }
 
@@ -485,11 +491,13 @@ public sealed class MainViewModel : ObservableObject
             return;
         Profiles.Remove(SelectedProfile);
         SelectedProfile = Profiles.FirstOrDefault();
-        _store.Save(Profiles);
+        SaveProfiles();
     }
 
+    // Engine events arrive on thread-pool threads. BeginInvoke (not Invoke): a blocking
+    // dispatch would deadlock the synchronous engine shutdown in MainWindow.Closed.
     private void OnEngineStateChanged(object? sender, EngineState state) =>
-        _dispatcher.Invoke(() =>
+        _dispatcher.BeginInvoke(() =>
         {
             IsConnected = state == EngineState.Running;
             StatusText = state switch
@@ -503,7 +511,7 @@ public sealed class MainViewModel : ObservableObject
         });
 
     private void OnEngineLog(object? sender, string line) =>
-        _dispatcher.Invoke(() =>
+        _dispatcher.BeginInvoke(() =>
         {
             var combined = Log + line + Environment.NewLine;
             if (combined.Length > MaxLogChars)

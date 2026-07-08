@@ -26,8 +26,9 @@ public sealed class ProfileStore
             var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<List<ProfileConfig>>(json, Options) ?? new();
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
+            // A corrupt or unreadable file must not prevent the app from starting.
             return new List<ProfileConfig>();
         }
     }
@@ -35,6 +36,6 @@ public sealed class ProfileStore
     public void Save(IEnumerable<ProfileConfig> profiles)
     {
         var json = JsonSerializer.Serialize(profiles, Options);
-        File.WriteAllText(AppPaths.ProfilesFile, json);
+        AtomicFile.WriteAllText(AppPaths.ProfilesFile, json);
     }
 }

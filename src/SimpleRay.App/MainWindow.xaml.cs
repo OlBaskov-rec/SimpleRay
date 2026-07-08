@@ -12,10 +12,14 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
-        Closed += async (_, _) =>
+        Closed += (_, _) =>
         {
             TrayIcon.Dispose();
-            await _viewModel.ShutdownAsync();
+            // Blocks until sing-box is fully stopped. Application.Shutdown stops the
+            // message pump, so an awaited continuation here might never resume — an
+            // orphaned sing-box with strict_route would leave the user offline.
+            // Safe to block: the view model dispatches engine events via BeginInvoke.
+            _viewModel.ShutdownAsync().GetAwaiter().GetResult();
         };
     }
 

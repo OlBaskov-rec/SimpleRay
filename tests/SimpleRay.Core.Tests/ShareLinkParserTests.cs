@@ -139,4 +139,34 @@ public class ShareLinkParserTests
         Assert.False(ShareLinkParser.TryParse(link, out var p));
         Assert.Null(p);
     }
+
+    [Theory]
+    [InlineData("this is not json at all")]
+    [InlineData("[1, 2, 3]")]
+    [InlineData("\"just a string\"")]
+    public void TryParse_ReturnsFalse_OnVmessWithNonObjectPayload(string payload)
+    {
+        string link = "vmess://" + Convert.ToBase64String(Encoding.UTF8.GetBytes(payload));
+
+        Assert.False(ShareLinkParser.TryParse(link, out var p));
+        Assert.Null(p);
+    }
+
+    [Fact]
+    public void Vmess_NonStringJsonFields_AreToleratedNotFatal()
+    {
+        // port as a number, path as an object, host null, aid as a number — all seen
+        // in the wild; none of them may throw.
+        const string json =
+            "{\"add\":\"1.2.3.4\",\"port\":8443,\"id\":\"a3482e88-686a-4a58-8126-99c9df64b7bf\"," +
+            "\"aid\":0,\"path\":{},\"host\":null}";
+        string link = "vmess://" + Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+
+        Assert.True(ShareLinkParser.TryParse(link, out var p));
+        Assert.Equal("1.2.3.4", p!.Server);
+        Assert.Equal(8443, p.Port);
+        Assert.Equal(0, p.AlterId);
+        Assert.Null(p.Path);
+        Assert.Null(p.Host);
+    }
 }
