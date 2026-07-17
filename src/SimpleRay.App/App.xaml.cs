@@ -21,9 +21,12 @@ public partial class App : Application
             e.Handled = true;
         };
         TaskScheduler.UnobservedTaskException += (_, e) => e.SetObserved();
+        // Background-thread exceptions terminate the process; at least record them.
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            LogError(e.ExceptionObject as Exception);
     }
 
-    private static void ReportCrash(Exception ex)
+    private static void LogError(Exception? ex)
     {
         try
         {
@@ -32,7 +35,11 @@ public partial class App : Application
                 $"{DateTime.Now:O}{Environment.NewLine}{ex}");
         }
         catch { /* crash reporting must never throw */ }
+    }
 
+    private static void ReportCrash(Exception ex)
+    {
+        LogError(ex);
         MessageBox.Show(
             "Непредвиденная ошибка: " + ex.Message +
             "\n\nПодробности сохранены в last-error.txt (папка данных приложения).",

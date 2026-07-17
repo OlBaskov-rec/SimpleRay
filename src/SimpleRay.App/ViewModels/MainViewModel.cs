@@ -294,7 +294,8 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsConnected)
         {
-            await _engine.StopAsync();
+            try { await _engine.StopAsync(); }
+            catch (Exception ex) { StatusText = "Ошибка отключения: " + ex.Message; }
             return;
         }
 
