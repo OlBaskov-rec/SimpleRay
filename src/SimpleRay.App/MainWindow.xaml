@@ -79,6 +79,10 @@
                     Padding="10,4" Margin="0,0,6,6" ToolTip="Распознать QR из картинки в буфере обмена" />
             <Button Content="QR с камеры" Command="{Binding ImportQrWebcamCommand}"
                     Padding="10,4" Margin="0,0,6,6" ToolTip="Сканировать QR-код с web-камеры" />
+            <Button Content="Подписка…" Command="{Binding AddSubscriptionCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт профилей из URL-подписки" />
+            <Button Content="Обновить" Command="{Binding RefreshSubscriptionsCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="Обновить профили из сохранённых подписок" />
             <Button Content="Удалить" Command="{Binding RemoveCommand}"
                     Padding="10,4" Margin="0,0,0,6" />
         </WrapPanel>

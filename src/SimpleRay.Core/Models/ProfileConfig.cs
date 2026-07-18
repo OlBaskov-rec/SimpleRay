@@ -46,6 +46,9 @@ public sealed class ProfileConfig
     /// <summary>Whether this server is a member of the failover group (UI state, persisted).</summary>
     public bool InGroup { get; set; }
 
+    /// <summary>Source subscription URL if this profile came from one; null when added manually.</summary>
+    public string? Subscription { get; set; }
+
     /// <summary>True when TLS is on but certificate validation is disabled (allowInsecure) — a security risk.</summary>
     [JsonIgnore]
     public bool SkipsCertCheck => Tls is { Enabled: true, AllowInsecure: true };

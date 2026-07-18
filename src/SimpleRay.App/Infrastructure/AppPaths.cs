@@ -30,6 +30,9 @@ public static class AppPaths
     /// <summary>Persisted routing settings (mode, geo presets, per-app rules).</summary>
     public static string SettingsFile => Path.Combine(DataDir, "settings.json");
 
+    /// <summary>Persisted subscription URLs.</summary>
+    public static string SubscriptionsFile => Path.Combine(DataDir, "subscriptions.json");
+
     /// <summary>Where the generated sing-box config is written at runtime.</summary>
     public static string RuntimeDir
     {

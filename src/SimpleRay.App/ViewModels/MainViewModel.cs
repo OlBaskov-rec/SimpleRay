@@ -19,6 +19,9 @@ public sealed class MainViewModel : ObservableObject
     private readonly ProfileStore _store = new();
     private readonly SettingsStore _settingsStore = new();
     private readonly UpdateService _updateService = new();
+    private readonly SubscriptionService _subscriptionService = new();
+    private readonly SubscriptionStore _subscriptionStore = new();
+    private readonly List<string> _subscriptions;
     private readonly IVpnEngine _engine;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
@@ -38,6 +41,7 @@ public sealed class MainViewModel : ObservableObject
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
+        _subscriptions = _subscriptionStore.Load();
 
         foreach (var p in _store.Load())
             Profiles.Add(p);
@@ -62,6 +66,9 @@ public sealed class MainViewModel : ObservableObject
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
+        AddSubscriptionCommand = new RelayCommand(AddSubscriptionAsync);
+        RefreshSubscriptionsCommand = new RelayCommand(RefreshSubscriptionsAsync,
+            () => _subscriptions.Count > 0);
     }
 
     public string AppVersion => "v" + UpdateService.CurrentVersion.ToString(3);
@@ -112,6 +119,84 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
     public RelayCommand CheckUpdatesCommand { get; }
+    public RelayCommand AddSubscriptionCommand { get; }
+    public RelayCommand RefreshSubscriptionsCommand { get; }
+
+    private async Task AddSubscriptionAsync()
+    {
+        var dlg = new TextInputWindow("Подписка", "URL подписки (http/https):",
+            _subscriptions.LastOrDefault() ?? "")
+        { Owner = Application.Current?.MainWindow };
+        if (dlg.ShowDialog() != true) return;
+
+        var url = dlg.Value;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+        {
+            StatusText = "Некорректный URL подписки";
+            return;
+        }
+        await ImportSubscriptionAsync(url);
+    }
+
+    private async Task RefreshSubscriptionsAsync()
+    {
+        if (_subscriptions.Count == 0)
+        {
+            StatusText = "Подписок нет";
+            return;
+        }
+        foreach (var url in _subscriptions.ToList())
+            await ImportSubscriptionAsync(url);
+    }
+
+    /// <summary>Fetches a subscription and replaces the profiles that came from it (group membership preserved).</summary>
+    private async Task ImportSubscriptionAsync(string url)
+    {
+        StatusText = "Загрузка подписки…";
+        IReadOnlyList<ProfileConfig> fetched;
+        try
+        {
+            fetched = await _subscriptionService.FetchAsync(url);
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Не удалось загрузить подписку: " + ex.Message;
+            return;
+        }
+
+        if (fetched.Count == 0)
+        {
+            StatusText = "В подписке нет профилей";
+            return;
+        }
+
+        // Preserve group membership across a refresh (match by Raw).
+        var inGroup = Profiles.Where(p => p.InGroup && p.Raw is not null)
+            .Select(p => p.Raw!).ToHashSet();
+
+        foreach (var stale in Profiles.Where(p => p.Subscription == url).ToList())
+            Profiles.Remove(stale);
+
+        foreach (var p in fetched)
+        {
+            if (p.Raw is not null && inGroup.Contains(p.Raw))
+                p.InGroup = true;
+            Profiles.Add(p);
+        }
+
+        SelectedProfile ??= Profiles.FirstOrDefault();
+        SaveProfiles();
+
+        if (!_subscriptions.Contains(url))
+        {
+            _subscriptions.Add(url);
+            _subscriptionStore.Save(_subscriptions);
+            RefreshSubscriptionsCommand.RaiseCanExecuteChanged();
+        }
+
+        OnPropertyChanged(nameof(GroupHint));
+        StatusText = $"Подписка обновлена: профилей {fetched.Count}";
+    }
 
     private async Task CheckForUpdatesAsync()
     {
