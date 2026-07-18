@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace SimpleRay.Core.Models;
 
 public enum ProxyProtocol
@@ -43,6 +45,10 @@ public sealed class ProfileConfig
 
     /// <summary>Whether this server is a member of the failover group (UI state, persisted).</summary>
     public bool InGroup { get; set; }
+
+    /// <summary>True when TLS is on but certificate validation is disabled (allowInsecure) — a security risk.</summary>
+    [JsonIgnore]
+    public bool SkipsCertCheck => Tls is { Enabled: true, AllowInsecure: true };
 }
 
 /// <summary>

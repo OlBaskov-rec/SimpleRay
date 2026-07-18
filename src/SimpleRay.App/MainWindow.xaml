@@ -7,6 +7,9 @@
         Icon="pack://application:,,,/Resources/tray.ico"
         StateChanged="Window_StateChanged"
         FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="280" />
@@ -55,6 +58,9 @@
                                 <Run Text=":" />
                                 <Run Text="{Binding Port}" />
                             </TextBlock>
+                            <TextBlock Text="⚠ без проверки сертификата" FontSize="11" Foreground="#C0392B"
+                                       Visibility="{Binding SkipsCertCheck, Converter={StaticResource BoolToVis}}"
+                                       ToolTip="Профиль отключает проверку TLS-сертификата (allowInsecure) — трафик уязвим к перехвату" />
                         </StackPanel>
                     </DockPanel>
                 </DataTemplate>
