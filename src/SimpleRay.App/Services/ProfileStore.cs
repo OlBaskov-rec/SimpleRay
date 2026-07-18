@@ -9,12 +9,21 @@ namespace SimpleRay.App.Services;
 /// <summary>Persists the user's profile list as JSON under %AppData%\SimpleRay.</summary>
 public sealed class ProfileStore
 {
+    /// <summary>Bump when the on-disk profile shape changes; lets future loads migrate.</summary>
+    public const int CurrentSchema = 1;
+
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
+
+    private sealed class Document
+    {
+        public int SchemaVersion { get; set; } = CurrentSchema;
+        public List<ProfileConfig> Profiles { get; set; } = new();
+    }
 
     public List<ProfileConfig> Load()
     {
@@ -24,7 +33,10 @@ public sealed class ProfileStore
         try
         {
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<List<ProfileConfig>>(json, Options) ?? new();
+            // Legacy (unversioned) format was a bare array; current format is a versioned envelope.
+            if (json.TrimStart().StartsWith('['))
+                return JsonSerializer.Deserialize<List<ProfileConfig>>(json, Options) ?? new();
+            return JsonSerializer.Deserialize<Document>(json, Options)?.Profiles ?? new();
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -35,7 +47,7 @@ public sealed class ProfileStore
 
     public void Save(IEnumerable<ProfileConfig> profiles)
     {
-        var json = JsonSerializer.Serialize(profiles, Options);
-        AtomicFile.WriteAllText(AppPaths.ProfilesFile, json);
+        var doc = new Document { SchemaVersion = CurrentSchema, Profiles = profiles.ToList() };
+        AtomicFile.WriteAllText(AppPaths.ProfilesFile, JsonSerializer.Serialize(doc, Options));
     }
 }
