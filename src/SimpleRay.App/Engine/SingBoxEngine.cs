@@ -168,8 +168,19 @@ public sealed class SingBoxEngine : IVpnEngine
         finally
         {
             process.Dispose();
+            TryDeleteConfig(); // the generated config holds secrets — don't leave it on disk
             SetState(EngineState.Stopped);
         }
+    }
+
+    private void TryDeleteConfig()
+    {
+        try
+        {
+            if (File.Exists(ConfigPath))
+                File.Delete(ConfigPath);
+        }
+        catch { /* best-effort cleanup */ }
     }
 
     private void OnProcessExited(object? sender, EventArgs e)

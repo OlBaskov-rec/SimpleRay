@@ -32,7 +32,9 @@ public sealed class ProfileStore
             return new List<ProfileConfig>();
         try
         {
-            var json = File.ReadAllText(path);
+            // Profiles hold credentials, so they're encrypted at rest (DPAPI). ReadAllText
+            // decrypts, or returns legacy plaintext for files written before encryption.
+            var json = EncryptedFile.ReadAllText(path);
             // Legacy (unversioned) format was a bare array; current format is a versioned envelope.
             if (json.TrimStart().StartsWith('['))
                 return JsonSerializer.Deserialize<List<ProfileConfig>>(json, Options) ?? new();
@@ -48,6 +50,6 @@ public sealed class ProfileStore
     public void Save(IEnumerable<ProfileConfig> profiles)
     {
         var doc = new Document { SchemaVersion = CurrentSchema, Profiles = profiles.ToList() };
-        AtomicFile.WriteAllText(AppPaths.ProfilesFile, JsonSerializer.Serialize(doc, Options));
+        EncryptedFile.WriteAllText(AppPaths.ProfilesFile, JsonSerializer.Serialize(doc, Options));
     }
 }

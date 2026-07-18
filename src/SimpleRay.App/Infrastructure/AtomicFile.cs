@@ -13,6 +13,18 @@ public static class AtomicFile
     {
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, contents);
+        Swap(tmp, path);
+    }
+
+    public static void WriteAllBytes(string path, byte[] bytes)
+    {
+        var tmp = path + ".tmp";
+        File.WriteAllBytes(tmp, bytes);
+        Swap(tmp, path);
+    }
+
+    private static void Swap(string tmp, string path)
+    {
         if (File.Exists(path))
             File.Replace(tmp, path, destinationBackupFileName: null);
         else
