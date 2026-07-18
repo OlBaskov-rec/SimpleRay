@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using SimpleRay.Core.Engine;
+using SimpleRay.App.Engine;
 
 namespace SimpleRay.App.Infrastructure;
 
@@ -10,7 +10,7 @@ namespace SimpleRay.App.Infrastructure;
 /// auto-added routes before exiting — avoiding stale routes after disconnect.
 ///
 /// Best-effort: any failure (no console, attach denied, timeout) returns false so
-/// <see cref="EngineManager"/> falls back to a hard kill. Console attach/detach is a
+/// <see cref="SingBoxEngine"/> falls back to a hard kill. Console attach/detach is a
 /// process-global operation, so calls are serialized.
 /// </summary>
 public sealed class ConsoleCtrlTerminator : IProcessTerminator

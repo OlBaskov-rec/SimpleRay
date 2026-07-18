@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using SimpleRay.App.Engine;
 using SimpleRay.App.Infrastructure;
 using SimpleRay.App.Services;
 using SimpleRay.Core.Config;
@@ -18,7 +19,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly ProfileStore _store = new();
     private readonly SettingsStore _settingsStore = new();
     private readonly UpdateService _updateService = new();
-    private readonly EngineManager _engine;
+    private readonly IVpnEngine _engine;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
 
@@ -42,7 +43,7 @@ public sealed class MainViewModel : ObservableObject
             Profiles.Add(p);
         _selectedProfile = Profiles.FirstOrDefault();
 
-        _engine = new EngineManager(new EngineOptions
+        _engine = new SingBoxEngine(new EngineOptions
         {
             ExecutablePath = AppPaths.CoreExe,
             WorkingDirectory = AppPaths.RuntimeDir,

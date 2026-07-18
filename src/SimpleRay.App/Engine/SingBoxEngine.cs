@@ -1,16 +1,9 @@
 using System.Diagnostics;
+using System.IO;
 using System.Text;
+using SimpleRay.Core.Engine;
 
-namespace SimpleRay.Core.Engine;
-
-public enum EngineState
-{
-    Stopped,
-    Starting,
-    Running,
-    Stopping,
-    Faulted
-}
+namespace SimpleRay.App.Engine;
 
 public sealed class EngineOptions
 {
@@ -23,9 +16,9 @@ public sealed class EngineOptions
     public string ConfigFileName { get; init; } = "config.json";
 
     /// <summary>
-    /// Optional platform-specific graceful terminator. When set, <see cref="EngineManager.StopAsync"/>
-    /// asks it to stop the process cleanly (so sing-box can tear down the TUN adapter and
-    /// routes) before falling back to a hard kill. Left null on platforms without one.
+    /// Optional graceful terminator. When set, <see cref="SingBoxEngine.StopAsync"/> asks it
+    /// to stop the process cleanly (so sing-box can tear down the TUN adapter and routes)
+    /// before falling back to a hard kill.
     /// </summary>
     public IProcessTerminator? Terminator { get; init; }
 
@@ -34,9 +27,8 @@ public sealed class EngineOptions
 }
 
 /// <summary>
-/// Strategy for stopping the engine process cleanly. Implementations are
-/// platform-specific (e.g. sending CTRL+C on Windows) and must never throw —
-/// returning false lets the caller hard-kill instead.
+/// Strategy for stopping the child process cleanly (e.g. sending CTRL+C on Windows).
+/// Implementations must never throw — returning false lets the caller hard-kill instead.
 /// </summary>
 public interface IProcessTerminator
 {
@@ -45,18 +37,18 @@ public interface IProcessTerminator
 }
 
 /// <summary>
-/// Owns the sing-box child process: writes the generated config, optionally
-/// validates it, starts/stops the process and surfaces its logs and state.
-/// No control port is opened — the process is driven purely via config file
-/// and OS process signals, preserving the no-loopback-proxy invariant.
+/// Windows <see cref="IVpnEngine"/>: owns the sing-box child process — writes the
+/// generated config, starts/stops the process and surfaces its logs and state.
+/// No control port is opened — the process is driven purely via config file and OS
+/// process signals, preserving the no-loopback-proxy invariant.
 /// </summary>
-public sealed class EngineManager : IAsyncDisposable
+public sealed class SingBoxEngine : IVpnEngine
 {
     private readonly EngineOptions _options;
     private readonly object _gate = new();
     private Process? _process;
 
-    public EngineManager(EngineOptions options) => _options = options;
+    public SingBoxEngine(EngineOptions options) => _options = options;
 
     public EngineState State { get; private set; } = EngineState.Stopped;
 
@@ -64,15 +56,6 @@ public sealed class EngineManager : IAsyncDisposable
     public event EventHandler<string>? LogReceived;
 
     public string ConfigPath => Path.Combine(_options.WorkingDirectory, _options.ConfigFileName);
-
-    /// <summary>Runs `sing-box check` on the given config. Returns (ok, output).</summary>
-    public async Task<(bool ok, string output)> CheckConfigAsync(string configJson, CancellationToken ct = default)
-    {
-        WriteConfig(configJson);
-        var (exit, output) = await RunOnceAsync(
-            $"check -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"", ct).ConfigureAwait(false);
-        return (exit == 0, output);
-    }
 
     public async Task StartAsync(string configJson, CancellationToken ct = default)
     {
@@ -207,31 +190,6 @@ public sealed class EngineManager : IAsyncDisposable
         }
         try { process.Exited -= OnProcessExited; } catch { /* ignore */ }
         try { process.Dispose(); } catch { /* ignore */ }
-    }
-
-    private async Task<(int exitCode, string output)> RunOnceAsync(string arguments, CancellationToken ct)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = _options.ExecutablePath,
-            Arguments = arguments,
-            WorkingDirectory = _options.WorkingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-
-        using var process = new Process { StartInfo = psi };
-        var sb = new StringBuilder();
-        process.OutputDataReceived += (_, e) => { if (e.Data is not null) sb.AppendLine(e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data is not null) sb.AppendLine(e.Data); };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
-        return (process.ExitCode, sb.ToString());
     }
 
     private void WriteConfig(string configJson)
