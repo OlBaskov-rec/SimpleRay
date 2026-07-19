@@ -27,6 +27,11 @@
     <Resource Include="Resources\tray.ico" />
   </ItemGroup>
 
+  <!-- Localization strings (one JSON per language), embedded and loaded at runtime. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\langs\*.json" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- Windows 10 TFM unlocks WinRT (Windows.Media.Capture) for live webcam QR. -->

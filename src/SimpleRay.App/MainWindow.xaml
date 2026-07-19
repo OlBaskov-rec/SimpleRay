@@ -2,10 +2,12 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:tb="http://www.hardcodet.net/taskbar"
+        xmlns:loc="clr-namespace:SimpleRay.App.Localization"
         Title="SimpleRay" Height="560" Width="760"
         WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/Resources/tray.ico"
         StateChanged="Window_StateChanged"
+        FlowDirection="{Binding FlowDirection, Source={x:Static loc:LocalizationManager.Instance}}"
         FontFamily="Segoe UI" FontSize="13">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -27,11 +29,11 @@
                         TrayMouseDoubleClick="Tray_ShowWindow">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Показать" Click="Tray_ShowWindow" />
-                    <MenuItem Header="Подключить / Отключить" Click="Tray_ToggleConnect" />
-                    <MenuItem Header="Проверить обновления" Click="Tray_CheckUpdates" />
+                    <MenuItem Header="{loc:Loc tray.show}" Click="Tray_ShowWindow" />
+                    <MenuItem Header="{loc:Loc tray.toggle}" Click="Tray_ToggleConnect" />
+                    <MenuItem Header="{loc:Loc tray.checkUpdates}" Click="Tray_CheckUpdates" />
                     <Separator />
-                    <MenuItem Header="Выход" Click="Tray_Exit" />
+                    <MenuItem Header="{loc:Loc tray.exit}" Click="Tray_Exit" />
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
@@ -44,11 +46,11 @@
                 <DataTemplate>
                     <DockPanel Margin="2" LastChildFill="True">
                         <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,2,0"
-                                  Content="в группу"
+                                  Content="{loc:Loc profile.inGroup}"
                                   IsChecked="{Binding InGroup, Mode=TwoWay}"
                                   Command="{Binding DataContext.GroupChangedCommand,
                                             RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                  ToolTip="Включить этот сервер в группу автопереключения" />
+                                  ToolTip="{loc:Loc tip.inGroup}" />
                         <StackPanel>
                             <TextBlock Text="{Binding Tag}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                             <TextBlock Foreground="Gray" FontSize="11">
@@ -58,9 +60,9 @@
                                 <Run Text=":" />
                                 <Run Text="{Binding Port}" />
                             </TextBlock>
-                            <TextBlock Text="⚠ без проверки сертификата" FontSize="11" Foreground="#C0392B"
+                            <TextBlock Text="{loc:Loc profile.insecure}" FontSize="11" Foreground="#C0392B"
                                        Visibility="{Binding SkipsCertCheck, Converter={StaticResource BoolToVis}}"
-                                       ToolTip="Профиль отключает проверку TLS-сертификата (allowInsecure) — трафик уязвим к перехвату" />
+                                       ToolTip="{loc:Loc tip.insecure}" />
                         </StackPanel>
                     </DockPanel>
                 </DataTemplate>
@@ -69,21 +71,21 @@
 
         <!-- Profile actions -->
         <WrapPanel Grid.Row="1" Grid.Column="0" Margin="0,8,0,0">
-            <Button Content="Из буфера" Command="{Binding ImportClipboardCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт ссылок / WireGuard-конфига из буфера обмена" />
-            <Button Content="Файл…" Command="{Binding ImportFileCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт из файла .conf (WireGuard) или .txt со ссылками" />
-            <Button Content="QR из файла" Command="{Binding ImportQrFileCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт из изображения с QR-кодом" />
-            <Button Content="QR из буфера" Command="{Binding ImportQrClipboardCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Распознать QR из картинки в буфере обмена" />
-            <Button Content="QR с камеры" Command="{Binding ImportQrWebcamCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Сканировать QR-код с web-камеры" />
-            <Button Content="Подписка…" Command="{Binding AddSubscriptionCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Импорт профилей из URL-подписки" />
-            <Button Content="Обновить" Command="{Binding RefreshSubscriptionsCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="Обновить профили из сохранённых подписок" />
-            <Button Content="Удалить" Command="{Binding RemoveCommand}"
+            <Button Content="{loc:Loc import.clipboard}" Command="{Binding ImportClipboardCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.importClipboard}" />
+            <Button Content="{loc:Loc import.file}" Command="{Binding ImportFileCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.importFile}" />
+            <Button Content="{loc:Loc import.qrFile}" Command="{Binding ImportQrFileCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.qrFile}" />
+            <Button Content="{loc:Loc import.qrClipboard}" Command="{Binding ImportQrClipboardCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.qrClipboard}" />
+            <Button Content="{loc:Loc import.qrWebcam}" Command="{Binding ImportQrWebcamCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.qrWebcam}" />
+            <Button Content="{loc:Loc subscription.add}" Command="{Binding AddSubscriptionCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.subscriptionAdd}" />
+            <Button Content="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.subscriptionRefresh}" />
+            <Button Content="{loc:Loc profile.remove}" Command="{Binding RemoveCommand}"
                     Padding="10,4" Margin="0,0,0,6" />
         </WrapPanel>
 
@@ -105,37 +107,37 @@
                        TextWrapping="Wrap" Foreground="#333" />
 
             <!-- Routing settings -->
-            <GroupBox Grid.Row="2" Header="Маршрутизация" Padding="8,4" Margin="0,0,0,8">
+            <GroupBox Grid.Row="2" Header="{loc:Loc routing.title}" Padding="8,4" Margin="0,0,0,8">
                 <StackPanel>
-                    <TextBlock Text="Режим" Foreground="#666" Margin="0,0,0,2" />
+                    <TextBlock Text="{loc:Loc routing.mode}" Foreground="#666" Margin="0,0,0,2" />
                     <ComboBox ItemsSource="{Binding Modes}"
                               DisplayMemberPath="Label"
                               SelectedValuePath="Mode"
                               SelectedValue="{Binding SelectedMode, Mode=TwoWay}" />
 
-                    <CheckBox Content="Блокировать рекламу и трекеры"
+                    <CheckBox Content="{loc:Loc routing.blockAds}"
                               IsChecked="{Binding BlockAds, Mode=TwoWay}"
                               Margin="0,10,0,0" />
 
-                    <TextBlock Text="Напрямую, минуя VPN (в режиме «По правилам»):"
+                    <TextBlock Text="{loc:Loc routing.directHint}"
                                Foreground="#666" Margin="0,10,0,2" TextWrapping="Wrap" />
-                    <CheckBox Content="Российские сайты (geosite-ru)"
+                    <CheckBox Content="{loc:Loc routing.directRuSites}"
                               IsChecked="{Binding DirectRuSites, Mode=TwoWay}"
                               IsEnabled="{Binding IsRuleMode}" Margin="0,2,0,0" />
-                    <CheckBox Content="Российские IP (geoip-ru)"
+                    <CheckBox Content="{loc:Loc routing.directRuIp}"
                               IsChecked="{Binding DirectRuIp, Mode=TwoWay}"
                               IsEnabled="{Binding IsRuleMode}" Margin="0,2,0,0" />
-                    <CheckBox Content="Локальная сеть (private)"
+                    <CheckBox Content="{loc:Loc routing.directLan}"
                               IsChecked="{Binding DirectLan, Mode=TwoWay}"
                               IsEnabled="{Binding IsRuleMode}" Margin="0,2,0,0" />
 
-                    <Button Content="Приложения…" Command="{Binding OpenAppsCommand}"
+                    <Button Content="{loc:Loc routing.apps}" Command="{Binding OpenAppsCommand}"
                             HorizontalAlignment="Left" Padding="10,4" Margin="0,12,0,0"
-                            ToolTip="Выбрать приложения: через VPN или напрямую" />
+                            ToolTip="{loc:Loc tip.apps}" />
 
                     <Separator Margin="0,12,0,8" />
 
-                    <TextBlock Text="Группа каналов (автопереключение)" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBlock Text="{loc:Loc routing.failoverTitle}" FontWeight="SemiBold" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding FailoverModes}"
                               DisplayMemberPath="Label"
                               SelectedValuePath="Mode"
@@ -150,13 +152,19 @@
                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                      TextWrapping="NoWrap" Background="#FAFAFA" BorderBrush="#DDD" BorderThickness="1" />
 
-            <!-- Footer: version + updates -->
+            <!-- Footer: version + language + updates -->
             <DockPanel Grid.Row="4" Margin="0,8,0,0" LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" Text="{Binding AppVersion}"
                            Foreground="#999" VerticalAlignment="Center" />
-                <Button DockPanel.Dock="Right" Content="Обновления"
+                <Button DockPanel.Dock="Right" Content="{loc:Loc updates.check}"
                         Command="{Binding CheckUpdatesCommand}" Padding="10,4"
-                        ToolTip="Проверить и установить обновление с GitHub" />
+                        ToolTip="{loc:Loc tip.updates}" />
+                <ComboBox DockPanel.Dock="Right" Width="120" Margin="0,0,8,0"
+                          ItemsSource="{Binding Languages}"
+                          DisplayMemberPath="NativeName"
+                          SelectedValuePath="Code"
+                          SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
+                          ToolTip="{loc:Loc footer.language}" />
             </DockPanel>
         </Grid>
     </Grid>

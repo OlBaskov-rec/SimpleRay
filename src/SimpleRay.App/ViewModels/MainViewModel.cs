@@ -4,17 +4,21 @@ using System.Windows;
 using System.Windows.Threading;
 using SimpleRay.App.Engine;
 using SimpleRay.App.Infrastructure;
+using SimpleRay.App.Localization;
 using SimpleRay.App.Services;
 using SimpleRay.Core.Config;
 using SimpleRay.Core.Engine;
 using SimpleRay.Core.Models;
 using SimpleRay.Core.Profiles;
+using SimpleRay.Core.Update;
 
 namespace SimpleRay.App.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
     private const int MaxLogChars = 20_000;
+
+    private static LocalizationManager L => LocalizationManager.Instance;
 
     private readonly ProfileStore _store = new();
     private readonly SettingsStore _settingsStore = new();
@@ -33,7 +37,7 @@ public sealed class MainViewModel : ObservableObject
 
     private ProfileConfig? _selectedProfile;
     private bool _isConnected;
-    private string _statusText = "Отключено";
+    private string _statusText;
     private string _log = "";
     private string _activeLabel = "";
 
@@ -42,6 +46,7 @@ public sealed class MainViewModel : ObservableObject
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
+        _statusText = L["status.disconnected"];
 
         foreach (var p in _store.Load())
             Profiles.Add(p);
@@ -69,6 +74,35 @@ public sealed class MainViewModel : ObservableObject
         AddSubscriptionCommand = new RelayCommand(AddSubscriptionAsync);
         RefreshSubscriptionsCommand = new RelayCommand(RefreshSubscriptionsAsync,
             () => _subscriptions.Count > 0);
+
+        L.CultureChanged += OnCultureChanged;
+    }
+
+    // --- Localization -----------------------------------------------------
+
+    public IReadOnlyList<LanguageOption> Languages => L.Languages;
+
+    public string SelectedLanguage
+    {
+        get => L.CurrentCulture;
+        set
+        {
+            if (value is not null && value != L.CurrentCulture)
+                L.SetCulture(value);
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Re-render culture-dependent, non-live-bound properties after a language switch.</summary>
+    private void OnCultureChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(ConnectButtonText));
+        OnPropertyChanged(nameof(Modes));
+        OnPropertyChanged(nameof(FailoverModes));
+        OnPropertyChanged(nameof(GroupHint));
+        OnPropertyChanged(nameof(SelectedLanguage));
+        if (!IsConnected)
+            StatusText = L["status.disconnected"];
     }
 
     public string AppVersion => "v" + UpdateService.CurrentVersion.ToString(3);
@@ -95,7 +129,7 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public string ConnectButtonText => IsConnected ? "Отключить" : "Подключить";
+    public string ConnectButtonText => IsConnected ? L["connect.disconnect"] : L["connect.connect"];
 
     public string StatusText
     {
@@ -124,7 +158,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task AddSubscriptionAsync()
     {
-        var dlg = new TextInputWindow("Подписка", "URL подписки (http/https):",
+        var dlg = new TextInputWindow(L["sub.promptTitle"], L["sub.promptText"],
             _subscriptions.LastOrDefault() ?? "")
         { Owner = Application.Current?.MainWindow };
         if (dlg.ShowDialog() != true) return;
@@ -132,7 +166,7 @@ public sealed class MainViewModel : ObservableObject
         var url = dlg.Value;
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
         {
-            StatusText = "Некорректный URL подписки";
+            StatusText = L["sub.badUrl"];
             return;
         }
         await ImportSubscriptionAsync(url);
@@ -142,7 +176,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (_subscriptions.Count == 0)
         {
-            StatusText = "Подписок нет";
+            StatusText = L["sub.none"];
             return;
         }
         foreach (var url in _subscriptions.ToList())
@@ -152,7 +186,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Fetches a subscription and replaces the profiles that came from it (group membership preserved).</summary>
     private async Task ImportSubscriptionAsync(string url)
     {
-        StatusText = "Загрузка подписки…";
+        StatusText = L["sub.loading"];
         IReadOnlyList<ProfileConfig> fetched;
         try
         {
@@ -160,13 +194,13 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = "Не удалось загрузить подписку: " + ex.Message;
+            StatusText = L.Format("sub.loadFail", ex.Message);
             return;
         }
 
         if (fetched.Count == 0)
         {
-            StatusText = "В подписке нет профилей";
+            StatusText = L["sub.empty"];
             return;
         }
 
@@ -195,58 +229,57 @@ public sealed class MainViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(GroupHint));
-        StatusText = $"Подписка обновлена: профилей {fetched.Count}";
+        StatusText = L.Format("sub.updated", fetched.Count);
     }
 
     private async Task CheckForUpdatesAsync()
     {
         if (IsConnected)
         {
-            StatusText = "Сначала отключитесь, потом обновляйтесь";
+            StatusText = L["status.updateConnected"];
             return;
         }
 
-        StatusText = "Проверка обновлений…";
-        SimpleRay.Core.Update.ReleaseInfo? info;
+        StatusText = L["status.updateChecking"];
+        ReleaseInfo? info;
         try
         {
             info = await _updateService.CheckAsync();
         }
         catch (Exception ex)
         {
-            StatusText = "Не удалось проверить обновления: " + ex.Message;
+            StatusText = L.Format("status.updateCheckFail", ex.Message);
             return;
         }
 
         if (info is null)
         {
-            StatusText = $"У вас последняя версия ({AppVersion})";
+            StatusText = L.Format("status.updateLatest", AppVersion);
             return;
         }
 
         var consent = MessageBox.Show(
-            $"Доступна версия {info.Version.ToString(3)} (у вас {UpdateService.CurrentVersion.ToString(3)}).\n\n" +
-            "Скачать и обновить сейчас? Приложение перезапустится.",
-            "Обновление SimpleRay", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            L.Format("update.consent", info.Version.ToString(3), UpdateService.CurrentVersion.ToString(3)),
+            L["update.consentTitle"], MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (consent != MessageBoxResult.Yes)
         {
-            StatusText = "Обновление отложено";
+            StatusText = L["status.updateDeferred"];
             return;
         }
 
         try
         {
-            var progress = new Progress<double>(p => StatusText = $"Загрузка обновления… {p:P0}");
+            var progress = new Progress<double>(p => StatusText = L.Format("status.updateDownloading", p.ToString("P0")));
             var staging = await _updateService.DownloadAndStageAsync(info, progress);
 
-            StatusText = "Применение обновления…";
+            StatusText = L["status.updateApplying"];
             await _engine.DisposeAsync(); // stop sing-box so its files aren't locked
             _updateService.ApplyAndRestart(staging);
             Application.Current.Shutdown();
         }
         catch (Exception ex)
         {
-            StatusText = "Ошибка обновления: " + ex.Message;
+            StatusText = L.Format("status.updateError", ex.Message);
         }
     }
 
@@ -254,10 +287,10 @@ public sealed class MainViewModel : ObservableObject
 
     public sealed record FailoverModeItem(string Label, FailoverMode Mode);
 
-    public IReadOnlyList<FailoverModeItem> FailoverModes { get; } = new[]
+    public IReadOnlyList<FailoverModeItem> FailoverModes => new[]
     {
-        new FailoverModeItem("Авто по скорости (urltest)", FailoverMode.UrlTest),
-        new FailoverModeItem("Ручной выбор (selector)", FailoverMode.Selector),
+        new FailoverModeItem(L["failover.urltest"], FailoverMode.UrlTest),
+        new FailoverModeItem(L["failover.selector"], FailoverMode.Selector),
     };
 
     public FailoverMode SelectedFailoverMode
@@ -278,9 +311,7 @@ public sealed class MainViewModel : ObservableObject
         get
         {
             int n = Profiles.Count(p => p.InGroup);
-            return n >= 2
-                ? $"В группе серверов: {n} — подключение пойдёт через группу с автопереключением"
-                : "Отметьте 2+ сервера, чтобы включить автопереключение между каналами";
+            return n >= 2 ? L.Format("group.hintActive", n) : L["group.hintInactive"];
         }
     }
 
@@ -302,11 +333,11 @@ public sealed class MainViewModel : ObservableObject
 
     public sealed record RoutingModeItem(string Label, RoutingMode Mode);
 
-    public IReadOnlyList<RoutingModeItem> Modes { get; } = new[]
+    public IReadOnlyList<RoutingModeItem> Modes => new[]
     {
-        new RoutingModeItem("Глобально — весь трафик через VPN", RoutingMode.Global),
-        new RoutingModeItem("По правилам — разделять (geo)", RoutingMode.Rule),
-        new RoutingModeItem("Напрямую — без VPN", RoutingMode.Direct),
+        new RoutingModeItem(L["mode.global"], RoutingMode.Global),
+        new RoutingModeItem(L["mode.rule"], RoutingMode.Rule),
+        new RoutingModeItem(L["mode.direct"], RoutingMode.Direct),
     };
 
     public RoutingMode SelectedMode
@@ -367,13 +398,13 @@ public sealed class MainViewModel : ObservableObject
     private void SaveRouting()
     {
         try { _settingsStore.Save(_routing); }
-        catch (Exception ex) { StatusText = "Не удалось сохранить настройки: " + ex.Message; }
+        catch (Exception ex) { StatusText = L.Format("status.saveSettingsFail", ex.Message); }
     }
 
     private void SaveProfiles()
     {
         try { _store.Save(Profiles); }
-        catch (Exception ex) { StatusText = "Не удалось сохранить профили: " + ex.Message; }
+        catch (Exception ex) { StatusText = L.Format("status.saveProfilesFail", ex.Message); }
     }
 
     private async Task ToggleConnectionAsync()
@@ -381,28 +412,28 @@ public sealed class MainViewModel : ObservableObject
         if (IsConnected)
         {
             try { await _engine.StopAsync(); }
-            catch (Exception ex) { StatusText = "Ошибка отключения: " + ex.Message; }
+            catch (Exception ex) { StatusText = L.Format("status.disconnectError", ex.Message); }
             return;
         }
 
         var targets = ResolveConnectTargets();
         if (targets.Count == 0)
         {
-            StatusText = "Выберите профиль или отметьте серверы в группу";
+            StatusText = L["status.selectProfile"];
             return;
         }
 
         if (!File.Exists(AppPaths.CoreExe))
         {
-            StatusText = $"sing-box.exe не найден: {AppPaths.CoreExe}";
+            StatusText = L.Format("status.coreNotFound", AppPaths.CoreExe);
             return;
         }
 
         if (!Elevation.IsElevated())
         {
-            StatusText = "Нужны права администратора (TUN). Перезапуск…";
+            StatusText = L["status.needAdmin"];
             if (!Elevation.RelaunchElevated())
-                StatusText = "Запуск с правами администратора отменён";
+                StatusText = L["status.adminCancelled"];
             else
                 Application.Current.Shutdown();
             return;
@@ -411,16 +442,17 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             _activeLabel = targets.Count > 1
-                ? $"группа ({targets.Count}, {(SelectedFailoverMode == FailoverMode.UrlTest ? "авто" : "ручной")})"
+                ? L.Format("active.group", targets.Count,
+                    L[SelectedFailoverMode == FailoverMode.UrlTest ? "active.auto" : "active.manual"])
                 : targets[0].Tag;
-            StatusText = "Подключение…";
+            StatusText = L["status.connecting"];
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _engine.StartAsync(configJson);
         }
         catch (Exception ex)
         {
-            StatusText = "Ошибка: " + ex.Message;
+            StatusText = L.Format("status.error", ex.Message);
         }
     }
 
@@ -442,19 +474,19 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception)
         {
-            StatusText = "Не удалось прочитать буфер обмена";
+            StatusText = L["status.clipReadFail"];
             return;
         }
 
-        AddLinks(text, "В буфере нет распознанных ссылок");
+        AddLinks(text, L["status.noLinksClip"]);
     }
 
     private void ImportFromFile()
     {
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Выберите файл профиля (.conf / .txt со ссылками)",
-            Filter = "Профили|*.conf;*.txt;*.conf.txt|Все файлы|*.*",
+            Title = L["import.file"],
+            Filter = "*.conf;*.txt|*.conf;*.txt;*.conf.txt|*.*|*.*",
         };
         if (dlg.ShowDialog() != true)
             return;
@@ -466,19 +498,19 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = "Не удалось прочитать файл: " + ex.Message;
+            StatusText = L.Format("status.fileReadFail", ex.Message);
             return;
         }
 
-        AddLinks(text, "В файле нет распознанных профилей");
+        AddLinks(text, L["status.noLinksFile"]);
     }
 
     private void ImportQrFromFile()
     {
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Выберите изображение с QR-кодом",
-            Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp|Все файлы|*.*",
+            Title = L["import.qrFile"],
+            Filter = "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp|*.*|*.*",
         };
         if (dlg.ShowDialog() != true)
             return;
@@ -490,16 +522,16 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = "Не удалось прочитать изображение: " + ex.Message;
+            StatusText = L.Format("status.imgReadFail", ex.Message);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            StatusText = "QR-код не распознан";
+            StatusText = L["status.qrNotRecognized"];
             return;
         }
-        AddLinks(text, "В QR-коде нет распознанных ссылок");
+        AddLinks(text, L["status.noLinksQr"]);
     }
 
     private void ImportQrFromClipboard()
@@ -511,13 +543,13 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception)
         {
-            StatusText = "Не удалось прочитать изображение из буфера";
+            StatusText = L["status.imgClipReadFail"];
             return;
         }
 
         if (image is null)
         {
-            StatusText = "В буфере нет изображения";
+            StatusText = L["status.noImgClip"];
             return;
         }
 
@@ -528,16 +560,16 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = "Ошибка распознавания: " + ex.Message;
+            StatusText = L.Format("status.qrError", ex.Message);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            StatusText = "QR-код не распознан";
+            StatusText = L["status.qrNotRecognized"];
             return;
         }
-        AddLinks(text, "В QR-коде нет распознанных ссылок");
+        AddLinks(text, L["status.noLinksQr"]);
     }
 
     private void ImportQrFromWebcam()
@@ -545,7 +577,7 @@ public sealed class MainViewModel : ObservableObject
         var dlg = new WebcamQrWindow { Owner = Application.Current?.MainWindow };
         var ok = dlg.ShowDialog();
         if (ok == true && !string.IsNullOrWhiteSpace(dlg.Result))
-            AddLinks(dlg.Result, "В QR-коде нет распознанных ссылок");
+            AddLinks(dlg.Result, L["status.noLinksQr"]);
     }
 
     /// <summary>Parses share-links from <paramref name="text"/>, adds new ones, persists.</summary>
@@ -569,7 +601,7 @@ public sealed class MainViewModel : ObservableObject
 
         SelectedProfile ??= Profiles.FirstOrDefault();
         SaveProfiles();
-        StatusText = added > 0 ? $"Добавлено профилей: {added}" : "Профили уже есть в списке";
+        StatusText = added > 0 ? L.Format("status.profilesAdded", added) : L["status.profilesExist"];
     }
 
     private void RemoveSelected()
@@ -589,11 +621,11 @@ public sealed class MainViewModel : ObservableObject
             IsConnected = state == EngineState.Running;
             StatusText = state switch
             {
-                EngineState.Running => $"Подключено: {_activeLabel}",
-                EngineState.Starting => "Подключение…",
-                EngineState.Stopping => "Отключение…",
-                EngineState.Faulted => "Сбой движка — см. лог",
-                _ => "Отключено",
+                EngineState.Running => L.Format("status.connectedTo", _activeLabel),
+                EngineState.Starting => L["status.connecting"],
+                EngineState.Stopping => L["status.disconnecting"],
+                EngineState.Faulted => L["status.faulted"],
+                _ => L["status.disconnected"],
             };
         });
 

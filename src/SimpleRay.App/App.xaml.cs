@@ -41,9 +41,9 @@ public partial class App : Application
     {
         LogError(ex);
         MessageBox.Show(
-            "Непредвиденная ошибка: " + ex.Message +
-            "\n\nПодробности сохранены в last-error.txt (папка данных приложения).",
-            "SimpleRay", MessageBoxButton.OK, MessageBoxImage.Error);
+            Localization.LocalizationManager.Instance.Format("crash.message", ex.Message),
+            Localization.LocalizationManager.Instance["crash.title"],
+            MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     protected override async void OnStartup(StartupEventArgs e)

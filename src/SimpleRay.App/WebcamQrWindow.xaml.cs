@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using SimpleRay.App.Localization;
 using SimpleRay.App.Services;
 using SimpleRay.Core.Profiles;
 
@@ -29,15 +30,15 @@ public partial class WebcamQrWindow : Window
         try
         {
             await _scanner.StartAsync();
-            StatusText.Text = "Камера запущена…";
+            StatusText.Text = LocalizationManager.Instance["webcam.started"];
         }
         catch (UnauthorizedAccessException)
         {
-            StatusText.Text = "Нет доступа к камере. Разрешите доступ в «Параметры → Конфиденциальность → Камера».";
+            StatusText.Text = LocalizationManager.Instance["webcam.noAccess"];
         }
         catch (Exception ex)
         {
-            StatusText.Text = "Камера недоступна: " + ex.Message;
+            StatusText.Text = LocalizationManager.Instance.Format("webcam.unavailable", ex.Message);
         }
     }
 
