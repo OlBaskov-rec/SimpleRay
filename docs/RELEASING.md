@@ -21,6 +21,17 @@ Produces, in `dist/`:
 - `SimpleRay-<version>-win-x64.zip`
 - `SimpleRay-<version>-win-x64.zip.sha256`
 
+## 3b. (Optional) Build the installer
+Requires Inno Setup 6 (`winget install JRSoftware.InnoSetup`). Builds a per-user
+installer from the portable output:
+```powershell
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=<version> scripts\installer.iss
+```
+Produces `dist/SimpleRay-<version>-setup.exe`. It installs to
+`%LocalAppData%\Programs\SimpleRay` (no admin needed; the app self-elevates for TUN,
+and the in-app updater can write there). Upload it to the release as an extra asset
+— the updater ignores non-`.zip` assets, so it won't interfere.
+
 ## 4. Create the GitHub release
 - **Tag:** `v<version>` (e.g. `v0.2.0`) — a leading `v` is fine; pre-release
   suffixes like `-beta` are ignored by the version comparison.
