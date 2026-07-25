@@ -235,6 +235,113 @@ def dia_engine():
     b += txt(x/2, 34, "Жизненный цикл движка (SingBoxEngine)", 15, INK, anchor="middle", bold=True)
     return svg(x, 245, b)
 
+def dia_i18n():
+    b = ''
+    b += txt(355, 30, "Смена языка «на лету» — без перезапуска окна", 15, INK, anchor="middle", bold=True)
+    # left: language files (embedded resources)
+    b += box(20, 62, 190, 150, AMB_L, AMB)
+    b += txt(115, 88, "langs/*.json", 15, AMB, anchor="middle", bold=True)
+    b += txt(115, 106, "9 языков — ресурсы", 11.5, GRY, anchor="middle")
+    for i, t in enumerate(["ru · en · fr", "de · es · fa", "zh · uk · tr"]):
+        b += box(40, 120 + i*28, 150, 22, "#FFFFFF", AMB, 5)
+        b += txt(115, 135 + i*28, t, 12, INK, anchor="middle")
+    # center: manager
+    b += box(290, 80, 180, 96, BLUE_L, BLUE)
+    b += txt(380, 110, "Localization", 15, BLUE, anchor="middle", bold=True)
+    b += txt(380, 128, "Manager", 15, BLUE, anchor="middle", bold=True)
+    b += txt(380, 152, "словарь this[ключ]", 12, INK, anchor="middle")
+    # right: UI
+    b += box(545, 80, 150, 96, TEAL_L, TEAL)
+    b += txt(620, 108, "Интерфейс", 15, TEAL, anchor="middle", bold=True)
+    b += box(558, 124, 124, 26, "#FFFFFF", TEAL, 5)
+    b += txt(620, 142, "{loc:Loc ключ}", 12, INK, anchor="middle")
+    # read path (labels above the lines, clear of arrows)
+    b += arrow(210, 128, 288, 128, GRY)
+    b += txt(249, 120, "читает", 11, GRY, anchor="middle")
+    b += arrow(470, 118, 543, 118, GRY)
+    b += txt(506, 110, "даёт текст", 11, GRY, anchor="middle")
+    # bottom: language chooser under the manager
+    b += box(300, 250, 160, 34, GRY_L, GRY)
+    b += txt(380, 272, "Язык  ▼", 14, GRY, anchor="middle", bold=True)
+    b += arrow(360, 248, 360, 178, AMB)
+    b += txt(330, 216, "1) выбор", 11.5, AMB, anchor="end")
+    # manager raises "Item[]" -> UI refreshes (curve on the right, clear of arrow 1)
+    b += f'<path d="M 472 152 C 545 214, 600 214, 620 178" fill="none" stroke="{GRN}" stroke-width="2.5"/>'
+    b += f'<polygon points="620,178 614,190 626,190" fill="{GRN}"/>'
+    b += txt(556, 240, "2) сигнал «Item[]» → весь текст обновляется", 11.5, GRN, anchor="middle", bold=True)
+    return svg(710, 300, b)
+
+def dia_storage():
+    b = ''
+    b += txt(355, 30, "Секреты на диске: шифрование DPAPI и атомарная запись", 14.5, INK, anchor="middle", bold=True)
+    b += box(20, 76, 150, 84, TEAL_L, TEAL)
+    b += txt(95, 106, "Программа", 15, TEAL, anchor="middle", bold=True)
+    b += txt(95, 130, "профили и", 12, INK, anchor="middle")
+    b += txt(95, 146, "настройки", 12, INK, anchor="middle")
+    b += box(255, 68, 190, 100, BLUE_L, BLUE)
+    b += txt(350, 96, "DPAPI (Windows)", 14.5, BLUE, anchor="middle", bold=True)
+    b += box(272, 106, 156, 24, "#FFFFFF", BLUE, 5)
+    b += txt(350, 123, "ProtectedData", 12, INK, anchor="middle")
+    b += txt(350, 150, "ключ = учётная запись", 11.5, GRY, anchor="middle")
+    b += box(530, 76, 160, 84, GRY_L, GRY)
+    b += txt(610, 104, "profiles.json", 14, GRY, anchor="middle", bold=True)
+    b += txt(610, 130, "нечитаемый", 12, INK, anchor="middle")
+    b += txt(610, 146, "шифртекст", 12, INK, anchor="middle")
+    # write path (top), read path (below, opposite direction)
+    b += arrow(170, 106, 253, 106, GRY)
+    b += txt(211, 98, "шифрует", 11, GRY, anchor="middle")
+    b += arrow(445, 106, 528, 106, GRY)
+    b += txt(486, 98, "пишет атомарно", 11, GRY, anchor="middle")
+    b += arrow(528, 142, 447, 142, TEAL)
+    b += txt(487, 186, "читает обратно и расшифровывает", 11, TEAL, anchor="middle")
+    # atomic-write callout
+    b += box(110, 198, 490, 34, AMB_L, AMB)
+    b += txt(355, 220, "Запись: temp-файл → File.Replace (замена целиком) — без «полу-записанных» файлов", 11, AMB, anchor="middle", bold=True)
+    # guard
+    b += box(110, 242, 490, 34, RED_L, RED)
+    b += txt(355, 264, "Другой пользователь или другой ПК расшифровать НЕ смогут", 12, RED, anchor="middle", bold=True)
+    return svg(710, 292, b)
+
+def dia_cicd():
+    b = ''
+    b += txt(355, 28, "Сборка и выпуск: тесты на каждый push, релиз — по тегу", 14.5, INK, anchor="middle", bold=True)
+    # left column: push -> GitHub Actions
+    b += box(20, 110, 110, 46, GRY_L, GRY)
+    b += txt(75, 138, "git push", 13.5, GRY, anchor="middle", bold=True)
+    b += box(150, 110, 120, 46, BLUE_L, BLUE)
+    b += txt(210, 132, "GitHub", 14, BLUE, anchor="middle", bold=True)
+    b += txt(210, 149, "Actions", 11, GRY, anchor="middle")
+    b += arrow(130, 133, 148, 133, GRY)
+    # lane A (ci.yml) — top
+    b += box(330, 52, 150, 46, TEAL_L, TEAL)
+    b += txt(405, 73, "ci.yml", 13, TEAL, anchor="middle", bold=True)
+    b += txt(405, 90, "build + test", 11, INK, anchor="middle")
+    b += box(510, 52, 180, 46, GRN_L, GRN)
+    b += txt(600, 73, "зелёная галка", 12, GRN, anchor="middle", bold=True)
+    b += txt(600, 90, "можно сливать (merge)", 10.5, GRY, anchor="middle")
+    b += arrow(480, 75, 508, 75, GRY)
+    b += arrow(272, 118, 328, 88, GRY)
+    b += txt(286, 76, "push / PR", 10, GRY, anchor="start")
+    # lane B (release.yml) — bottom
+    rs = [("build\n+ test", TEAL_L, TEAL), ("portable\n.zip", BLUE_L, BLUE),
+          ("installer\n.exe", BLUE_L, BLUE), ("GitHub\nRelease", GRN_L, GRN)]
+    x = 330; xs = []
+    for t, cl, c in rs:
+        b += box(x, 150, 86, 52, cl, c, 8)
+        for k, ln in enumerate(t.split("\n")):
+            b += txt(x + 43, 172 + k*15, ln, 11, c, anchor="middle", bold=True)
+        xs.append(x); x += 94
+    for i in range(len(rs) - 1):
+        b += arrow(xs[i] + 86, 176, xs[i+1], 176, GRY)
+    b += arrow(272, 148, 328, 172, GRY)
+    b += txt(298, 148, "тег v*", 10, GRY, anchor="start")
+    # release -> users' auto-update
+    b += box(300, 236, 320, 42, AMB_L, AMB)
+    b += txt(460, 254, "у пользователей: автообновление берёт", 11, AMB, anchor="middle", bold=True)
+    b += txt(460, 269, "/releases/latest и сверяет SHA256", 11, AMB, anchor="middle", bold=True)
+    b += arrow(xs[3] + 43, 202, 470, 234, AMB)
+    return svg(710, 292, b)
+
 # ---------------------------------------------------------------------------
 # Styles
 # ---------------------------------------------------------------------------
@@ -339,6 +446,52 @@ section("7. Обновления с откатом", dia_update(), [
     "«Не завёлся мотор — вернули прежний».",
 ])
 
+section("8. Языки интерфейса: перевод «на лету»", dia_i18n(), [
+    "Программа говорит на девяти языках, и переключение происходит <b>без "
+    "перезапуска</b> окна. Все надписи лежат не в коде, а в отдельных файлах-словарях "
+    "<font face='Arial-Bold'>langs/*.json</font> (по одному на язык), встроенных в "
+    "программу как ресурсы.",
+    "В окне вместо готового текста стоит <b>ссылка на ключ</b> — запись "
+    "<font face='Arial-Bold'>{loc:Loc ключ}</font>. Её обслуживает "
+    "<b>LocalizationManager</b>: он работает как словарь «ключ → перевод». Когда вы "
+    "выбираете язык в списке, менеджер подаёт сигнал <b>«Item[]»</b>, и все привязки "
+    "перечитывают текст сами — интерфейс мгновенно меняет язык.",
+    "Тест <i>LocalizationTests</i> следит, чтобы во всех девяти файлах был "
+    "<b>одинаковый набор ключей</b>, не было пустых строк и совпадали подстановки вида "
+    "{0}. Поэтому любую новую надпись приходится добавлять сразу во все языки — забыть "
+    "перевод не получится.",
+])
+
+section("9. Хранение секретов: DPAPI и атомарная запись", dia_storage(), [
+    "Профили и настройки хранятся в вашей папке данных. Пароли и адреса серверов — это "
+    "секреты, поэтому файл <b>шифруется</b> средствами Windows — <b>DPAPI</b> "
+    "(ProtectedData). Ключ шифрования привязан к <b>вашей учётной записи</b>, так что "
+    "другой пользователь или другой компьютер файл не прочитают.",
+    "Записывается файл <b>атомарно</b>: сначала данные пишутся во временный файл, затем "
+    "одной операцией <font face='Arial-Bold'>File.Replace</font> он заменяет старый. "
+    "Если питание пропадёт посреди записи — останется целый прежний файл, а не "
+    "«половинка».",
+    "Формат помечен полем <b>schemaVersion</b> — это позволяет менять структуру в "
+    "будущем и по-прежнему открывать старые файлы (обратная совместимость). Старый "
+    "незашифрованный формат тоже ещё читается и молча переводится на новый.",
+])
+
+section("10. Как собирается и выпускается программа", dia_cicd(), [
+    "Каждый раз, когда код отправляется на GitHub (<font face='Arial-Bold'>git "
+    "push</font> или Pull Request), сервер сам запускает рабочий процесс <b>ci.yml</b>: "
+    "собирает проект и прогоняет все тесты. Красная галочка вместо зелёной сразу "
+    "показывает, что что-то сломалось, — ошибку видно ещё до пользователя.",
+    "Выпуск версии запускается <b>по тегу</b> вида <font face='Arial-Bold'>v0.2.0</font>: "
+    "процесс <b>release.yml</b> собирает и тестирует, делает <b>portable-архив</b> и "
+    "<b>установщик</b>, а затем создаёт <b>релиз на GitHub</b> с этими файлами. "
+    "Встроенная автообновлялка потом берёт последний релиз "
+    "(<font face='Arial-Bold'>/releases/latest</font>) и сверяет контрольную сумму "
+    "SHA256.",
+    "Так «сборка вручную» превращается в <b>конвейер</b> (CI/CD): человек только ставит "
+    "тег, а всё остальное — сборку, тесты и публикацию — сервер делает одинаково и без "
+    "ошибок.",
+])
+
 # --- Abbreviations ----------------------------------------------------------
 story.append(PageBreak())
 story.append(Paragraph("Расшифровка сокращений", H1))
@@ -358,6 +511,8 @@ ABBR = [
     ("DNS", "Domain Name System", "«телефонная книга» интернета: имя → адрес"),
     ("SHA256", "Secure Hash Algorithm 256", "«отпечаток» файла для проверки целостности"),
     ("CI/CD", "Continuous Integration / Delivery", "авто-сборка, тесты и выпуск на сервере"),
+    ("i18n / L10n", "internationalization / localization", "перевод интерфейса на разные языки"),
+    ("PR", "Pull Request", "запрос на слияние изменений в общий код"),
     ("SDK", "Software Development Kit", "набор инструментов разработчика"),
     ("API", "Application Programming Interface", "как одна программа обращается к другой"),
     ("DLL", "Dynamic-Link Library", "библиотека кода, подключаемая на лету (wintun.dll)"),
@@ -390,6 +545,7 @@ for t in [
     "<b>ShareLinkParser.cs</b> — как строка превращается в объект.",
     "<b>SingBoxConfigGenerator.cs</b> — как объект превращается в JSON.",
     "<b>MainViewModel.cs</b> — «клей» логики окна.",
+    "<b>LocalizationManager.cs</b> — как одна смена языка обновляет весь текст сразу.",
     "<b>tests/</b> — каждый тест это пример «дано → ожидаем»; лучший способ понять код.",
 ]:
     story.append(Paragraph("•&nbsp; " + t, BODY))
