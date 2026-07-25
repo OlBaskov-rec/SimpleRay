@@ -1,8 +1,30 @@
 # Releasing SimpleRay
 
 The in-app updater looks at the GitHub **latest release** and only offers an
-update when it finds a newer version with the right assets. Follow this exactly
-so the updater works.
+update when it finds a newer version with the right assets. The asset naming
+below is what makes the updater work.
+
+## Automated release (recommended)
+CI builds and publishes the release for you on a version tag:
+
+1. Bump `<Version>` in `src/SimpleRay.App/SimpleRay.App.csproj` (e.g. `0.2.0`),
+   commit and push to `master`.
+2. Tag and push:
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+`.github/workflows/release.yml` then (on `windows-latest`) verifies the tag
+matches the csproj version, fetches+verifies the runtime deps, runs tests, builds
+the portable zip and the installer, and creates the GitHub release with all
+assets — using the built-in `GITHUB_TOKEN` (no personal token needed). A tag with
+a `-suffix` (e.g. `v0.3.0-rc1`) is published as a pre-release.
+
+Every push/PR to `master` also runs build+test via `.github/workflows/ci.yml`.
+
+---
+
+## Manual release (fallback)
 
 ## 1. Bump the version
 Edit `<Version>` in `src/SimpleRay.App/SimpleRay.App.csproj` (e.g. `0.2.0`).

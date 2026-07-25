@@ -13,12 +13,15 @@ public static class AppPaths
     /// <summary>Directory containing geoip-*.srs / geosite-*.srs rule-sets.</summary>
     public static string GeoDir => Path.Combine(BaseDir, "geo");
 
-    /// <summary>Per-user data: %AppData%\SimpleRay.</summary>
+    /// <summary>Test seam: when set, overrides <see cref="DataDir"/> (so stores can use a temp dir).</summary>
+    public static string? DataDirOverride { get; set; }
+
+    /// <summary>Per-user data: %AppData%\SimpleRay (or <see cref="DataDirOverride"/> in tests).</summary>
     public static string DataDir
     {
         get
         {
-            var dir = Path.Combine(
+            var dir = DataDirOverride ?? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SimpleRay");
             Directory.CreateDirectory(dir);
             return dir;
