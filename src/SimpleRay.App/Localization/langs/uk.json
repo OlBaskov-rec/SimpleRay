@@ -117,6 +117,15 @@
   "common.done": "Готово",
   "common.cancel": "Скасувати",
 
+  "profile.ping": "Пінг",
+  "profile.rename": "Перейменувати",
+  "tip.ping": "Виміряти затримку до серверів і відсортувати",
+  "tip.rename": "Перейменувати вибраний профіль",
+  "status.pinging": "Вимірювання затримок…",
+  "status.pingDone": "Затримки виміряно",
+  "rename.title": "Перейменування",
+  "rename.prompt": "Нова назва профілю:",
+
   "crash.title": "SimpleRay",
   "crash.message": "Неочікувана помилка: {0}\n\nДеталі збережено в last-error.txt (папка даних застосунку)."
 }

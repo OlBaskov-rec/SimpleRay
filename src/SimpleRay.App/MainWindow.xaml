@@ -59,6 +59,8 @@
                                 <Run Text="{Binding Server}" />
                                 <Run Text=":" />
                                 <Run Text="{Binding Port}" />
+                                <Run Foreground="#2E7D32"
+                                     Text="{Binding LatencyMs, StringFormat=' · {0} ms', TargetNullValue=''}" />
                             </TextBlock>
                             <TextBlock Text="{loc:Loc profile.insecure}" FontSize="11" Foreground="#C0392B"
                                        Visibility="{Binding SkipsCertCheck, Converter={StaticResource BoolToVis}}"
@@ -85,6 +87,10 @@
                     Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.subscriptionAdd}" />
             <Button Content="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
                     Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.subscriptionRefresh}" />
+            <Button Content="{loc:Loc profile.ping}" Command="{Binding PingCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.ping}" />
+            <Button Content="{loc:Loc profile.rename}" Command="{Binding RenameCommand}"
+                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.rename}" />
             <Button Content="{loc:Loc profile.remove}" Command="{Binding RemoveCommand}"
                     Padding="10,4" Margin="0,0,0,6" />
         </WrapPanel>

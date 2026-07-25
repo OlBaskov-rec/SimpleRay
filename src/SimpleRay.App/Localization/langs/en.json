@@ -117,6 +117,15 @@
   "common.done": "Done",
   "common.cancel": "Cancel",
 
+  "profile.ping": "Ping",
+  "profile.rename": "Rename",
+  "tip.ping": "Measure latency to each server and sort by it",
+  "tip.rename": "Rename the selected profile",
+  "status.pinging": "Measuring latency…",
+  "status.pingDone": "Latency measured",
+  "rename.title": "Rename",
+  "rename.prompt": "New profile name:",
+
   "crash.title": "SimpleRay",
   "crash.message": "Unexpected error: {0}\n\nDetails saved to last-error.txt (app data folder)."
 }

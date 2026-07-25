@@ -117,6 +117,15 @@
   "common.done": "Bitti",
   "common.cancel": "İptal",
 
+  "profile.ping": "Ping",
+  "profile.rename": "Yeniden adlandır",
+  "tip.ping": "Her sunucunun gecikmesini ölç ve buna göre sırala",
+  "tip.rename": "Seçili profili yeniden adlandır",
+  "status.pinging": "Gecikme ölçülüyor…",
+  "status.pingDone": "Gecikme ölçüldü",
+  "rename.title": "Yeniden adlandır",
+  "rename.prompt": "Yeni profil adı:",
+
   "crash.title": "SimpleRay",
   "crash.message": "Beklenmeyen hata: {0}\n\nDetaylar last-error.txt'ye kaydedildi (uygulama veri klasörü)."
 }

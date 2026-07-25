@@ -117,6 +117,15 @@
   "common.done": "Fertig",
   "common.cancel": "Abbrechen",
 
+  "profile.ping": "Ping",
+  "profile.rename": "Umbenennen",
+  "tip.ping": "Latenz zu jedem Server messen und danach sortieren",
+  "tip.rename": "Ausgewähltes Profil umbenennen",
+  "status.pinging": "Latenz wird gemessen…",
+  "status.pingDone": "Latenz gemessen",
+  "rename.title": "Umbenennen",
+  "rename.prompt": "Neuer Profilname:",
+
   "crash.title": "SimpleRay",
   "crash.message": "Unerwarteter Fehler: {0}\n\nDetails in last-error.txt gespeichert (App-Datenordner)."
 }

@@ -9,6 +9,7 @@ using SimpleRay.App.Services;
 using SimpleRay.Core.Config;
 using SimpleRay.Core.Engine;
 using SimpleRay.Core.Models;
+using SimpleRay.Core.Net;
 using SimpleRay.Core.Profiles;
 using SimpleRay.Core.Update;
 
@@ -68,6 +69,8 @@ public sealed class MainViewModel : ObservableObject
         ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboard);
         ImportQrWebcamCommand = new RelayCommand(ImportQrFromWebcam);
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
+        RenameCommand = new RelayCommand(RenameSelected, () => SelectedProfile is not null);
+        PingCommand = new RelayCommand(PingAllAsync, () => Profiles.Count > 0);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
@@ -76,6 +79,7 @@ public sealed class MainViewModel : ObservableObject
             () => _subscriptions.Count > 0);
 
         L.CultureChanged += OnCultureChanged;
+        Profiles.CollectionChanged += (_, _) => PingCommand.RaiseCanExecuteChanged();
     }
 
     // --- Localization -----------------------------------------------------
@@ -115,7 +119,10 @@ public sealed class MainViewModel : ObservableObject
         set
         {
             if (SetField(ref _selectedProfile, value))
+            {
                 RemoveCommand.RaiseCanExecuteChanged();
+                RenameCommand.RaiseCanExecuteChanged();
+            }
         }
     }
 
@@ -150,6 +157,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ImportQrClipboardCommand { get; }
     public RelayCommand ImportQrWebcamCommand { get; }
     public RelayCommand RemoveCommand { get; }
+    public RelayCommand RenameCommand { get; }
+    public RelayCommand PingCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
     public RelayCommand CheckUpdatesCommand { get; }
@@ -611,6 +620,48 @@ public sealed class MainViewModel : ObservableObject
         Profiles.Remove(SelectedProfile);
         SelectedProfile = Profiles.FirstOrDefault();
         SaveProfiles();
+    }
+
+    private void RenameSelected()
+    {
+        if (SelectedProfile is null)
+            return;
+        var dlg = new TextInputWindow(L["rename.title"], L["rename.prompt"], SelectedProfile.Tag)
+        { Owner = Application.Current?.MainWindow };
+        if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.Value))
+            return;
+
+        SelectedProfile.Tag = dlg.Value;
+        ReplaceProfiles(Profiles.ToList()); // ProfileConfig isn't observable — reset to refresh the list
+        SaveProfiles();
+    }
+
+    private async Task PingAllAsync()
+    {
+        if (Profiles.Count == 0)
+            return;
+
+        StatusText = L["status.pinging"];
+        var list = Profiles.ToList();
+        await Task.WhenAll(list.Select(async p =>
+            p.LatencyMs = await LatencyProbe.MeasureAsync(p.Server, p.Port)));
+
+        // Reachable/fastest first; unreachable (null) last, then by name.
+        ReplaceProfiles(list
+            .OrderBy(p => p.LatencyMs ?? int.MaxValue)
+            .ThenBy(p => p.Tag, StringComparer.OrdinalIgnoreCase));
+        SaveProfiles();
+        StatusText = L["status.pingDone"];
+    }
+
+    /// <summary>Replaces the profile list content (used to refresh non-observable items / reorder).</summary>
+    private void ReplaceProfiles(IEnumerable<ProfileConfig> ordered)
+    {
+        var sel = SelectedProfile;
+        Profiles.Clear();
+        foreach (var p in ordered)
+            Profiles.Add(p);
+        SelectedProfile = sel is not null && Profiles.Contains(sel) ? sel : Profiles.FirstOrDefault();
     }
 
     // Engine events arrive on thread-pool threads. BeginInvoke (not Invoke): a blocking

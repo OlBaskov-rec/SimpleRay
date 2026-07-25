@@ -52,6 +52,10 @@ public sealed class ProfileConfig
     /// <summary>True when TLS is on but certificate validation is disabled (allowInsecure) — a security risk.</summary>
     [JsonIgnore]
     public bool SkipsCertCheck => Tls is { Enabled: true, AllowInsecure: true };
+
+    /// <summary>Last measured direct TCP latency in ms (transient, not persisted); null = untested/unreachable.</summary>
+    [JsonIgnore]
+    public int? LatencyMs { get; set; }
 }
 
 /// <summary>

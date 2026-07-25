@@ -117,6 +117,15 @@
   "common.done": "انجام شد",
   "common.cancel": "لغو",
 
+  "profile.ping": "پینگ",
+  "profile.rename": "تغییر نام",
+  "tip.ping": "اندازه‌گیری تأخیر هر سرور و مرتب‌سازی بر اساس آن",
+  "tip.rename": "تغییر نام پروفایل انتخاب‌شده",
+  "status.pinging": "در حال اندازه‌گیری تأخیر…",
+  "status.pingDone": "تأخیر اندازه‌گیری شد",
+  "rename.title": "تغییر نام",
+  "rename.prompt": "نام جدید پروفایل:",
+
   "crash.title": "SimpleRay",
   "crash.message": "خطای غیرمنتظره: {0}\n\nجزئیات در last-error.txt ذخیره شد (پوشه داده‌های برنامه)."
 }

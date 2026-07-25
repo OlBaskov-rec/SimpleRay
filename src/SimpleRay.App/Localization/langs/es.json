@@ -117,6 +117,15 @@
   "common.done": "Listo",
   "common.cancel": "Cancelar",
 
+  "profile.ping": "Ping",
+  "profile.rename": "Renombrar",
+  "tip.ping": "Medir la latencia de cada servidor y ordenar",
+  "tip.rename": "Renombrar el perfil seleccionado",
+  "status.pinging": "Midiendo la latencia…",
+  "status.pingDone": "Latencia medida",
+  "rename.title": "Renombrar",
+  "rename.prompt": "Nuevo nombre del perfil:",
+
   "crash.title": "SimpleRay",
   "crash.message": "Error inesperado: {0}\n\nDetalles guardados en last-error.txt (carpeta de datos de la app)."
 }

@@ -117,6 +117,15 @@
   "common.done": "完成",
   "common.cancel": "取消",
 
+  "profile.ping": "测速",
+  "profile.rename": "重命名",
+  "tip.ping": "测量各服务器延迟并据此排序",
+  "tip.rename": "重命名所选配置",
+  "status.pinging": "正在测速…",
+  "status.pingDone": "测速完成",
+  "rename.title": "重命名",
+  "rename.prompt": "新的配置名称：",
+
   "crash.title": "SimpleRay",
   "crash.message": "意外错误：{0}\n\n详情已保存到 last-error.txt（应用数据文件夹）。"
 }

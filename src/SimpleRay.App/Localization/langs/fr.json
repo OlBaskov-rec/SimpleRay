@@ -117,6 +117,15 @@
   "common.done": "Terminé",
   "common.cancel": "Annuler",
 
+  "profile.ping": "Ping",
+  "profile.rename": "Renommer",
+  "tip.ping": "Mesurer la latence de chaque serveur et trier",
+  "tip.rename": "Renommer le profil sélectionné",
+  "status.pinging": "Mesure de la latence…",
+  "status.pingDone": "Latence mesurée",
+  "rename.title": "Renommer",
+  "rename.prompt": "Nouveau nom du profil :",
+
   "crash.title": "SimpleRay",
   "crash.message": "Erreur inattendue : {0}\n\nDétails enregistrés dans last-error.txt (dossier de données de l'application)."
 }
