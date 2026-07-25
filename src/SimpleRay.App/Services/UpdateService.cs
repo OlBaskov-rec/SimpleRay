@@ -100,18 +100,62 @@ public sealed class UpdateService
         int.TryParse(args[4], out var waitPid);
 
         WaitForExit(waitPid, TimeSpan.FromSeconds(30));
-        CopyOver(staging, target);
 
+        // Snapshot the current install so a broken new build can be rolled back.
+        var backup = target.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + ".backup";
+        var backedUp = false;
         try
         {
-            Process.Start(new ProcessStartInfo
+            SafeDeleteDir(backup);
+            CopyOver(target, backup);
+            backedUp = true;
+        }
+        catch { /* couldn't back up → we just won't be able to roll back */ }
+
+        CopyOver(staging, target);
+
+        var started = TryStart(relaunch, target);
+        if (backedUp && started is not null && !HealthyAfter(started, TimeSpan.FromSeconds(8)))
+        {
+            // The new build exited abnormally on startup — restore the previous version.
+            try { if (!started.HasExited) started.Kill(entireProcessTree: true); } catch { }
+            try { CopyOver(backup, target); } catch { }
+            TryStart(relaunch, target);
+        }
+
+        SafeDeleteDir(backup);
+    }
+
+    private static Process? TryStart(string exe, string workingDir)
+    {
+        try
+        {
+            return Process.Start(new ProcessStartInfo
             {
-                FileName = relaunch,
+                FileName = exe,
                 UseShellExecute = true,
-                WorkingDirectory = target,
+                WorkingDirectory = workingDir,
             });
         }
-        catch { /* relaunch is best-effort */ }
+        catch { return null; }
+    }
+
+    /// <summary>Healthy if still running after <paramref name="window"/>, or it exited cleanly (0). A non-zero exit = crash.</summary>
+    private static bool HealthyAfter(Process p, TimeSpan window)
+    {
+        try
+        {
+            return p.WaitForExit((int)window.TotalMilliseconds) ? p.ExitCode == 0 : true;
+        }
+        catch
+        {
+            return true; // can't tell — assume healthy, don't roll back
+        }
+    }
+
+    private static void SafeDeleteDir(string dir)
+    {
+        try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { /* best-effort */ }
     }
 
     private static void WaitForExit(int pid, TimeSpan timeout)

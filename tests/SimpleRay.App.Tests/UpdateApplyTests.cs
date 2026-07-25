@@ -37,6 +37,30 @@ public class UpdateApplyTests : IDisposable
     }
 
     [Fact]
+    public void RunApplyUpdate_RollsBack_WhenNewBuildExitsNonZero()
+    {
+        var staging = Path.Combine(_base, "staging");
+        var target = Path.Combine(_base, "target");
+        Directory.CreateDirectory(staging);
+        Directory.CreateDirectory(target);
+
+        File.WriteAllText(Path.Combine(target, "SimpleRay.exe"), "OLD");
+        File.WriteAllText(Path.Combine(target, "old.txt"), "keep");
+        File.WriteAllText(Path.Combine(staging, "SimpleRay.exe"), "NEW");
+
+        // Relaunch target that exits with code 1 → treated as a crash → rollback.
+        var fail = Path.Combine(_base, "fail.cmd");
+        File.WriteAllText(fail, "@echo off\r\nexit /b 1\r\n");
+
+        UpdateService.RunApplyUpdate(new[] { "--apply-update", staging, target, fail, "999999" });
+
+        // The previous build is restored.
+        Assert.Equal("OLD", File.ReadAllText(Path.Combine(target, "SimpleRay.exe")));
+        Assert.Equal("keep", File.ReadAllText(Path.Combine(target, "old.txt")));
+        Assert.False(Directory.Exists(target + ".backup")); // backup cleaned up
+    }
+
+    [Fact]
     public void RunApplyUpdate_TooFewArgs_DoesNothing()
     {
         // Should return without throwing.
