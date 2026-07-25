@@ -125,6 +125,10 @@
                               IsChecked="{Binding BlockAds, Mode=TwoWay}"
                               Margin="0,10,0,0" />
 
+                    <CheckBox Content="{loc:Loc routing.autoConnect}"
+                              IsChecked="{Binding AutoConnect, Mode=TwoWay}"
+                              ToolTip="{loc:Loc tip.autoConnect}" Margin="0,6,0,0" />
+
                     <TextBlock Text="{loc:Loc routing.directHint}"
                                Foreground="#666" Margin="0,10,0,2" TextWrapping="Wrap" />
                     <CheckBox Content="{loc:Loc routing.directRuSites}"

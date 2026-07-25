@@ -126,6 +126,9 @@
   "rename.title": "Umbenennen",
   "rename.prompt": "Neuer Profilname:",
 
+  "routing.autoConnect": "Autoverbindung beim Start",
+  "tip.autoConnect": "Beim Start automatisch verbinden (mit der Gruppe oder dem ersten Profil)",
+
   "crash.title": "SimpleRay",
   "crash.message": "Unerwarteter Fehler: {0}\n\nDetails in last-error.txt gespeichert (App-Datenordner)."
 }

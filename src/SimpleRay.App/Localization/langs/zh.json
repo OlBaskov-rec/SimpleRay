@@ -126,6 +126,9 @@
   "rename.title": "重命名",
   "rename.prompt": "新的配置名称：",
 
+  "routing.autoConnect": "启动时自动连接",
+  "tip.autoConnect": "应用启动时自动连接（到分组或第一个配置）",
+
   "crash.title": "SimpleRay",
   "crash.message": "意外错误：{0}\n\n详情已保存到 last-error.txt（应用数据文件夹）。"
 }

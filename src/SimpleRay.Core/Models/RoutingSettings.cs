@@ -37,4 +37,7 @@ public sealed class RoutingSettings
 
     /// <summary>Failover group settings, used when more than one server is connected together.</summary>
     public GroupSettings Failover { get; set; } = new();
+
+    /// <summary>Connect automatically on startup (to the failover group or the first profile).</summary>
+    public bool AutoConnect { get; set; }
 }

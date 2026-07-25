@@ -126,6 +126,9 @@
   "rename.title": "Renombrar",
   "rename.prompt": "Nuevo nombre del perfil:",
 
+  "routing.autoConnect": "Conexión automática al inicio",
+  "tip.autoConnect": "Conectar automáticamente al iniciar (al grupo o al primer perfil)",
+
   "crash.title": "SimpleRay",
   "crash.message": "Error inesperado: {0}\n\nDetalles guardados en last-error.txt (carpeta de datos de la app)."
 }

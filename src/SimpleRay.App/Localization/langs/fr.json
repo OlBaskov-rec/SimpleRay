@@ -126,6 +126,9 @@
   "rename.title": "Renommer",
   "rename.prompt": "Nouveau nom du profil :",
 
+  "routing.autoConnect": "Connexion auto au démarrage",
+  "tip.autoConnect": "Se connecter automatiquement au démarrage (au groupe ou au premier profil)",
+
   "crash.title": "SimpleRay",
   "crash.message": "Erreur inattendue : {0}\n\nDétails enregistrés dans last-error.txt (dossier de données de l'application)."
 }

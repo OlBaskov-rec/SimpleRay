@@ -393,6 +393,20 @@ public sealed class MainViewModel : ObservableObject
         set { if (_routing.BlockAds != value) { _routing.BlockAds = value; OnPropertyChanged(); SaveRouting(); } }
     }
 
+    /// <summary>Connect automatically when the app starts.</summary>
+    public bool AutoConnect
+    {
+        get => _routing.AutoConnect;
+        set { if (_routing.AutoConnect != value) { _routing.AutoConnect = value; OnPropertyChanged(); SaveRouting(); } }
+    }
+
+    /// <summary>Called once after the window loads: connects if auto-connect is on and a target exists.</summary>
+    public async Task TryAutoConnectOnStartupAsync()
+    {
+        if (AutoConnect && !IsConnected && ResolveConnectTargets().Count > 0)
+            await ToggleConnectionAsync();
+    }
+
     private static bool ToggleTag(List<string> list, string tag, bool present)
     {
         if (present)

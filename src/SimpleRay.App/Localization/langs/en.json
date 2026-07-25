@@ -126,6 +126,9 @@
   "rename.title": "Rename",
   "rename.prompt": "New profile name:",
 
+  "routing.autoConnect": "Auto-connect on startup",
+  "tip.autoConnect": "Connect automatically when the app starts (to the group or the first profile)",
+
   "crash.title": "SimpleRay",
   "crash.message": "Unexpected error: {0}\n\nDetails saved to last-error.txt (app data folder)."
 }

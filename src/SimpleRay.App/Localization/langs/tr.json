@@ -126,6 +126,9 @@
   "rename.title": "Yeniden adlandır",
   "rename.prompt": "Yeni profil adı:",
 
+  "routing.autoConnect": "Başlangıçta otomatik bağlan",
+  "tip.autoConnect": "Uygulama başlarken otomatik bağlan (gruba veya ilk profile)",
+
   "crash.title": "SimpleRay",
   "crash.message": "Beklenmeyen hata: {0}\n\nDetaylar last-error.txt'ye kaydedildi (uygulama veri klasörü)."
 }

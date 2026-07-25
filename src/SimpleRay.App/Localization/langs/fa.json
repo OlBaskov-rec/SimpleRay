@@ -126,6 +126,9 @@
   "rename.title": "تغییر نام",
   "rename.prompt": "نام جدید پروفایل:",
 
+  "routing.autoConnect": "اتصال خودکار هنگام شروع",
+  "tip.autoConnect": "اتصال خودکار هنگام شروع برنامه (به گروه یا اولین پروفایل)",
+
   "crash.title": "SimpleRay",
   "crash.message": "خطای غیرمنتظره: {0}\n\nجزئیات در last-error.txt ذخیره شد (پوشه داده‌های برنامه)."
 }
