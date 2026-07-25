@@ -499,3 +499,16 @@ src/SimpleRay.App/runtime/core/wintun.dll
 src/SimpleRay.App/runtime/geo/*.srs
 # Any runtime config emitted at debug time
 **/runtime/**/config.json
+
+# --- SimpleRay: never commit real user data or secrets (defensive) ---
+# Real profiles/settings/subscriptions live in %AppData%\SimpleRay, NOT the repo.
+# These rules guard against accidentally copying such a file here while debugging.
+**/profiles.json
+**/subscriptions.json
+/settings.json
+last-error.txt
+lang.txt
+# Imported WireGuard configs and code-signing material (*.pfx already ignored above)
+*.conf
+*.p12
+*.pvk
