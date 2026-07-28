@@ -81,7 +81,7 @@ public static class ShareLinkParser
         {
             Protocol = ProxyProtocol.VLESS,
             Server = Host(uri),
-            Port = uri.Port,
+            Port = Port(uri),
             Uuid = UserInfo(uri),
             Flow = NullIfEmpty(q["flow"]),
             Raw = link,
@@ -155,7 +155,7 @@ public static class ShareLinkParser
         {
             Protocol = ProxyProtocol.Trojan,
             Server = Host(uri),
-            Port = uri.Port,
+            Port = Port(uri),
             Password = UserInfo(uri),
             Raw = link,
             Tag = Remark(link, Host(uri)),
@@ -267,6 +267,13 @@ public static class ShareLinkParser
 
     private static string Host(Uri uri) =>
         string.IsNullOrEmpty(uri.Host) ? throw new FormatException("Missing host.") : uri.Host;
+
+    // Uri.Port is -1 for a schemeless-default like vless://host (no ":port"); reject it
+    // rather than emit server_port:-1, which sing-box would refuse at startup.
+    private static int Port(Uri uri) =>
+        uri.Port is > 0 and <= 65535
+            ? uri.Port
+            : throw new FormatException($"Invalid or missing port '{uri.Port}'.");
 
     private static string UserInfo(Uri uri) =>
         string.IsNullOrEmpty(uri.UserInfo)

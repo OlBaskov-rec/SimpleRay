@@ -152,6 +152,19 @@ public class ShareLinkParserTests
         Assert.Null(p);
     }
 
+    [Theory]
+    [InlineData("vless://uuid@example.com?security=tls#A")]   // no ":port" at all
+    [InlineData("trojan://pw@example.com#B")]                 // no ":port" at all
+    [InlineData("vless://uuid@example.com:0#C")]              // port 0 is out of range
+    [InlineData("trojan://pw@example.com:70000#D")]           // port above 65535
+    public void TryParse_ReturnsFalse_OnMissingOrInvalidPort(string link)
+    {
+        // A missing port must be rejected, not emitted as server_port:-1 (which sing-box
+        // refuses at startup) or as an out-of-range value.
+        Assert.False(ShareLinkParser.TryParse(link, out var p));
+        Assert.Null(p);
+    }
+
     [Fact]
     public void Vmess_NonStringJsonFields_AreToleratedNotFatal()
     {
