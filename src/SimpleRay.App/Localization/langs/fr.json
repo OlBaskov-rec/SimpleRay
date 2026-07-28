@@ -59,6 +59,16 @@
   "routing.directLan": "Réseau local (private)",
   "routing.apps": "Applications…",
   "routing.failoverTitle": "Groupe de canaux (bascule auto)",
+
+  "dns.title": "Résolveur DNS",
+  "dns.hint": "Utilisé pour le trafic qui contourne le VPN. Le plus rapide dépend de votre localisation — testez puis choisissez.",
+  "dns.check": "Tester",
+  "dns.checking": "Test des résolveurs DNS…",
+  "dns.fastest": "Résolveur le plus rapide : {0}",
+  "dns.noneReachable": "Aucun résolveur DNS n'a répondu — vérifiez votre connexion",
+  "dns.latency": "{0} ms",
+  "dns.unavailable": "indisponible",
+  "tip.dnsCheck": "Mesurer tous les résolveurs depuis cet ordinateur",
   "updates.check": "Mises à jour",
   "footer.language": "Langue",
 

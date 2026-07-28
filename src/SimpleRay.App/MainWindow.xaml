@@ -147,6 +147,21 @@
 
                     <Separator Margin="0,12,0,8" />
 
+                    <TextBlock Text="{loc:Loc dns.title}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBlock Text="{loc:Loc dns.hint}" Foreground="#666" FontSize="11"
+                               TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Content="{loc:Loc dns.check}"
+                                Command="{Binding CheckDnsCommand}" Padding="10,2" Margin="6,0,0,0"
+                                ToolTip="{loc:Loc tip.dnsCheck}" />
+                        <ComboBox ItemsSource="{Binding DnsProviders}"
+                                  DisplayMemberPath="Label"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding SelectedDnsProviderId, Mode=TwoWay}" />
+                    </DockPanel>
+
+                    <Separator Margin="0,12,0,8" />
+
                     <TextBlock Text="{loc:Loc routing.failoverTitle}" FontWeight="SemiBold" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding FailoverModes}"
                               DisplayMemberPath="Label"

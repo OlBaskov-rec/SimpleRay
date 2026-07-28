@@ -81,6 +81,34 @@ public class StoreTests : IDisposable
     }
 
     [Fact]
+    public void SettingsStore_RoundTripsDnsChoice()
+    {
+        var store = new SettingsStore();
+        store.Save(new RoutingSettings
+        {
+            Dns = new DnsSettings { LocalProviderId = "adguard", RemoteProviderId = "google" },
+        });
+
+        var loaded = store.Load();
+        Assert.Equal("adguard", loaded.Dns.LocalProviderId);
+        Assert.Equal("google", loaded.Dns.RemoteProviderId);
+    }
+
+    [Fact]
+    public void SettingsStore_SettingsWrittenBeforeDnsExisted_LoadUsable()
+    {
+        // Files written by an older build have no "Dns" section at all; loading one
+        // must yield usable defaults rather than a null that breaks config generation.
+        File.WriteAllText(AppPaths.SettingsFile, "{\"Mode\":\"Rule\",\"BlockAds\":true}");
+
+        var loaded = new SettingsStore().Load();
+
+        Assert.NotNull(loaded.Dns);
+        Assert.Null(loaded.Dns.LocalProviderId); // "never chosen" — the app seeds it by language
+        Assert.NotNull(loaded.Dns.RemoteProviderId);
+    }
+
+    [Fact]
     public void SubscriptionStore_RoundTrips_AndDedups()
     {
         var store = new SubscriptionStore();

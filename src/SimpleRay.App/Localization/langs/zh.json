@@ -59,6 +59,16 @@
   "routing.directLan": "本地网络 (private)",
   "routing.apps": "应用…",
   "routing.failoverTitle": "线路分组（自动切换）",
+
+  "dns.title": "DNS 解析器",
+  "dns.hint": "用于绕过 VPN 的流量。哪个最快取决于你所在的位置——请检测后选择。",
+  "dns.check": "检测",
+  "dns.checking": "正在检测 DNS 解析器…",
+  "dns.fastest": "最快的解析器：{0}",
+  "dns.noneReachable": "没有 DNS 解析器响应——请检查网络连接",
+  "dns.latency": "{0} 毫秒",
+  "dns.unavailable": "不可用",
+  "tip.dnsCheck": "从这台电脑测量所有解析器",
   "updates.check": "更新",
   "footer.language": "语言",
 

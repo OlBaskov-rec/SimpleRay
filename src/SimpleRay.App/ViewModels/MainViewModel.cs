@@ -7,6 +7,7 @@ using SimpleRay.App.Infrastructure;
 using SimpleRay.App.Localization;
 using SimpleRay.App.Services;
 using SimpleRay.Core.Config;
+using SimpleRay.Core.Dns;
 using SimpleRay.Core.Engine;
 using SimpleRay.Core.Models;
 using SimpleRay.Core.Net;
@@ -62,6 +63,13 @@ public sealed class MainViewModel : ObservableObject
         _engine.StateChanged += OnEngineStateChanged;
         _engine.LogReceived += OnEngineLog;
 
+        foreach (var provider in DnsCatalog.All)
+            DnsProviders.Add(new DnsProviderItem(provider));
+        // Seed the resolver on first run (and repair a settings file naming one we no
+        // longer ship) so the picker always reflects what the config will actually use.
+        if (DnsCatalog.Find(_routing.Dns.LocalProviderId) is null)
+            _routing.Dns.LocalProviderId = DnsCatalog.InitialIdForLanguage(L.CurrentCulture);
+
         ConnectCommand = new RelayCommand(ToggleConnectionAsync);
         ImportClipboardCommand = new RelayCommand(ImportFromClipboard);
         ImportFileCommand = new RelayCommand(ImportFromFile);
@@ -74,6 +82,7 @@ public sealed class MainViewModel : ObservableObject
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
+        CheckDnsCommand = new RelayCommand(CheckDnsAsync);
         AddSubscriptionCommand = new RelayCommand(AddSubscriptionAsync);
         RefreshSubscriptionsCommand = new RelayCommand(RefreshSubscriptionsAsync,
             () => _subscriptions.Count > 0);
@@ -105,6 +114,10 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(FailoverModes));
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SelectedLanguage));
+        // Probe results carry localized text ("unavailable", units); drop them rather
+        // than leave the picker mixing two languages.
+        foreach (var item in DnsProviders)
+            item.ClearResult();
         if (!IsConnected)
             StatusText = L["status.disconnected"];
     }
@@ -162,6 +175,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
     public RelayCommand CheckUpdatesCommand { get; }
+    public RelayCommand CheckDnsCommand { get; }
     public RelayCommand AddSubscriptionCommand { get; }
     public RelayCommand RefreshSubscriptionsCommand { get; }
 
@@ -398,6 +412,76 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _routing.AutoConnect;
         set { if (_routing.AutoConnect != value) { _routing.AutoConnect = value; OnPropertyChanged(); SaveRouting(); } }
+    }
+
+    // --- DNS resolver -----------------------------------------------------
+
+    /// <summary>A catalog entry plus its last measured latency, shown in the picker.</summary>
+    public sealed class DnsProviderItem : ObservableObject
+    {
+        private string _suffix = "";
+
+        public DnsProviderItem(DnsProvider provider) => Provider = provider;
+
+        public DnsProvider Provider { get; }
+        public string Id => Provider.Id;
+
+        /// <summary>Provider name, plus the probe result once one is known.</summary>
+        public string Label => Provider.Label + _suffix;
+
+        public void SetResult(int? latencyMs)
+        {
+            _suffix = " — " + (latencyMs is int ms
+                ? L.Format("dns.latency", ms)
+                : L["dns.unavailable"]);
+            OnPropertyChanged(nameof(Label));
+        }
+
+        public void ClearResult()
+        {
+            _suffix = "";
+            OnPropertyChanged(nameof(Label));
+        }
+    }
+
+    public ObservableCollection<DnsProviderItem> DnsProviders { get; } = new();
+
+    /// <summary>Resolver used for traffic that bypasses the tunnel; the location-sensitive one.</summary>
+    public string SelectedDnsProviderId
+    {
+        get => _routing.Dns.LocalProviderId ?? DnsCatalog.FallbackId;
+        set
+        {
+            if (value is null || _routing.Dns.LocalProviderId == value) return;
+            _routing.Dns.LocalProviderId = value;
+            OnPropertyChanged();
+            SaveRouting();
+        }
+    }
+
+    /// <summary>
+    /// Measures every catalog resolver from this machine. Which resolver is fastest
+    /// depends on where the user is, so it can only be answered by measuring here.
+    /// </summary>
+    private async Task CheckDnsAsync()
+    {
+        StatusText = L["dns.checking"];
+        foreach (var item in DnsProviders)
+            item.ClearResult();
+
+        var results = await Task.WhenAll(DnsProviders.Select(async item =>
+            (item, latency: await DohProbe.MeasureAsync(item.Provider.Server))));
+
+        foreach (var (item, latency) in results)
+            item.SetResult(latency);
+
+        var best = results.Where(r => r.latency is not null)
+                          .OrderBy(r => r.latency)
+                          .Select(r => r.item)
+                          .FirstOrDefault();
+        StatusText = best is null
+            ? L["dns.noneReachable"]
+            : L.Format("dns.fastest", best.Provider.Label);
     }
 
     /// <summary>Called once after the window loads: connects if auto-connect is on and a target exists.</summary>

@@ -59,6 +59,16 @@
   "routing.directLan": "Red local (private)",
   "routing.apps": "Aplicaciones…",
   "routing.failoverTitle": "Grupo de canales (conmutación auto)",
+
+  "dns.title": "Resolutor DNS",
+  "dns.hint": "Se usa para el tráfico que evita la VPN. Cuál es el más rápido depende de dónde estés: compruébalo y elige.",
+  "dns.check": "Comprobar",
+  "dns.checking": "Comprobando resolutores DNS…",
+  "dns.fastest": "Resolutor más rápido: {0}",
+  "dns.noneReachable": "Ningún resolutor DNS respondió: revisa tu conexión",
+  "dns.latency": "{0} ms",
+  "dns.unavailable": "no disponible",
+  "tip.dnsCheck": "Medir todos los resolutores desde este ordenador",
   "updates.check": "Actualizaciones",
   "footer.language": "Idioma",
 

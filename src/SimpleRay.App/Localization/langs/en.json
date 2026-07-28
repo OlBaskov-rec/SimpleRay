@@ -59,6 +59,16 @@
   "routing.directLan": "Local network (private)",
   "routing.apps": "Apps…",
   "routing.failoverTitle": "Channel group (auto-switch)",
+
+  "dns.title": "DNS resolver",
+  "dns.hint": "Used for traffic that bypasses the VPN. Which one is fastest depends on where you are — check and pick.",
+  "dns.check": "Check",
+  "dns.checking": "Checking DNS resolvers…",
+  "dns.fastest": "Fastest resolver: {0}",
+  "dns.noneReachable": "No DNS resolver responded — check your connection",
+  "dns.latency": "{0} ms",
+  "dns.unavailable": "unavailable",
+  "tip.dnsCheck": "Measure every resolver from this computer",
   "updates.check": "Updates",
   "footer.language": "Language",
 

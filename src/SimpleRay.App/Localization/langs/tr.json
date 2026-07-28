@@ -59,6 +59,16 @@
   "routing.directLan": "Yerel ağ (private)",
   "routing.apps": "Uygulamalar…",
   "routing.failoverTitle": "Kanal grubu (otomatik geçiş)",
+
+  "dns.title": "DNS çözümleyici",
+  "dns.hint": "VPN'i atlayan trafik için kullanılır. Hangisinin en hızlı olduğu bulunduğunuz yere bağlıdır — test edip seçin.",
+  "dns.check": "Test et",
+  "dns.checking": "DNS çözümleyiciler test ediliyor…",
+  "dns.fastest": "En hızlı çözümleyici: {0}",
+  "dns.noneReachable": "Hiçbir DNS çözümleyici yanıt vermedi — bağlantınızı kontrol edin",
+  "dns.latency": "{0} ms",
+  "dns.unavailable": "kullanılamıyor",
+  "tip.dnsCheck": "Tüm çözümleyicileri bu bilgisayardan ölç",
   "updates.check": "Güncellemeler",
   "footer.language": "Dil",
 

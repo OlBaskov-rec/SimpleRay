@@ -11,8 +11,12 @@ namespace SimpleRay.Core.Models;
 /// </summary>
 public sealed class DnsSettings
 {
-    /// <summary>Catalog id of the resolver used for direct traffic. Unknown ids fall back.</summary>
-    public string LocalProviderId { get; set; } = DnsCatalog.FallbackId;
+    /// <summary>
+    /// Catalog id of the resolver used for direct traffic. Null means the user has never
+    /// chosen one, letting the app seed it from the UI language on first run; unknown
+    /// ids fall back rather than breaking the config.
+    /// </summary>
+    public string? LocalProviderId { get; set; }
 
     /// <summary>Catalog id of the resolver queried through the tunnel.</summary>
     public string RemoteProviderId { get; set; } = DnsCatalog.FallbackId;
