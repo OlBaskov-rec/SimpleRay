@@ -15,9 +15,10 @@ public static class DnsCatalog
         new DnsProvider("cloudflare", "Cloudflare (1.1.1.1)", "1.1.1.1"),
         new DnsProvider("google", "Google (8.8.8.8)", "8.8.8.8"),
         new DnsProvider("adguard", "AdGuard (94.140.14.14)", "94.140.14.14"),
+        new DnsProvider("quad9", "Quad9 (9.9.9.9)", "9.9.9.9"),
         new DnsProvider("alidns", "AliDNS (223.5.5.5)", "223.5.5.5"),
-        // Quad9 (9.9.9.9) is deliberately absent: it does not serve DoH on its bare IP
-        // (TLS fails over both HTTP/1.1 and HTTP/2), so it would need a bootstrap resolver.
+        // Yandex (77.88.8.8) is deliberately absent: it rejects TLS on its bare IP
+        // (its DoH lives at common.dns.yandex.net), so it would need a bootstrap resolver.
     };
 
     /// <summary>The provider with this id, or null when unknown.</summary>

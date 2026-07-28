@@ -13,30 +13,19 @@ namespace SimpleRay.Core.Net;
 /// </summary>
 public static class DohProbe
 {
-    private static readonly HttpClient Http = CreateClient();
-
-    private static HttpClient CreateClient()
-    {
-        var c = new HttpClient();
-        // DoH mandates HTTP/2; some resolvers reject HTTP/1.1 outright.
-        c.DefaultRequestVersion = HttpVersion.Version20;
-        c.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-        return c;
-    }
+    private static readonly HttpClient Http = new();
 
     public static async Task<int?> MeasureAsync(string server, int timeoutMs = 4000, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(server))
             return null;
 
-        var url = $"https://{server}/dns-query?dns={Base64Url(BuildQuery())}";
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(timeoutMs);
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Accept.ParseAdd("application/dns-message");
+            using var request = BuildRequest(server);
 
             var sw = Stopwatch.StartNew();
             using var response = await Http.SendAsync(request, cts.Token).ConfigureAwait(false);
@@ -51,6 +40,24 @@ public static class DohProbe
         {
             return null; // TLS failure, timeout, HTTP/2 unsupported, DNS refusal…
         }
+    }
+
+    /// <summary>
+    /// Builds the RFC 8484 GET request. The HTTP version must be set on the request
+    /// message itself: HttpClient.DefaultRequestVersion is ignored for a manually
+    /// constructed HttpRequestMessage, so relying on it silently sends HTTP/1.1 — which
+    /// HTTP/2-only resolvers (e.g. Quad9) answer with 505, looking like an outage.
+    /// </summary>
+    internal static HttpRequestMessage BuildRequest(string server)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get, $"https://{server}/dns-query?dns={Base64Url(BuildQuery())}")
+        {
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher,
+        };
+        request.Headers.Accept.ParseAdd("application/dns-message");
+        return request;
     }
 
     /// <summary>A minimal DNS query for example.com/A with recursion desired.</summary>
