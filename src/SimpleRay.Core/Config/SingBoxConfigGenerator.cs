@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
+using SimpleRay.Core.Dns;
 using SimpleRay.Core.Models;
 
 namespace SimpleRay.Core.Config;
@@ -58,7 +59,7 @@ public static class SingBoxConfigGenerator
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
-            ["dns"] = BuildDns(),
+            ["dns"] = BuildDns(routing.Dns),
             ["inbounds"] = new JsonArray { BuildTunInbound(options) },
             ["outbounds"] = topology.Outbounds,
             ["route"] = BuildRoute(routing, options),
@@ -70,16 +71,33 @@ public static class SingBoxConfigGenerator
     }
 
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
-    private static JsonObject BuildDns() => new()
+    // Resolvers are addressed by IP: a hostname here would itself need resolving first.
+    private static JsonObject BuildDns(DnsSettings dns)
     {
-        ["servers"] = new JsonArray
+        dns ??= new DnsSettings();
+        return new JsonObject
         {
-            new JsonObject { ["type"] = "https", ["tag"] = "remote", ["server"] = "1.1.1.1", ["detour"] = GeneratorOptions.ProxyTag },
-            new JsonObject { ["type"] = "https", ["tag"] = "local", ["server"] = "223.5.5.5", ["detour"] = GeneratorOptions.DirectTag },
-        },
-        ["final"] = "remote",
-        ["strategy"] = "prefer_ipv4",
-    };
+            ["servers"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["type"] = "https",
+                    ["tag"] = "remote",
+                    ["server"] = DnsCatalog.Resolve(dns.RemoteProviderId).Server,
+                    ["detour"] = GeneratorOptions.ProxyTag,
+                },
+                new JsonObject
+                {
+                    ["type"] = "https",
+                    ["tag"] = "local",
+                    ["server"] = DnsCatalog.Resolve(dns.LocalProviderId).Server,
+                    ["detour"] = GeneratorOptions.DirectTag,
+                },
+            },
+            ["final"] = "remote",
+            ["strategy"] = "prefer_ipv4",
+        };
+    }
 
     private static JsonObject BuildTunInbound(GeneratorOptions o) => new()
     {

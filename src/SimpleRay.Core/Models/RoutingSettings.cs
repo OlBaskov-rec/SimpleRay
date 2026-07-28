@@ -40,4 +40,7 @@ public sealed class RoutingSettings
 
     /// <summary>Connect automatically on startup (to the failover group or the first profile).</summary>
     public bool AutoConnect { get; set; }
+
+    /// <summary>Which public DoH resolvers to use for direct and tunnelled lookups.</summary>
+    public DnsSettings Dns { get; set; } = new();
 }
