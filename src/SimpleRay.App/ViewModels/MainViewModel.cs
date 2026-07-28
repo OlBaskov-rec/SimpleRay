@@ -703,5 +703,11 @@ public sealed class MainViewModel : ObservableObject
             Log = combined;
         });
 
-    public async Task ShutdownAsync() => await _engine.DisposeAsync();
+    /// <summary>
+    /// Stops the engine. Deliberately not an async method: MainWindow.Closed blocks on
+    /// this task, so capturing the dispatcher context here would post the continuation
+    /// to a UI thread that is already blocked — deadlocking the app on exit. The engine
+    /// uses ConfigureAwait(false) throughout, so the returned task completes off the UI thread.
+    /// </summary>
+    public Task ShutdownAsync() => _engine.DisposeAsync().AsTask();
 }
