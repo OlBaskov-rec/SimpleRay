@@ -470,7 +470,7 @@ public sealed class MainViewModel : ObservableObject
             item.ClearResult();
 
         var results = await Task.WhenAll(DnsProviders.Select(async item =>
-            (item, latency: await DohProbe.MeasureAsync(item.Provider.Server))));
+            (item, latency: await ProbeAsync(item.Provider))));
 
         foreach (var (item, latency) in results)
             item.SetResult(latency);
@@ -483,6 +483,12 @@ public sealed class MainViewModel : ObservableObject
             ? L["dns.noneReachable"]
             : L.Format("dns.fastest", best.Provider.Label);
     }
+
+    /// <summary>Measures a resolver with the probe that matches its transport.</summary>
+    private static Task<int?> ProbeAsync(DnsProvider provider) =>
+        provider.Transport == DnsTransport.Udp
+            ? UdpDnsProbe.MeasureAsync(provider.Server)
+            : DohProbe.MeasureAsync(provider.Server);
 
     /// <summary>Called once after the window loads: connects if auto-connect is on and a target exists.</summary>
     public async Task TryAutoConnectOnStartupAsync()

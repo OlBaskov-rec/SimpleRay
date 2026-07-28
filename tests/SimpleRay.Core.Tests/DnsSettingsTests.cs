@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using SimpleRay.Core.Config;
 using SimpleRay.Core.Dns;
 using SimpleRay.Core.Models;
@@ -11,9 +12,12 @@ public class DnsSettingsTests
     private static ProfileConfig Vless() =>
         ShareLinkParser.Parse("vless://uuid-x@example.com:443?security=tls#node");
 
+    private static JsonNode ServerNode(RoutingSettings routing, string tag) =>
+        SingBoxConfigGenerator.Generate(Vless(), routing)["dns"]!["servers"]!
+            .AsArray().First(s => (string?)s!["tag"] == tag)!;
+
     private static string ServerOfTag(RoutingSettings routing, string tag) =>
-        (string)SingBoxConfigGenerator.Generate(Vless(), routing)["dns"]!["servers"]!
-            .AsArray().First(s => (string?)s!["tag"] == tag)!["server"]!;
+        (string)ServerNode(routing, tag)["server"]!;
 
     [Fact]
     public void ChosenProviders_LandInTheGeneratedConfig()
@@ -76,6 +80,44 @@ public class DnsSettingsTests
     public void CatalogIds_AreUnique()
     {
         Assert.Equal(DnsCatalog.All.Count, DnsCatalog.All.Select(p => p.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public void UdpProvider_ForLocal_EmitsUdpServerBypassingTunnel()
+    {
+        var routing = new RoutingSettings { Dns = new DnsSettings { LocalProviderId = "yandex" } };
+
+        var local = ServerNode(routing, "local");
+        Assert.Equal("udp", (string?)local["type"]);
+        Assert.Equal("77.88.8.8", (string?)local["server"]);
+        Assert.Equal("direct", (string?)local["detour"]); // never tunnelled
+    }
+
+    [Fact]
+    public void UdpProvider_IsNeverUsedForTheTunnelledResolver()
+    {
+        // Even if a UDP id is somehow stored as the remote resolver, plaintext DNS must
+        // not be sent through the proxy — it falls back to the default DoH resolver.
+        var routing = new RoutingSettings { Dns = new DnsSettings { RemoteProviderId = "yandex" } };
+
+        var remote = ServerNode(routing, "remote");
+        Assert.Equal("https", (string?)remote["type"]);
+        Assert.Equal("1.1.1.1", (string?)remote["server"]);
+        Assert.Equal("proxy", (string?)remote["detour"]);
+    }
+
+    [Fact]
+    public void RemoteChoices_AreDohOnly()
+    {
+        Assert.All(DnsCatalog.RemoteChoices, p => Assert.Equal(DnsTransport.Doh, p.Transport));
+        Assert.DoesNotContain(DnsCatalog.RemoteChoices, p => p.Id == "yandex");
+    }
+
+    [Fact]
+    public void DohProviders_StillEmitHttpsForLocal()
+    {
+        var routing = new RoutingSettings { Dns = new DnsSettings { LocalProviderId = "adguard" } };
+        Assert.Equal("https", (string?)ServerNode(routing, "local")["type"]);
     }
 
     [Theory]

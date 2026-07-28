@@ -75,29 +75,27 @@ public static class SingBoxConfigGenerator
     private static JsonObject BuildDns(DnsSettings dns)
     {
         dns ??= new DnsSettings();
+        // ResolveRemote enforces DoH for the tunnelled server, so a UDP pick can never
+        // send plaintext DNS through the proxy.
         return new JsonObject
         {
             ["servers"] = new JsonArray
             {
-                new JsonObject
-                {
-                    ["type"] = "https",
-                    ["tag"] = "remote",
-                    ["server"] = DnsCatalog.Resolve(dns.RemoteProviderId).Server,
-                    ["detour"] = GeneratorOptions.ProxyTag,
-                },
-                new JsonObject
-                {
-                    ["type"] = "https",
-                    ["tag"] = "local",
-                    ["server"] = DnsCatalog.Resolve(dns.LocalProviderId).Server,
-                    ["detour"] = GeneratorOptions.DirectTag,
-                },
+                BuildDnsServer("remote", DnsCatalog.ResolveRemote(dns.RemoteProviderId), GeneratorOptions.ProxyTag),
+                BuildDnsServer("local", DnsCatalog.ResolveLocal(dns.LocalProviderId), GeneratorOptions.DirectTag),
             },
             ["final"] = "remote",
             ["strategy"] = "prefer_ipv4",
         };
     }
+
+    private static JsonObject BuildDnsServer(string tag, DnsProvider provider, string detour) => new()
+    {
+        ["type"] = provider.Transport == DnsTransport.Udp ? "udp" : "https",
+        ["tag"] = tag,
+        ["server"] = provider.Server,
+        ["detour"] = detour,
+    };
 
     private static JsonObject BuildTunInbound(GeneratorOptions o) => new()
     {
