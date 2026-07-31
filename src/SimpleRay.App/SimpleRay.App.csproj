@@ -50,6 +50,8 @@
     <Version>0.2.0</Version>
     <Company>OlBaskov-rec</Company>
     <Product>SimpleRay</Product>
+    <Copyright>Copyright (C) 2026 OlBaskov-rec</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>
