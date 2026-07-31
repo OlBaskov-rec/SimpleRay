@@ -16,6 +16,12 @@ public sealed class EngineOptions
     public string ConfigFileName { get; init; } = "config.json";
 
     /// <summary>
+    /// Run <c>sing-box check</c> on the generated config before starting, so a config
+    /// error surfaces as a real diagnostic instead of the opaque "exited immediately".
+    /// </summary>
+    public bool ValidateBeforeStart { get; init; } = true;
+
+    /// <summary>
     /// Optional graceful terminator. When set, <see cref="SingBoxEngine.StopAsync"/> asks it
     /// to stop the process cleanly (so sing-box can tear down the TUN adapter and routes)
     /// before falling back to a hard kill.
@@ -64,6 +70,13 @@ public sealed class SingBoxEngine : IVpnEngine
             throw new InvalidOperationException("Engine already running.");
 
         WriteConfig(configJson);
+
+        // Pre-flight validation, before we enter Starting or spawn the tunnel: a bad
+        // config throws here with the checker's own message, so the caller shows a real
+        // reason instead of the later "exited immediately (code 1)".
+        if (_options.ValidateBeforeStart)
+            await ValidateConfigAsync(ct).ConfigureAwait(false);
+
         SetState(EngineState.Starting);
 
         var psi = new ProcessStartInfo
@@ -122,6 +135,74 @@ public sealed class SingBoxEngine : IVpnEngine
 
         process.Exited += OnProcessExited;
         SetState(EngineState.Running);
+    }
+
+    /// <summary>Runs <c>sing-box check</c>; returns (ok, combined output). No side effects.</summary>
+    public async Task<(bool ok, string output)> CheckConfigAsync(string configJson, CancellationToken ct = default)
+    {
+        EnsureFilesExist();
+        WriteConfig(configJson);
+        var (exit, output) = await RunOnceAsync(
+            $"check -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"", ct).ConfigureAwait(false);
+        return (exit == 0, output);
+    }
+
+    /// <summary>Validates the already-written config; throws with diagnostics if invalid.</summary>
+    private async Task ValidateConfigAsync(CancellationToken ct)
+    {
+        var (exit, output) = await RunOnceAsync(
+            $"check -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"", ct).ConfigureAwait(false);
+        if (exit == 0)
+            return;
+
+        // The config holds secrets; don't leave the rejected one on disk.
+        TryDeleteConfig();
+        // Full checker output to the log, a concise reason on the exception (which the UI shows).
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            LogReceived?.Invoke(this, line.TrimEnd());
+        throw new InvalidOperationException("Invalid configuration: " + ExtractReason(output));
+    }
+
+    /// <summary>Picks the most telling line of a checker failure for a one-line message.</summary>
+    private static string ExtractReason(string output)
+    {
+        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (lines.Length == 0)
+            return "sing-box check failed.";
+        var flagged = lines.LastOrDefault(l =>
+            l.Contains("FATAL", StringComparison.OrdinalIgnoreCase) ||
+            l.Contains("ERROR", StringComparison.OrdinalIgnoreCase));
+        return flagged ?? lines[^1];
+    }
+
+    /// <summary>Runs sing-box once to completion, capturing stdout+stderr combined.</summary>
+    private async Task<(int exitCode, string output)> RunOnceAsync(string arguments, CancellationToken ct)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = _options.ExecutablePath,
+            Arguments = arguments,
+            WorkingDirectory = _options.WorkingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+
+        using var process = new Process { StartInfo = psi };
+        var sb = new StringBuilder();
+        // stdout and stderr callbacks fire on different threads — serialize appends.
+        void Append(string? data) { if (data is not null) lock (sb) sb.AppendLine(data); }
+        process.OutputDataReceived += (_, e) => Append(e.Data);
+        process.ErrorDataReceived += (_, e) => Append(e.Data);
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        lock (sb) return (process.ExitCode, sb.ToString());
     }
 
     public async Task StopAsync()
