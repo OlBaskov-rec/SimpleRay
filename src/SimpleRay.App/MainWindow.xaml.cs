@@ -50,4 +50,9 @@ public partial class MainWindow : Window
 
     private void Tray_Exit(object sender, RoutedEventArgs e) =>
         Application.Current.Shutdown();
+
+    // No owner window: this is also reachable from the tray while the window is hidden.
+    private void About_Click(object sender, RoutedEventArgs e) =>
+        MessageBox.Show(_viewModel.AboutText, _viewModel.AboutTitle,
+            MessageBoxButton.OK, MessageBoxImage.Information);
 }

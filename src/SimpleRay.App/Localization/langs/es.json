@@ -107,6 +107,13 @@
   "tray.show": "Mostrar",
   "tray.toggle": "Conectar / Desconectar",
   "tray.checkUpdates": "Buscar actualizaciones",
+
+  "about.button": "Acerca de",
+  "about.title": "Acerca de SimpleRay",
+  "about.notice": "Este programa se ofrece SIN NINGUNA GARANTÍA. Es software libre, y puede redistribuirlo bajo los términos de la Licencia Pública General de GNU versión 3.",
+  "about.source": "Código fuente: {0}",
+  "about.licenses": "Licencia: GNU GPL v3 (ver LICENSE). Componentes incluidos: ver THIRD-PARTY-NOTICES.md.",
+
   "tray.exit": "Salir",
 
   "apps.title": "Enrutamiento por aplicación",

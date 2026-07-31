@@ -107,6 +107,13 @@
   "tray.show": "Göster",
   "tray.toggle": "Bağlan / Kes",
   "tray.checkUpdates": "Güncelleme ara",
+
+  "about.button": "Hakkında",
+  "about.title": "SimpleRay Hakkında",
+  "about.notice": "Bu program HİÇBİR GARANTİ OLMADAN sunulur. Bu özgür bir yazılımdır ve GNU Genel Kamu Lisansı sürüm 3 koşulları altında yeniden dağıtabilirsiniz.",
+  "about.source": "Kaynak kodu: {0}",
+  "about.licenses": "Lisans: GNU GPL v3 (bkz. LICENSE). Paketlenen bileşenler: bkz. THIRD-PARTY-NOTICES.md.",
+
   "tray.exit": "Çıkış",
 
   "apps.title": "Uygulama bazlı yönlendirme",

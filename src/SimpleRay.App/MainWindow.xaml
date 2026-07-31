@@ -32,6 +32,7 @@
                     <MenuItem Header="{loc:Loc tray.show}" Click="Tray_ShowWindow" />
                     <MenuItem Header="{loc:Loc tray.toggle}" Click="Tray_ToggleConnect" />
                     <MenuItem Header="{loc:Loc tray.checkUpdates}" Click="Tray_CheckUpdates" />
+                    <MenuItem Header="{loc:Loc about.button}" Click="About_Click" />
                     <Separator />
                     <MenuItem Header="{loc:Loc tray.exit}" Click="Tray_Exit" />
                 </ContextMenu>
@@ -181,6 +182,9 @@
             <DockPanel Grid.Row="4" Margin="0,8,0,0" LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" Text="{Binding AppVersion}"
                            Foreground="#999" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Left" Content="{loc:Loc about.button}"
+                        Click="About_Click" Padding="10,4" Margin="10,0,0,0"
+                        Background="Transparent" BorderThickness="0" Foreground="#888" />
                 <Button DockPanel.Dock="Right" Content="{loc:Loc updates.check}"
                         Command="{Binding CheckUpdatesCommand}" Padding="10,4"
                         ToolTip="{loc:Loc tip.updates}" />

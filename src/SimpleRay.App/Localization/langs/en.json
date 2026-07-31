@@ -107,6 +107,13 @@
   "tray.show": "Show",
   "tray.toggle": "Connect / Disconnect",
   "tray.checkUpdates": "Check for updates",
+
+  "about.button": "About",
+  "about.title": "About SimpleRay",
+  "about.notice": "This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under the terms of the GNU General Public License version 3.",
+  "about.source": "Source code: {0}",
+  "about.licenses": "License: GNU GPL v3 (see LICENSE). Bundled components: see THIRD-PARTY-NOTICES.md.",
+
   "tray.exit": "Exit",
 
   "apps.title": "Per-app routing",

@@ -107,6 +107,13 @@
   "tray.show": "Anzeigen",
   "tray.toggle": "Verbinden / Trennen",
   "tray.checkUpdates": "Nach Updates suchen",
+
+  "about.button": "Über",
+  "about.title": "Über SimpleRay",
+  "about.notice": "Dieses Programm kommt OHNE JEGLICHE GEWÄHRLEISTUNG. Es ist freie Software, die Sie unter den Bedingungen der GNU General Public License Version 3 weitergeben dürfen.",
+  "about.source": "Quellcode: {0}",
+  "about.licenses": "Lizenz: GNU GPL v3 (siehe LICENSE). Mitgelieferte Komponenten: siehe THIRD-PARTY-NOTICES.md.",
+
   "tray.exit": "Beenden",
 
   "apps.title": "Routing pro App",

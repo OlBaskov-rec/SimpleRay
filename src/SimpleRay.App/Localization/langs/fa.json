@@ -107,6 +107,13 @@
   "tray.show": "نمایش",
   "tray.toggle": "اتصال / قطع",
   "tray.checkUpdates": "بررسی به‌روزرسانی‌ها",
+
+  "about.button": "درباره",
+  "about.title": "درباره SimpleRay",
+  "about.notice": "این برنامه بدون هیچ‌گونه ضمانتی ارائه می‌شود. این نرم‌افزار آزاد است و می‌توانید آن را طبق شرایط پروانه عمومی همگانی گنو نسخه ۳ بازتوزیع کنید.",
+  "about.source": "کد منبع: {0}",
+  "about.licenses": "پروانه: GNU GPL v3 (به LICENSE مراجعه کنید). اجزای همراه: به THIRD-PARTY-NOTICES.md مراجعه کنید.",
+
   "tray.exit": "خروج",
 
   "apps.title": "مسیریابی بر اساس برنامه",

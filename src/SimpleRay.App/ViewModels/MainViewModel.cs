@@ -88,7 +88,13 @@ public sealed class MainViewModel : ObservableObject
             () => _subscriptions.Count > 0);
 
         L.CultureChanged += OnCultureChanged;
-        Profiles.CollectionChanged += (_, _) => PingCommand.RaiseCanExecuteChanged();
+        Profiles.CollectionChanged += (_, _) =>
+        {
+            PingCommand.RaiseCanExecuteChanged();
+            // Adding/removing a server can change the in-group count, so the hint that
+            // reports it must refresh too (e.g. removing a grouped server).
+            OnPropertyChanged(nameof(GroupHint));
+        };
     }
 
     // --- Localization -----------------------------------------------------
@@ -123,6 +129,22 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string AppVersion => "v" + UpdateService.CurrentVersion.ToString(3);
+
+    /// <summary>Public source repository — surfaced in About so users can obtain the source (GPL).</summary>
+    public const string SourceUrl = "https://github.com/OlBaskov-rec/SimpleRay";
+
+    public string AboutTitle => L["about.title"];
+
+    /// <summary>
+    /// About text including the GPL notice. GPL-3.0 asks an interactive program to show
+    /// users their rights; this is that notice, built fresh so it follows the UI language.
+    /// </summary>
+    public string AboutText =>
+        $"SimpleRay {AppVersion}\n" +
+        "Copyright (C) 2026 OlBaskov-rec\n\n" +
+        L["about.notice"] + "\n\n" +
+        L.Format("about.source", SourceUrl) + "\n" +
+        L["about.licenses"];
 
     public ObservableCollection<ProfileConfig> Profiles { get; } = new();
 

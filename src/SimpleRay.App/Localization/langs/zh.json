@@ -107,6 +107,13 @@
   "tray.show": "显示",
   "tray.toggle": "连接 / 断开",
   "tray.checkUpdates": "检查更新",
+
+  "about.button": "关于",
+  "about.title": "关于 SimpleRay",
+  "about.notice": "本程序不提供任何担保。这是自由软件，你可以依据 GNU 通用公共许可证第 3 版的条款重新分发它。",
+  "about.source": "源代码：{0}",
+  "about.licenses": "许可证：GNU GPL v3（见 LICENSE）。捆绑组件：见 THIRD-PARTY-NOTICES.md。",
+
   "tray.exit": "退出",
 
   "apps.title": "按应用路由",

@@ -107,6 +107,13 @@
   "tray.show": "Показати",
   "tray.toggle": "Підключити / Відключити",
   "tray.checkUpdates": "Перевірити оновлення",
+
+  "about.button": "Про програму",
+  "about.title": "Про програму SimpleRay",
+  "about.notice": "Програма постачається АБСОЛЮТНО БЕЗ ЖОДНИХ ГАРАНТІЙ. Це вільне ПЗ, і ви можете поширювати його на умовах GNU General Public License версії 3.",
+  "about.source": "Вихідний код: {0}",
+  "about.licenses": "Ліцензія: GNU GPL v3 (див. LICENSE). Сторонні компоненти: див. THIRD-PARTY-NOTICES.md.",
+
   "tray.exit": "Вихід",
 
   "apps.title": "Маршрутизація за застосунками",
