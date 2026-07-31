@@ -47,7 +47,7 @@ public sealed class UpdateService
         return ReleaseParser.TryParseLatest(json, CurrentVersion, out var info) ? info : null;
     }
 
-    /// <summary>Downloads the zip, verifies SHA256, extracts to a clean staging dir; returns its path.</summary>
+    /// <summary>Downloads the zip, verifies it, extracts to a clean staging dir; returns its path.</summary>
     public async Task<string> DownloadAndStageAsync(ReleaseInfo info, IProgress<double>? progress = null, CancellationToken ct = default)
     {
         var workDir = Path.Combine(AppPaths.DataDir, "update");
@@ -57,11 +57,7 @@ public sealed class UpdateService
         var zipPath = Path.Combine(workDir, "update.zip");
         await DownloadFileAsync(info.ZipUrl, zipPath, progress, ct).ConfigureAwait(false);
 
-        var expected = await DownloadShaAsync(info.Sha256Url, ct).ConfigureAwait(false);
-        var actual = Sha256File(zipPath);
-        if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                $"Контрольная сумма не совпала — обновление отклонено.\nОжидалось: {expected}\nПолучено: {actual}");
+        await VerifyDownloadAsync(info, zipPath, ct).ConfigureAwait(false);
 
         var stagingDir = Path.Combine(workDir, "staging");
         Directory.CreateDirectory(stagingDir);
@@ -69,6 +65,36 @@ public sealed class UpdateService
         if (!File.Exists(Path.Combine(stagingDir, "SimpleRay.exe")))
             throw new InvalidOperationException("В архиве обновления нет SimpleRay.exe.");
         return stagingDir;
+    }
+
+    /// <summary>
+    /// Verifies the downloaded zip. Once a signing key is embedded, a valid signature is
+    /// mandatory (a compromised release cannot forge one); before that, the SHA-256 sidecar
+    /// is used, which still guards against a corrupted download.
+    /// </summary>
+    private async Task VerifyDownloadAsync(ReleaseInfo info, string zipPath, CancellationToken ct)
+    {
+        if (UpdateSignature.IsConfigured)
+        {
+            if (string.IsNullOrEmpty(info.SigUrl))
+                throw new InvalidOperationException(
+                    "Обновление не подписано — отклонено. Ожидается файл .sig рядом с архивом.");
+
+            var signature = await Http.GetByteArrayAsync(info.SigUrl, ct).ConfigureAwait(false);
+            await using var zip = File.OpenRead(zipPath);
+            if (!UpdateSignature.Verify(zip, signature))
+                throw new InvalidOperationException("Подпись обновления неверна — обновление отклонено.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(info.Sha256Url))
+            throw new InvalidOperationException("У обновления нет ни подписи, ни контрольной суммы — отклонено.");
+
+        var expected = await DownloadShaAsync(info.Sha256Url, ct).ConfigureAwait(false);
+        var actual = Sha256File(zipPath);
+        if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                $"Контрольная сумма не совпала — обновление отклонено.\nОжидалось: {expected}\nПолучено: {actual}");
     }
 
     /// <summary>Launches a temp copy of the exe as the updater; caller should then exit.</summary>

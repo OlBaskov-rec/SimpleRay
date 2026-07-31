@@ -4,9 +4,9 @@ using System.Text.Json.Nodes;
 namespace SimpleRay.Core.Update;
 
 /// <summary>
-/// Pure parsing of a GitHub "latest release" JSON: picks the win-x64 zip + its
-/// .sha256 sidecar and decides whether the release is newer than the current
-/// version. No I/O — the HTTP call lives in the app layer.
+/// Pure parsing of a GitHub "latest release" JSON: picks the win-x64 zip and its
+/// verification sidecars (.sig signature and/or .sha256) and decides whether the
+/// release is newer than the current version. No I/O — the HTTP call lives in the app layer.
 /// </summary>
 public static class ReleaseParser
 {
@@ -14,7 +14,8 @@ public static class ReleaseParser
 
     /// <summary>
     /// Returns true and sets <paramref name="info"/> when <paramref name="json"/> describes a
-    /// release newer than <paramref name="current"/> that has both the win-x64 zip and its .sha256.
+    /// release newer than <paramref name="current"/> that has the win-x64 zip and at least one
+    /// verification sidecar (.sig or .sha256). The app decides which to enforce.
     /// </summary>
     public static bool TryParseLatest(string json, Version current, out ReleaseInfo? info)
     {
@@ -31,24 +32,29 @@ public static class ReleaseParser
 
         if (root["assets"] is not JsonArray assets) return false;
 
-        string? zipUrl = null, shaUrl = null;
+        string? zipUrl = null, sigUrl = null, shaUrl = null;
         foreach (var a in assets.OfType<JsonObject>())
         {
             var name = (string?)a["name"];
             var url = (string?)a["browser_download_url"];
             if (name is null || url is null) continue;
 
-            if (name.EndsWith(ZipSuffix + ".sha256", StringComparison.OrdinalIgnoreCase))
+            // Order matters: the sidecars also contain the zip suffix, so test them first.
+            if (name.EndsWith(ZipSuffix + ".sig", StringComparison.OrdinalIgnoreCase))
+                sigUrl = url;
+            else if (name.EndsWith(ZipSuffix + ".sha256", StringComparison.OrdinalIgnoreCase))
                 shaUrl = url;
             else if (name.EndsWith(ZipSuffix, StringComparison.OrdinalIgnoreCase))
                 zipUrl = url;
         }
-        if (zipUrl is null || shaUrl is null) return false;
+        // Need the zip and something to verify it with; fail safe otherwise.
+        if (zipUrl is null || (sigUrl is null && shaUrl is null)) return false;
 
         info = new ReleaseInfo
         {
             Version = version,
             ZipUrl = zipUrl,
+            SigUrl = sigUrl,
             Sha256Url = shaUrl,
             Notes = (string?)root["body"],
             HtmlUrl = (string?)root["html_url"],

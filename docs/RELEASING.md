@@ -57,11 +57,43 @@ and the in-app updater can write there). Upload it to the release as an extra as
 ## 4. Create the GitHub release
 - **Tag:** `v<version>` (e.g. `v0.2.0`) — a leading `v` is fine; pre-release
   suffixes like `-beta` are ignored by the version comparison.
-- **Assets:** upload BOTH files from `dist/`. The updater requires:
-  - an asset whose name ends with `win-x64.zip`
-  - its sibling ending with `win-x64.zip.sha256`
-  If either is missing, the updater ignores the release (fails safe).
+- **Assets:** upload from `dist/`:
+  - the zip (`…win-x64.zip`) — always required;
+  - its `…win-x64.zip.sha256` sidecar;
+  - and, once signing is set up, its `…win-x64.zip.sig` signature (see "Update signing").
+  The updater ignores a release with the zip but no sidecar at all (fails safe); once a
+  signing key is embedded, the `.sig` becomes mandatory. When signing manually, run the
+  sign step (above) before uploading and include the `.sig`.
 - **Notes:** the release body is shown to the user in the update prompt.
+
+## Update signing (recommended, one-time setup)
+
+The updater verifies each update's authenticity with an embedded ECDSA P-256 public key.
+A `.sha256` sidecar only proves the download wasn't corrupted; a signature proves it came
+from whoever holds the private key, so a compromised GitHub release can't push a forged
+update. Until a key is embedded, the updater falls back to the SHA-256 check.
+
+**One-time key setup:**
+1. Generate the key pair (requires openssl):
+   ```powershell
+   ./scripts/sign-release.ps1 -GenerateKey -KeyPath update-signing.key
+   ```
+   It prints the public key (base64). Keep `update-signing.key` secret — it is gitignored;
+   never commit it.
+2. Paste the printed value into `UpdateSignature.PublicKeyBase64`
+   (`src/SimpleRay.Core/Update/UpdateSignature.cs`), commit, and release a new version.
+   From then on the app requires a valid `.sig` on every update.
+3. Add the **full private-key PEM** as the GitHub Actions secret `UPDATE_SIGNING_KEY`.
+   `release.yml` then signs the portable zip and uploads `…win-x64.zip.sig` automatically.
+
+To sign manually (fallback):
+```powershell
+./scripts/sign-release.ps1 -Zip dist/SimpleRay-<version>-win-x64.zip -KeyPath update-signing.key
+```
+
+> Migration: the first signed release must still carry the `.sha256` sidecar so clients on
+> the pre-signing build (which only know SHA-256) can still update to it. `release.yml`
+> already uploads both.
 
 ## How the update applies (for reference)
 On user consent the app downloads the zip, **verifies SHA256**, extracts to a

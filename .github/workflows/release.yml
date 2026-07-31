@@ -47,6 +47,25 @@ jobs:
           $hash = (Get-FileHash $setup -Algorithm SHA256).Hash
           Set-Content -Path "$setup.sha256" -Value "$hash *SimpleRay-$env:VERSION-setup.exe" -Encoding ascii
 
+      - name: Sign portable zip (if signing key configured)
+        shell: pwsh
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:UPDATE_SIGNING_KEY)) {
+            Write-Host "No UPDATE_SIGNING_KEY secret — skipping signature (updater will use SHA-256)."
+            "SIGNED=0" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          } else {
+            $key = New-TemporaryFile
+            Set-Content -Path $key -Value $env:UPDATE_SIGNING_KEY -Encoding ascii
+            $zip = "dist/SimpleRay-$env:VERSION-win-x64.zip"
+            & openssl dgst -sha256 -sign $key -out "$zip.sig" $zip
+            Remove-Item $key -Force
+            if (-not (Test-Path "$zip.sig")) { throw "Signing failed." }
+            Write-Host "Signed $zip"
+            "SIGNED=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
       - name: Create GitHub release
         shell: pwsh
         env:
@@ -63,5 +82,7 @@ jobs:
             '--title',"SimpleRay $ver",
             '--generate-notes'
           )
+          # Upload the signature too, when one was produced.
+          if ($env:SIGNED -eq '1') { $args += "dist/SimpleRay-$ver-win-x64.zip.sig" }
           if ($prerelease) { $args += $prerelease }
           gh @args

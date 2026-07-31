@@ -6,10 +6,13 @@ namespace SimpleRay.Core.Tests;
 
 public class ReleaseParserTests
 {
-    private static string Release(string tag, bool withSha = true)
+    private static string Release(string tag, bool withSha = true, bool withSig = false)
     {
         var sha = withSha
             ? """, { "name": "SimpleRay-X-win-x64.zip.sha256", "browser_download_url": "https://h/zip.sha256" }"""
+            : "";
+        var sig = withSig
+            ? """, { "name": "SimpleRay-X-win-x64.zip.sig", "browser_download_url": "https://h/zip.sig" }"""
             : "";
         return $$"""
         {
@@ -17,7 +20,7 @@ public class ReleaseParserTests
           "html_url": "https://h/releases/tag/{{tag}}",
           "body": "notes here",
           "assets": [
-            { "name": "SimpleRay-X-win-x64.zip", "browser_download_url": "https://h/zip" }{{sha}}
+            { "name": "SimpleRay-X-win-x64.zip", "browser_download_url": "https://h/zip" }{{sha}}{{sig}}
           ]
         }
         """;
@@ -53,9 +56,31 @@ public class ReleaseParserTests
     }
 
     [Fact]
-    public void MissingSha256Asset_IsRejected()
+    public void ZipWithNoVerificationSidecar_IsRejected()
     {
-        Assert.False(ReleaseParser.TryParseLatest(Release("v0.2.0", withSha: false), new Version(0, 1, 0, 0), out _));
+        // Zip alone (no .sig and no .sha256) can't be verified — fail safe.
+        Assert.False(ReleaseParser.TryParseLatest(
+            Release("v0.2.0", withSha: false, withSig: false), new Version(0, 1, 0, 0), out _));
+    }
+
+    [Fact]
+    public void SignatureAsset_IsParsed()
+    {
+        var ok = ReleaseParser.TryParseLatest(
+            Release("v0.3.0", withSha: true, withSig: true), new Version(0, 2, 0, 0), out var info);
+        Assert.True(ok);
+        Assert.Equal("https://h/zip.sig", info!.SigUrl);
+        Assert.Equal("https://h/zip.sha256", info.Sha256Url);
+    }
+
+    [Fact]
+    public void SignatureOnly_NoSha256_IsStillParsed()
+    {
+        var ok = ReleaseParser.TryParseLatest(
+            Release("v0.3.0", withSha: false, withSig: true), new Version(0, 2, 0, 0), out var info);
+        Assert.True(ok);
+        Assert.Equal("https://h/zip.sig", info!.SigUrl);
+        Assert.Null(info.Sha256Url);
     }
 
     [Fact]
