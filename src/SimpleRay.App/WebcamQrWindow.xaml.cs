@@ -46,8 +46,21 @@ public partial class WebcamQrWindow : Window
     {
         if (_done) return;
 
-        // Preview update on the UI thread.
-        Dispatcher.BeginInvoke(() => UpdatePreview(bgra, w, h));
+        // The scanner reuses this buffer, so it is only valid during this call — consume it
+        // synchronously. Invoke (not BeginInvoke) copies the pixels into the WriteableBitmap
+        // before we return; on shutdown the dispatcher is gone, so just drop the frame.
+        try
+        {
+            Dispatcher.Invoke(() => UpdatePreview(bgra, w, h));
+        }
+        catch (System.Threading.Tasks.TaskCanceledException)
+        {
+            return;
+        }
+        catch (System.InvalidOperationException)
+        {
+            return; // dispatcher shutting down
+        }
 
         // Decode is throttled so it doesn't saturate the CPU at frame rate.
         var now = Environment.TickCount64;

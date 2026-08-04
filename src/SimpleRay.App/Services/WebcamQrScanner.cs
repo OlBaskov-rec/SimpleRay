@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Windows.Media.Capture;
@@ -26,7 +27,17 @@ public sealed class WebcamQrScanner : IAsyncDisposable
     private MediaCapture? _capture;
     private MediaFrameReader? _reader;
 
-    /// <summary>(bgra bytes, width, height) — invoked on a thread-pool thread.</summary>
+    // One reusable frame buffer instead of ~8 MB per frame: reallocated only when the frame
+    // size changes. Overlapping FrameArrived callbacks are dropped (TryEnter) so a frame is
+    // never overwritten while a handler is still reading it.
+    private readonly object _frameGate = new();
+    private byte[]? _buffer;
+
+    /// <summary>
+    /// (bgra bytes, width, height) — invoked on a thread-pool thread. The buffer is reused
+    /// across frames, so it is valid ONLY for the duration of the synchronous call; a handler
+    /// that needs to keep the pixels must copy them before returning.
+    /// </summary>
     public event Action<byte[], int, int>? FrameBgra;
 
     public async Task StartAsync()
@@ -64,50 +75,70 @@ public sealed class WebcamQrScanner : IAsyncDisposable
 
     private void OnFrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
-        using var frame = sender.TryAcquireLatestFrame();
-        var bmp = frame?.VideoMediaFrame?.SoftwareBitmap;
-        if (bmp is null) return;
-
-        SoftwareBitmap? converted = null;
+        // Drop this frame if a previous one is still being processed: the shared buffer must
+        // not be overwritten while a handler reads it. The camera just delivers the next frame.
+        if (!Monitor.TryEnter(_frameGate)) return;
         try
         {
-            var src = bmp;
-            if (bmp.BitmapPixelFormat != BitmapPixelFormat.Bgra8)
-            {
-                converted = SoftwareBitmap.Convert(bmp, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
-                src = converted;
-            }
+            using var frame = sender.TryAcquireLatestFrame();
+            var bmp = frame?.VideoMediaFrame?.SoftwareBitmap;
+            if (bmp is null) return;
 
-            var bytes = CopyBgra(src);
-            if (bytes is not null)
-                FrameBgra?.Invoke(bytes, src.PixelWidth, src.PixelHeight);
-        }
-        catch
-        {
-            // drop the frame; the next one will come along
+            SoftwareBitmap? converted = null;
+            try
+            {
+                var src = bmp;
+                if (bmp.BitmapPixelFormat != BitmapPixelFormat.Bgra8)
+                {
+                    converted = SoftwareBitmap.Convert(bmp, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                    src = converted;
+                }
+
+                int w = src.PixelWidth, h = src.PixelHeight;
+                var buffer = EnsureBuffer(w, h);
+                if (CopyBgraInto(src, buffer))
+                    FrameBgra?.Invoke(buffer, w, h);
+            }
+            catch
+            {
+                // drop the frame; the next one will come along
+            }
+            finally
+            {
+                converted?.Dispose();
+            }
         }
         finally
         {
-            converted?.Dispose();
+            Monitor.Exit(_frameGate);
         }
     }
 
-    private static unsafe byte[]? CopyBgra(SoftwareBitmap bmp)
+    /// <summary>Returns the reusable buffer, (re)allocating it only when the frame size changes.</summary>
+    private byte[] EnsureBuffer(int w, int h)
+    {
+        int needed = w * h * 4;
+        if (_buffer is null || _buffer.Length != needed)
+            _buffer = new byte[needed];
+        return _buffer;
+    }
+
+    private static unsafe bool CopyBgraInto(SoftwareBitmap bmp, byte[] dst)
     {
         using var buffer = bmp.LockBuffer(BitmapBufferAccessMode.Read);
         using var reference = buffer.CreateReference();
         var byteAccess = (IMemoryBufferByteAccess)reference;
         byteAccess.GetBuffer(out byte* dataPtr, out uint capacity);
-        if (capacity == 0) return null;
+        if (capacity == 0) return false;
 
         var plane = buffer.GetPlaneDescription(0);
         int w = plane.Width, h = plane.Height, stride = plane.Stride, start = plane.StartIndex;
+        if (dst.Length < w * h * 4) return false;
 
         // Repack into a tight w*4 stride (the source stride may include row padding).
-        var dst = new byte[w * h * 4];
         for (int y = 0; y < h; y++)
             Marshal.Copy((IntPtr)(dataPtr + start + y * stride), dst, y * w * 4, w * 4);
-        return dst;
+        return true;
     }
 
     public async ValueTask DisposeAsync()
