@@ -31,6 +31,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IVpnEngine _engine;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
+    private readonly IDialogService _dialogs;
 
     // geosite/geoip tags backing the routing presets (must exist as *.srs in GeoDir).
     private const string TagRuSites = "geosite-category-ru";
@@ -43,8 +44,9 @@ public sealed class MainViewModel : ObservableObject
     private string _log = "";
     private string _activeLabel = "";
 
-    public MainViewModel()
+    public MainViewModel(IDialogService? dialogs = null)
     {
+        _dialogs = dialogs ?? new MessageBoxDialogService();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
@@ -303,10 +305,10 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var consent = MessageBox.Show(
+        var consent = _dialogs.Confirm(
             L.Format("update.consent", info.Version.ToString(3), UpdateService.CurrentVersion.ToString(3)),
-            L["update.consentTitle"], MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (consent != MessageBoxResult.Yes)
+            L["update.consentTitle"]);
+        if (!consent)
         {
             StatusText = L["status.updateDeferred"];
             return;
