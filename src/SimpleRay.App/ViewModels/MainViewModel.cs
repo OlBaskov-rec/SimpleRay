@@ -49,7 +49,7 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(IDialogService? dialogs = null, IKillSwitch? killSwitch = null)
     {
         _dialogs = dialogs ?? new MessageBoxDialogService();
-        _killSwitch = killSwitch ?? new NoOpKillSwitch();
+        _killSwitch = killSwitch ?? new WfpKillSwitch();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
@@ -609,7 +609,12 @@ public sealed class MainViewModel : ObservableObject
             await _engine.StartAsync(configJson);
             _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
             if (_routing.KillSwitch)   // block non-tunnel traffic while we intend to be connected
-                _killSwitch.Engage(options.TunInterfaceName, AppPaths.CoreExe);
+            {
+                // A kill-switch failure must not fail the connection: stay connected, just
+                // tell the user it isn't protecting them.
+                try { _killSwitch.Engage(options.TunInterfaceName, AppPaths.CoreExe); }
+                catch (Exception ex) { StatusText = L.Format("status.killSwitchFail", ex.Message); }
+            }
         }
         catch (Exception ex)
         {

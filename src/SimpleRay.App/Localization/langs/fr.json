@@ -148,6 +148,7 @@
   "routing.autoConnect": "Connexion auto au démarrage",
   "routing.killSwitch": "Kill-switch (bloquer le trafic si le tunnel tombe)",
   "tip.killSwitch": "Une fois connecté, bloque tout le trafic qui ne passe pas par le VPN — y compris quand le tunnel tombe. En cas d'échec, une reconnexion est nécessaire pour rétablir l'accès.",
+  "status.killSwitchFail": "Connecté, mais le kill-switch n'a pas pu être activé : {0}",
   "tip.autoConnect": "Se connecter automatiquement au démarrage (au groupe ou au premier profil)",
 
   "crash.title": "SimpleRay",

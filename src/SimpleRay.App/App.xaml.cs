@@ -80,6 +80,11 @@ public partial class App : Application
             return;
         }
 
+        // Recovery: remove any kill-switch filters left over from a previous run that
+        // crashed while engaged (fail-closed filters survive the crash). Best-effort and
+        // no-op when not elevated or when nothing is present.
+        Engine.WfpKillSwitch.CleanupLeftovers();
+
         new MainWindow().Show();
     }
 
