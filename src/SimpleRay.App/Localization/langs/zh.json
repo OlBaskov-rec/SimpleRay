@@ -146,6 +146,8 @@
   "rename.prompt": "新的配置名称：",
 
   "routing.autoConnect": "启动时自动连接",
+  "routing.killSwitch": "断网保护（隧道中断时阻断流量）",
+  "tip.killSwitch": "连接期间阻断所有不经过 VPN 的流量——包括隧道中断的瞬间。若无法恢复，需要重新连接才能恢复访问。",
   "tip.autoConnect": "应用启动时自动连接（到分组或第一个配置）",
 
   "crash.title": "SimpleRay",

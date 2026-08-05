@@ -146,6 +146,8 @@
   "rename.prompt": "Nuevo nombre del perfil:",
 
   "routing.autoConnect": "Conexión automática al inicio",
+  "routing.killSwitch": "Kill-switch (bloquear tráfico si cae el túnel)",
+  "tip.killSwitch": "Estando conectado, bloquea todo el tráfico que no pase por la VPN — incluso cuando el túnel se cae. Si no se recupera, hay que reconectar para restablecer el acceso.",
   "tip.autoConnect": "Conectar automáticamente al iniciar (al grupo o al primer perfil)",
 
   "crash.title": "SimpleRay",

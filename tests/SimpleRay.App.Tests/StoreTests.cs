@@ -69,15 +69,17 @@ public class StoreTests : IDisposable
     public void SettingsStore_RoundTrips_AndReadsLegacyBareObject()
     {
         var store = new SettingsStore();
-        store.Save(new RoutingSettings { Mode = RoutingMode.Global, BlockAds = false });
+        store.Save(new RoutingSettings { Mode = RoutingMode.Global, BlockAds = false, KillSwitch = true });
         Assert.Equal(RoutingMode.Global, store.Load().Mode);
         Assert.False(store.Load().BlockAds);
+        Assert.True(store.Load().KillSwitch);
 
-        // Legacy: bare RoutingSettings object (no schemaVersion envelope).
+        // Legacy: bare RoutingSettings object (no schemaVersion envelope) predating kill-switch.
         File.WriteAllText(AppPaths.SettingsFile, "{\"Mode\":\"Direct\",\"BlockAds\":true}");
         var legacy = new SettingsStore().Load();
         Assert.Equal(RoutingMode.Direct, legacy.Mode);
         Assert.True(legacy.BlockAds);
+        Assert.False(legacy.KillSwitch); // absent in old files => off
     }
 
     [Fact]

@@ -43,4 +43,7 @@ public sealed class RoutingSettings
 
     /// <summary>Which public DoH resolvers to use for direct and tunnelled lookups.</summary>
     public DnsSettings Dns { get; set; } = new();
+
+    /// <summary>Block all non-tunnel traffic while connected (kill-switch). Off by default.</summary>
+    public bool KillSwitch { get; set; }
 }

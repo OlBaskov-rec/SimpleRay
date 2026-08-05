@@ -146,6 +146,8 @@
   "rename.prompt": "Yeni profil adı:",
 
   "routing.autoConnect": "Başlangıçta otomatik bağlan",
+  "routing.killSwitch": "Kill-switch (tünel düşünce trafiği engelle)",
+  "tip.killSwitch": "Bağlıyken VPN üzerinden gitmeyen tüm trafiği engeller — tünel düştüğü an dahil. Kurtarılamazsa erişim için yeniden bağlanmak gerekir.",
   "tip.autoConnect": "Uygulama başlarken otomatik bağlan (gruba veya ilk profile)",
 
   "crash.title": "SimpleRay",

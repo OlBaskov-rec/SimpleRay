@@ -30,6 +30,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly List<string> _subscriptions;
     private readonly IVpnEngine _engine;
     private readonly EngineWatchdog _watchdog;
+    private readonly IKillSwitch _killSwitch;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
     private readonly IDialogService _dialogs;
@@ -45,9 +46,10 @@ public sealed class MainViewModel : ObservableObject
     private string _log = "";
     private string _activeLabel = "";
 
-    public MainViewModel(IDialogService? dialogs = null)
+    public MainViewModel(IDialogService? dialogs = null, IKillSwitch? killSwitch = null)
     {
         _dialogs = dialogs ?? new MessageBoxDialogService();
+        _killSwitch = killSwitch ?? new NoOpKillSwitch();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
@@ -70,7 +72,10 @@ public sealed class MainViewModel : ObservableObject
         _watchdog.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
             StatusText = L.Format("status.reconnecting", attempt, max));
         _watchdog.GaveUp += () => _dispatcher.BeginInvoke(() =>
-            StatusText = L["status.reconnectGaveUp"]);
+        {
+            _killSwitch.Disengage(); // stop blocking once we've given up, so the user isn't left offline
+            StatusText = L["status.reconnectGaveUp"];
+        });
 
         foreach (var provider in DnsCatalog.All)
             DnsProviders.Add(new DnsProviderItem(provider));
@@ -445,6 +450,13 @@ public sealed class MainViewModel : ObservableObject
         set { if (_routing.AutoConnect != value) { _routing.AutoConnect = value; OnPropertyChanged(); SaveRouting(); } }
     }
 
+    /// <summary>Block all non-tunnel traffic while connected (kill-switch).</summary>
+    public bool KillSwitchEnabled
+    {
+        get => _routing.KillSwitch;
+        set { if (_routing.KillSwitch != value) { _routing.KillSwitch = value; OnPropertyChanged(); SaveRouting(); } }
+    }
+
     // --- DNS resolver -----------------------------------------------------
 
     /// <summary>A catalog entry plus its last measured latency, shown in the picker.</summary>
@@ -555,7 +567,8 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsConnected)
         {
-            _watchdog.Disarm(); // user-initiated stop: don't auto-reconnect
+            _watchdog.Disarm();     // user-initiated stop: don't auto-reconnect
+            _killSwitch.Disengage(); // and stop blocking non-tunnel traffic
             try { await _engine.StopAsync(); }
             catch (Exception ex) { StatusText = L.Format("status.disconnectError", ex.Message); }
             return;
@@ -595,6 +608,8 @@ public sealed class MainViewModel : ObservableObject
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _engine.StartAsync(configJson);
             _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
+            if (_routing.KillSwitch)   // block non-tunnel traffic while we intend to be connected
+                _killSwitch.Engage(options.TunInterfaceName, AppPaths.CoreExe);
         }
         catch (Exception ex)
         {
@@ -834,7 +849,8 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     public Task ShutdownAsync()
     {
-        _watchdog.Disarm(); // don't let a shutdown-time fault trigger a reconnect
+        _watchdog.Disarm();      // don't let a shutdown-time fault trigger a reconnect
+        _killSwitch.Disengage(); // never leave the machine blocked after we exit
         return _engine.DisposeAsync().AsTask();
     }
 }
