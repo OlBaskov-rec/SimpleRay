@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using SimpleRay.App.Engine;
 
@@ -31,7 +30,7 @@ public sealed class ConsoleCtrlTerminator : IProcessTerminator
 
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
-    public async Task<bool> TryGracefulStopAsync(Process process, TimeSpan timeout)
+    public async Task<bool> TryGracefulStopAsync(IEngineProcess process, TimeSpan timeout)
     {
         if (process.HasExited) return true;
 

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using SimpleRay.Core.Engine;
@@ -30,6 +29,12 @@ public sealed class EngineOptions
 
     /// <summary>How long to wait for a graceful stop before hard-killing.</summary>
     public TimeSpan GracefulStopTimeout { get; init; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>How long to let the process run before checking it didn't fail fast (bad config, no admin).</summary>
+    public TimeSpan StartupProbeDelay { get; init; } = TimeSpan.FromSeconds(0.7);
+
+    /// <summary>Creates the child process; defaults to real processes. Substituted in tests.</summary>
+    public IProcessLauncher? ProcessLauncher { get; init; }
 }
 
 /// <summary>
@@ -39,7 +44,7 @@ public sealed class EngineOptions
 public interface IProcessTerminator
 {
     /// <summary>Attempt a graceful stop. Returns true only if the process exited within <paramref name="timeout"/>.</summary>
-    Task<bool> TryGracefulStopAsync(Process process, TimeSpan timeout);
+    Task<bool> TryGracefulStopAsync(IEngineProcess process, TimeSpan timeout);
 }
 
 /// <summary>
@@ -47,14 +52,22 @@ public interface IProcessTerminator
 /// generated config, starts/stops the process and surfaces its logs and state.
 /// No control port is opened — the process is driven purely via config file and OS
 /// process signals, preserving the no-loopback-proxy invariant.
+///
+/// The process is created through an <see cref="IProcessLauncher"/> so the start/stop/
+/// fault state machine can be tested without launching a real sing-box.
 /// </summary>
 public sealed class SingBoxEngine : IVpnEngine
 {
     private readonly EngineOptions _options;
+    private readonly IProcessLauncher _launcher;
     private readonly object _gate = new();
-    private Process? _process;
+    private IEngineProcess? _process;
 
-    public SingBoxEngine(EngineOptions options) => _options = options;
+    public SingBoxEngine(EngineOptions options)
+    {
+        _options = options;
+        _launcher = options.ProcessLauncher ?? new SystemProcessLauncher();
+    }
 
     public EngineState State { get; private set; } = EngineState.Stopped;
 
@@ -79,22 +92,11 @@ public sealed class SingBoxEngine : IVpnEngine
 
         SetState(EngineState.Starting);
 
-        var psi = new ProcessStartInfo
-        {
-            FileName = _options.ExecutablePath,
-            Arguments = $"run -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"",
-            WorkingDirectory = _options.WorkingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-        };
-
-        var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        process.OutputDataReceived += (_, e) => { if (e.Data is not null) LogReceived?.Invoke(this, e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data is not null) LogReceived?.Invoke(this, e.Data); };
+        var process = _launcher.Create(
+            _options.ExecutablePath,
+            $"run -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"",
+            _options.WorkingDirectory);
+        process.OutputReceived += line => LogReceived?.Invoke(this, line);
         // The crash handler is attached only once we know the process is up, so the
         // fail-fast probe below can read HasExited/ExitCode without racing a disposal.
 
@@ -110,13 +112,10 @@ public sealed class SingBoxEngine : IVpnEngine
             throw new InvalidOperationException("Failed to start sing-box.");
         }
 
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
         // Give the process a moment to fail fast (bad config, no admin for TUN).
         try
         {
-            await Task.Delay(700, ct).ConfigureAwait(false);
+            await Task.Delay(_options.StartupProbeDelay, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -178,36 +177,20 @@ public sealed class SingBoxEngine : IVpnEngine
     /// <summary>Runs sing-box once to completion, capturing stdout+stderr combined.</summary>
     private async Task<(int exitCode, string output)> RunOnceAsync(string arguments, CancellationToken ct)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = _options.ExecutablePath,
-            Arguments = arguments,
-            WorkingDirectory = _options.WorkingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
-        };
-
-        using var process = new Process { StartInfo = psi };
+        using var process = _launcher.Create(_options.ExecutablePath, arguments, _options.WorkingDirectory);
         var sb = new StringBuilder();
-        // stdout and stderr callbacks fire on different threads — serialize appends.
-        void Append(string? data) { if (data is not null) lock (sb) sb.AppendLine(data); }
-        process.OutputDataReceived += (_, e) => Append(e.Data);
-        process.ErrorDataReceived += (_, e) => Append(e.Data);
+        // Output callbacks may fire on different threads — serialize appends.
+        process.OutputReceived += data => { lock (sb) sb.AppendLine(data); };
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        if (!process.Start())
+            return (-1, "Failed to start sing-box.");
         await process.WaitForExitAsync(ct).ConfigureAwait(false);
         lock (sb) return (process.ExitCode, sb.ToString());
     }
 
     public async Task StopAsync()
     {
-        Process? process;
+        IEngineProcess? process;
         lock (_gate)
         {
             process = _process;
@@ -241,7 +224,7 @@ public sealed class SingBoxEngine : IVpnEngine
             // 2) Hard-kill fallback if it didn't exit cleanly.
             if (!process.HasExited && !exited)
             {
-                process.Kill(entireProcessTree: true);
+                process.Kill();
                 await process.WaitForExitAsync().ConfigureAwait(false);
             }
         }
@@ -267,13 +250,13 @@ public sealed class SingBoxEngine : IVpnEngine
     private void OnProcessExited(object? sender, EventArgs e)
     {
         // Fires only for unexpected exits; StopAsync detaches this handler first.
-        if (sender is Process p)
+        if (sender is IEngineProcess p)
             ClearProcess(p);
         SetState(EngineState.Faulted);
     }
 
     /// <summary>Detaches, clears and disposes the process if it is the current one.</summary>
-    private void ClearProcess(Process process)
+    private void ClearProcess(IEngineProcess process)
     {
         lock (_gate)
         {
