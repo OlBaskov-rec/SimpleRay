@@ -11,6 +11,8 @@
   "status.needAdmin": "نیاز به دسترسی مدیر (TUN). راه‌اندازی مجدد…",
   "status.adminCancelled": "ارتقاء دسترسی لغو شد",
   "status.disconnectError": "خطای قطع اتصال: {0}",
+  "status.reconnecting": "اتصال قطع شد — در حال اتصال مجدد ({0}/{1})…",
+  "status.reconnectGaveUp": "اتصال مجدد ناموفق بود — روی «اتصال» بزنید",
   "status.error": "خطا: {0}",
   "status.clipReadFail": "خواندن کلیپ‌بورد ممکن نشد",
   "status.noLinksClip": "هیچ لینک شناخته‌شده‌ای در کلیپ‌بورد نیست",

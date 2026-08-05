@@ -29,6 +29,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly SubscriptionStore _subscriptionStore = new();
     private readonly List<string> _subscriptions;
     private readonly IVpnEngine _engine;
+    private readonly EngineWatchdog _watchdog;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
     private readonly IDialogService _dialogs;
@@ -64,6 +65,12 @@ public sealed class MainViewModel : ObservableObject
         });
         _engine.StateChanged += OnEngineStateChanged;
         _engine.LogReceived += OnEngineLog;
+
+        _watchdog = new EngineWatchdog(_engine);
+        _watchdog.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
+            StatusText = L.Format("status.reconnecting", attempt, max));
+        _watchdog.GaveUp += () => _dispatcher.BeginInvoke(() =>
+            StatusText = L["status.reconnectGaveUp"]);
 
         foreach (var provider in DnsCatalog.All)
             DnsProviders.Add(new DnsProviderItem(provider));
@@ -548,6 +555,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsConnected)
         {
+            _watchdog.Disarm(); // user-initiated stop: don't auto-reconnect
             try { await _engine.StopAsync(); }
             catch (Exception ex) { StatusText = L.Format("status.disconnectError", ex.Message); }
             return;
@@ -586,6 +594,7 @@ public sealed class MainViewModel : ObservableObject
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _engine.StartAsync(configJson);
+            _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
         }
         catch (Exception ex)
         {
@@ -823,5 +832,9 @@ public sealed class MainViewModel : ObservableObject
     /// to a UI thread that is already blocked — deadlocking the app on exit. The engine
     /// uses ConfigureAwait(false) throughout, so the returned task completes off the UI thread.
     /// </summary>
-    public Task ShutdownAsync() => _engine.DisposeAsync().AsTask();
+    public Task ShutdownAsync()
+    {
+        _watchdog.Disarm(); // don't let a shutdown-time fault trigger a reconnect
+        return _engine.DisposeAsync().AsTask();
+    }
 }

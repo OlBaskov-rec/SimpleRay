@@ -11,6 +11,8 @@
   "status.needAdmin": "Потрібні права адміністратора (TUN). Перезапуск…",
   "status.adminCancelled": "Підвищення прав скасовано",
   "status.disconnectError": "Помилка відключення: {0}",
+  "status.reconnecting": "Зв'язок втрачено — перепідключення ({0}/{1})…",
+  "status.reconnectGaveUp": "Не вдалося перепідключитися — натисніть «Підключити»",
   "status.error": "Помилка: {0}",
   "status.clipReadFail": "Не вдалося прочитати буфер обміну",
   "status.noLinksClip": "У буфері немає розпізнаних посилань",

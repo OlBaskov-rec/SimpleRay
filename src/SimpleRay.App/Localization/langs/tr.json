@@ -11,6 +11,8 @@
   "status.needAdmin": "Yönetici hakları gerekli (TUN). Yeniden başlatılıyor…",
   "status.adminCancelled": "Yükseltme iptal edildi",
   "status.disconnectError": "Bağlantı kesme hatası: {0}",
+  "status.reconnecting": "Bağlantı koptu — yeniden bağlanılıyor ({0}/{1})…",
+  "status.reconnectGaveUp": "Yeniden bağlanılamadı — Bağlan'a basın",
   "status.error": "Hata: {0}",
   "status.clipReadFail": "Pano okunamadı",
   "status.noLinksClip": "Panoda tanınan bağlantı yok",

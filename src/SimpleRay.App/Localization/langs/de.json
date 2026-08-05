@@ -11,6 +11,8 @@
   "status.needAdmin": "Administratorrechte erforderlich (TUN). Neustart…",
   "status.adminCancelled": "Rechteerhöhung abgebrochen",
   "status.disconnectError": "Trennungsfehler: {0}",
+  "status.reconnecting": "Verbindung verloren — Neuverbindung ({0}/{1})…",
+  "status.reconnectGaveUp": "Neuverbindung fehlgeschlagen — auf Verbinden drücken",
   "status.error": "Fehler: {0}",
   "status.clipReadFail": "Zwischenablage konnte nicht gelesen werden",
   "status.noLinksClip": "Keine erkannten Links in der Zwischenablage",

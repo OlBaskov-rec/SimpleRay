@@ -11,6 +11,8 @@
   "status.needAdmin": "需要管理员权限（TUN）。正在重启…",
   "status.adminCancelled": "已取消提权",
   "status.disconnectError": "断开出错：{0}",
+  "status.reconnecting": "连接中断——正在重连（{0}/{1}）…",
+  "status.reconnectGaveUp": "重连失败——请点击「连接」",
   "status.error": "错误：{0}",
   "status.clipReadFail": "无法读取剪贴板",
   "status.noLinksClip": "剪贴板中没有可识别的链接",

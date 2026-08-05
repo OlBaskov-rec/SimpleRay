@@ -11,6 +11,8 @@
   "status.needAdmin": "Droits administrateur requis (TUN). Redémarrage…",
   "status.adminCancelled": "Élévation annulée",
   "status.disconnectError": "Erreur de déconnexion : {0}",
+  "status.reconnecting": "Connexion perdue — reconnexion ({0}/{1})…",
+  "status.reconnectGaveUp": "Reconnexion impossible — appuyez sur Connecter",
   "status.error": "Erreur : {0}",
   "status.clipReadFail": "Impossible de lire le presse-papiers",
   "status.noLinksClip": "Aucun lien reconnu dans le presse-papiers",

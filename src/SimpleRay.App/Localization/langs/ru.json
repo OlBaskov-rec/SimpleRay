@@ -11,6 +11,8 @@
   "status.needAdmin": "Нужны права администратора (TUN). Перезапуск…",
   "status.adminCancelled": "Запуск с правами администратора отменён",
   "status.disconnectError": "Ошибка отключения: {0}",
+  "status.reconnecting": "Связь потеряна — переподключение ({0}/{1})…",
+  "status.reconnectGaveUp": "Не удалось переподключиться — нажмите «Подключить»",
   "status.error": "Ошибка: {0}",
   "status.clipReadFail": "Не удалось прочитать буфер обмена",
   "status.noLinksClip": "В буфере нет распознанных ссылок",

@@ -11,6 +11,8 @@
   "status.needAdmin": "Se requieren permisos de administrador (TUN). Reiniciando…",
   "status.adminCancelled": "Elevación cancelada",
   "status.disconnectError": "Error al desconectar: {0}",
+  "status.reconnecting": "Conexión perdida — reconectando ({0}/{1})…",
+  "status.reconnectGaveUp": "No se pudo reconectar — pulse Conectar",
   "status.error": "Error: {0}",
   "status.clipReadFail": "No se pudo leer el portapapeles",
   "status.noLinksClip": "No hay enlaces reconocidos en el portapapeles",

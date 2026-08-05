@@ -11,6 +11,8 @@
   "status.needAdmin": "Administrator rights required (TUN). Restarting…",
   "status.adminCancelled": "Elevation was cancelled",
   "status.disconnectError": "Disconnect error: {0}",
+  "status.reconnecting": "Connection lost — reconnecting ({0}/{1})…",
+  "status.reconnectGaveUp": "Could not reconnect — press Connect to retry",
   "status.error": "Error: {0}",
   "status.clipReadFail": "Could not read the clipboard",
   "status.noLinksClip": "No recognized links in the clipboard",
