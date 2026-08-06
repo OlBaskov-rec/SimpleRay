@@ -516,3 +516,6 @@ lang.txt
 *.key
 update-signing.*
 !*.key.example
+
+# Local build pickup folder (scripts/build-local.ps1 output)
+/build/
