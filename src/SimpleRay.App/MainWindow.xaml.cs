@@ -7,12 +7,12 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
 
-    public MainWindow()
+    public MainWindow(bool connectOnStartup = false)
     {
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
-        Loaded += async (_, _) => await _viewModel.TryAutoConnectOnStartupAsync();
+        Loaded += async (_, _) => await _viewModel.TryAutoConnectOnStartupAsync(connectOnStartup);
         Closed += (_, _) =>
         {
             TrayIcon.Dispose();

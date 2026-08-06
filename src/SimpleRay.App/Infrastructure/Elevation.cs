@@ -15,9 +15,10 @@ public static class Elevation
 
     /// <summary>
     /// Relaunches the current executable with a UAC elevation prompt and exits
-    /// this instance. Returns false if the user declined the prompt.
+    /// this instance, forwarding <paramref name="args"/> to the new process.
+    /// Returns false if the user declined the prompt.
     /// </summary>
-    public static bool RelaunchElevated()
+    public static bool RelaunchElevated(params string[] args)
     {
         var exe = Environment.ProcessPath;
         if (exe is null)
@@ -30,6 +31,8 @@ public static class Elevation
             Verb = "runas",
             WorkingDirectory = AppContext.BaseDirectory,
         };
+        foreach (var a in args)
+            psi.ArgumentList.Add(a);
 
         try
         {

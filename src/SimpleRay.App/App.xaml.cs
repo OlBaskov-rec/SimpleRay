@@ -85,7 +85,9 @@ public partial class App : Application
         // no-op when not elevated or when nothing is present.
         Engine.WfpKillSwitch.CleanupLeftovers();
 
-        new MainWindow().Show();
+        // "--connect" is set by the elevated relaunch after a Connect click, so this
+        // instance connects automatically instead of making the user click again.
+        new MainWindow(connectOnStartup: e.Args.Contains("--connect")).Show();
     }
 
     private static async Task RunCameraSelfTestAsync()

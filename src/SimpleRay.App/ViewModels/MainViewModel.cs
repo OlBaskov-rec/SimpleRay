@@ -533,10 +533,14 @@ public sealed class MainViewModel : ObservableObject
             ? UdpDnsProbe.MeasureAsync(provider.Server)
             : DohProbe.MeasureAsync(provider.Server);
 
-    /// <summary>Called once after the window loads: connects if auto-connect is on and a target exists.</summary>
-    public async Task TryAutoConnectOnStartupAsync()
+    /// <summary>
+    /// Called once after the window loads: connects if auto-connect is on, or if
+    /// <paramref name="force"/> is set (the elevated relaunch after a Connect click),
+    /// and a target exists.
+    /// </summary>
+    public async Task TryAutoConnectOnStartupAsync(bool force = false)
     {
-        if (AutoConnect && !IsConnected && ResolveConnectTargets().Count > 0)
+        if ((force || AutoConnect) && !IsConnected && ResolveConnectTargets().Count > 0)
             await ToggleConnectionAsync();
     }
 
@@ -590,7 +594,9 @@ public sealed class MainViewModel : ObservableObject
         if (!Elevation.IsElevated())
         {
             StatusText = L["status.needAdmin"];
-            if (!Elevation.RelaunchElevated())
+            // Relaunch elevated and ask that instance to connect automatically, so the
+            // user doesn't have to click Connect a second time after the UAC prompt.
+            if (!Elevation.RelaunchElevated("--connect"))
                 StatusText = L["status.adminCancelled"];
             else
                 Application.Current.Shutdown();
