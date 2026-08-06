@@ -69,6 +69,40 @@ public class EngineWatchdogTests
     }
 
     [Fact]
+    public async Task Reconnect_ThatReachesRunningThenFlaps_CountsAsFailureAndGivesUp()
+    {
+        // Each restart reaches Running but faults again during the stability window (as a
+        // TUN adapter that dies ~15s after the fast start probe would). This must NOT look
+        // like success — otherwise the loop restarts forever instead of giving up.
+        FakeEngine? engine = null;
+        var stability = TimeSpan.FromMilliseconds(999); // sentinel to detect the dwell call
+        var opt = new WatchdogOptions
+        {
+            MaxAttempts = 3,
+            Backoff = _ => TimeSpan.Zero,
+            StabilityWindow = stability,
+            Delay = (d, _) =>
+            {
+                if (d == stability) engine!.Crash(); // flap during the stability window
+                return Task.CompletedTask;
+            },
+        };
+        engine = new FakeEngine(_ => true); // StartAsync always reaches Running
+        var wd = new EngineWatchdog(engine, opt);
+        bool gaveUp = false;
+        wd.GaveUp += () => gaveUp = true;
+
+        await engine.StartAsync("cfg");
+        wd.Arm("cfg");
+        engine.Crash();
+        await wd.ReconnectTask!;
+
+        Assert.True(gaveUp);
+        Assert.Equal(1 + 3, engine.StartCalls); // initial + 3 flapping attempts, then stop
+        Assert.NotEqual(EngineState.Running, engine.State);
+    }
+
+    [Fact]
     public async Task Crash_RetriesUntilOneSucceeds()
     {
         // Initial connect (call 1) succeeds, reconnect attempts 1 and 2 (calls 2,3) fail,

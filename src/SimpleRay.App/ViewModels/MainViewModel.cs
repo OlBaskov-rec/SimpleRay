@@ -49,7 +49,9 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(IDialogService? dialogs = null, IKillSwitch? killSwitch = null)
     {
         _dialogs = dialogs ?? new MessageBoxDialogService();
-        _killSwitch = killSwitch ?? new WfpKillSwitch();
+        // WfpKillSwitch is unverified native code that currently crashes on Engage; keep it
+        // wired to a no-op until it's validated on a real machine (see docs/KILL-SWITCH.md).
+        _killSwitch = killSwitch ?? new NoOpKillSwitch();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();

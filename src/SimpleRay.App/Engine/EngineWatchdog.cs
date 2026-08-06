@@ -14,6 +14,14 @@ public sealed class WatchdogOptions
     /// <summary>Delay primitive, injectable so tests run without real waits.</summary>
     public Func<TimeSpan, CancellationToken, Task> Delay { get; init; } =
         (d, ct) => Task.Delay(d, ct);
+
+    /// <summary>
+    /// How long a restart must stay Running to count as recovered. sing-box can pass the
+    /// engine's fast start probe and then fault seconds later (e.g. a TUN adapter that takes
+    /// ~15s to fail); without this window such a flap would look like success and the loop
+    /// would restart forever instead of eventually giving up.
+    /// </summary>
+    public TimeSpan StabilityWindow { get; init; } = TimeSpan.FromSeconds(20);
 }
 
 /// <summary>
@@ -89,8 +97,8 @@ public sealed class EngineWatchdog
                 try
                 {
                     await _engine.StartAsync(_configJson!, ct).ConfigureAwait(false);
-                    if (_engine.State == EngineState.Running)
-                        return; // recovered; the normal Running state drives the UI
+                    if (_engine.State == EngineState.Running && await StaysUpAsync(ct).ConfigureAwait(false))
+                        return; // genuinely recovered; the normal Running state drives the UI
                 }
                 catch (OperationCanceledException) { return; }
                 catch { /* attempt failed — fall through to the next one */ }
@@ -106,5 +114,13 @@ public sealed class EngineWatchdog
         {
             _reconnecting = false;
         }
+    }
+
+    /// <summary>True if the engine is still Running after the stability window (i.e. didn't flap).</summary>
+    private async Task<bool> StaysUpAsync(CancellationToken ct)
+    {
+        try { await _opt.Delay(_opt.StabilityWindow, ct).ConfigureAwait(false); }
+        catch (OperationCanceledException) { return _engine.State == EngineState.Running; }
+        return _engine.State == EngineState.Running;
     }
 }
