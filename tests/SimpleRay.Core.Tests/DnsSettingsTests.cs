@@ -57,14 +57,15 @@ public class DnsSettingsTests
     }
 
     [Fact]
-    public void LocalAndRemote_KeepTheirDetours()
+    public void RemoteIsTunnelled_LocalIsDirect()
     {
         var dns = SingBoxConfigGenerator.Generate(Vless(), new RoutingSettings())["dns"]!["servers"]!.AsArray();
 
-        // "local" must bypass the tunnel and "remote" must go through it, whatever
-        // provider is selected — otherwise direct traffic resolves through the proxy.
-        Assert.Equal("direct", (string?)dns.First(s => (string?)s!["tag"] == "local")!["detour"]);
+        // "remote" goes through the tunnel. "local" must NOT detour to the (empty) direct
+        // outbound — sing-box 1.12+ rejects that at service start; no detour already means
+        // direct, so the local server carries no detour at all.
         Assert.Equal("proxy", (string?)dns.First(s => (string?)s!["tag"] == "remote")!["detour"]);
+        Assert.Null((string?)dns.First(s => (string?)s!["tag"] == "local")!["detour"]);
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public class DnsSettingsTests
         var local = ServerNode(routing, "local");
         Assert.Equal("udp", (string?)local["type"]);
         Assert.Equal("77.88.8.8", (string?)local["server"]);
-        Assert.Equal("direct", (string?)local["detour"]); // never tunnelled
+        Assert.Null((string?)local["detour"]); // no detour = direct; never tunnelled
     }
 
     [Fact]

@@ -82,20 +82,29 @@ public static class SingBoxConfigGenerator
             ["servers"] = new JsonArray
             {
                 BuildDnsServer("remote", DnsCatalog.ResolveRemote(dns.RemoteProviderId), GeneratorOptions.ProxyTag),
-                BuildDnsServer("local", DnsCatalog.ResolveLocal(dns.LocalProviderId), GeneratorOptions.DirectTag),
+                // No detour: for a DNS server, "no detour" already means direct. sing-box
+                // 1.12+ rejects detouring to the (empty) direct outbound at service start
+                // ("detour to an empty direct outbound makes no sense") — which `check`
+                // does NOT catch, so it surfaced only as "exited immediately (code 1)".
+                BuildDnsServer("local", DnsCatalog.ResolveLocal(dns.LocalProviderId), detour: null),
             },
             ["final"] = "remote",
             ["strategy"] = "prefer_ipv4",
         };
     }
 
-    private static JsonObject BuildDnsServer(string tag, DnsProvider provider, string detour) => new()
+    private static JsonObject BuildDnsServer(string tag, DnsProvider provider, string? detour)
     {
-        ["type"] = provider.Transport == DnsTransport.Udp ? "udp" : "https",
-        ["tag"] = tag,
-        ["server"] = provider.Server,
-        ["detour"] = detour,
-    };
+        var server = new JsonObject
+        {
+            ["type"] = provider.Transport == DnsTransport.Udp ? "udp" : "https",
+            ["tag"] = tag,
+            ["server"] = provider.Server,
+        };
+        if (!string.IsNullOrEmpty(detour))
+            server["detour"] = detour;
+        return server;
+    }
 
     private static JsonObject BuildTunInbound(GeneratorOptions o) => new()
     {

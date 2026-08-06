@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using SimpleRay.App.Engine;
@@ -82,6 +83,41 @@ public class EngineValidationTests : IDisposable
             () => engine.StartAsync("{ broken"));
         Assert.Contains("Invalid configuration", ex.Message);
         Assert.NotEqual(EngineState.Running, engine.State);
+    }
+
+    [Fact]
+    public async Task GeneratedConfig_StartsPastDnsService()
+    {
+        var exe = FindSingBox();
+        if (exe is null) return; // deps not fetched — skip
+
+        // `sing-box check` passes configs that still fail at service start (e.g. a DNS
+        // server detouring to the empty direct outbound: "makes no sense"). This runs the
+        // real service briefly: it will fail at the TUN inbound without admin, but must NOT
+        // fail earlier at the DNS service — that's the regression this guards.
+        var cfg = Path.Combine(_dir, "config.json");
+        File.WriteAllText(cfg, ValidConfig(_dir));
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = exe,
+            WorkingDirectory = _dir,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        psi.ArgumentList.Add("run");
+        psi.ArgumentList.Add("-c"); psi.ArgumentList.Add(cfg);
+        psi.ArgumentList.Add("-D"); psi.ArgumentList.Add(_dir);
+
+        using var p = Process.Start(psi)!;
+        var err = p.StandardError.ReadToEndAsync();
+        if (!p.WaitForExit(5000)) { try { p.Kill(entireProcessTree: true); } catch { } }
+        var stderr = await err;
+
+        Assert.DoesNotContain("makes no sense", stderr, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("start dns", stderr, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Walks up to the repo root and finds a built sing-box.exe, or null.</summary>
