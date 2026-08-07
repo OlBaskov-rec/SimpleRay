@@ -75,22 +75,25 @@ internal static class Native
         public nint data;
     }
 
-    // FWP_VALUE0: 4-byte type, padded, 8-byte value union (x64).
-    [StructLayout(LayoutKind.Explicit)]
+    // FWP_VALUE0: { FWP_DATA_TYPE type; union{...} value } — 4-byte type, 4 pad, 8-byte value
+    // on x64. Modelled as a plain sequential struct (no overlapping/explicit union): the
+    // single 8-byte `value` slot holds uint8/uint32/uint64/pointer (little-endian, so a
+    // low-byte/low-dword read gives uint8/uint32). Explicit layout with an nint overlapping
+    // value types made the containing FWPM_FILTER0 mis-marshal and crash FwpmFilterAdd0.
+    [StructLayout(LayoutKind.Sequential)]
     public struct FWP_VALUE0
     {
-        [FieldOffset(0)] public uint type;
-        [FieldOffset(8)] public byte uint8;
-        [FieldOffset(8)] public uint uint32;
-        [FieldOffset(8)] public nint value; // pointer for uint64 / byteBlob
+        public uint type;
+        public uint reserved; // padding so value sits at offset 8
+        public long value;    // uint8/uint32/uint64/pointer, per type
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct FWP_CONDITION_VALUE0
     {
-        [FieldOffset(0)] public uint type;
-        [FieldOffset(8)] public uint uint32;
-        [FieldOffset(8)] public nint value; // pointer for uint64 / byteBlob
+        public uint type;
+        public uint reserved;
+        public long value;    // uint32 flag, or a pointer (uint64 / byteBlob)
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -132,7 +135,7 @@ internal static class Native
         public FWP_VALUE0 effectiveWeight;
     }
 
-    public static FWP_VALUE0 FwpValueByte(byte v) => new() { type = FWP_UINT8, uint8 = v };
+    public static FWP_VALUE0 FwpValueByte(byte v) => new() { type = FWP_UINT8, value = v };
 
     [DllImport("fwpuclnt.dll")]
     public static extern uint FwpmEngineOpen0(
@@ -199,7 +202,7 @@ internal sealed class Conditions : IDisposable
                 conditionValue = new Native.FWP_CONDITION_VALUE0
                 {
                     type = Native.FWP_UINT32,
-                    uint32 = Native.FWP_CONDITION_FLAG_IS_LOOPBACK,
+                    value = Native.FWP_CONDITION_FLAG_IS_LOOPBACK,
                 },
             },
         };
@@ -218,7 +221,7 @@ internal sealed class Conditions : IDisposable
             {
                 fieldKey = Native.FWPM_CONDITION_IP_LOCAL_INTERFACE,
                 matchType = Native.FWP_MATCH_EQUAL,
-                conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_UINT64, value = p },
+                conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_UINT64, value = (long)p },
             },
         };
         return c;
@@ -238,7 +241,7 @@ internal sealed class Conditions : IDisposable
             {
                 fieldKey = Native.FWPM_CONDITION_ALE_APP_ID,
                 matchType = Native.FWP_MATCH_EQUAL,
-                conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_BYTE_BLOB_TYPE, value = c._appId },
+                conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_BYTE_BLOB_TYPE, value = (long)c._appId },
             },
         };
         return c;
