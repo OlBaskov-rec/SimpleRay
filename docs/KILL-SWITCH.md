@@ -37,17 +37,12 @@ If WFP can't be opened or a filter can't be added, `Engage` throws; the app stay
 connected and shows "kill-switch could not be enabled" rather than failing the connection
 or leaving the machine half-blocked (the transaction is aborted).
 
-## Verification checklist (run on real hardware, elevated, with a working profile)
+## Verification
 
-- [ ] Connect with kill-switch **off** → normal browsing works.
-- [ ] Connect with kill-switch **on** → normal browsing still works (TUN + sing-box + loopback permitted). If the internet dies here, a permit filter is wrong (likely the TUN LUID or the sing-box app-id).
-- [ ] While connected with kill-switch on, **kill sing-box.exe** from Task Manager → traffic should be **blocked** (no leak) until the watchdog reconnects; confirm a browser request fails during the gap, then recovers.
-- [ ] Disconnect → filters removed, browsing works.
-- [ ] IPv6 leak test (e.g. test-ipv6.com) with kill-switch on and tunnel down → no leak.
-- [ ] **Crash recovery:** with kill-switch on and connected, kill **SimpleRay.exe** (not sing-box) → traffic blocked (fail-closed). Relaunch SimpleRay elevated → `CleanupLeftovers` removes filters, browsing restored. Also verify a **reboot** restores browsing.
-- [ ] Verify no filters remain after a clean disconnect/exit: `netsh wfp show filters` shows none named "SimpleRay kill-switch".
-
-Only after all boxes pass should the setting be considered safe to recommend.
+The step-by-step verification procedure (including the isolated `wfp-harness` used to debug
+the WFP layer without the GUI) lives in
+[tests/manual/kill-switch/RUNBOOK.ru.md](../tests/manual/kill-switch/RUNBOOK.ru.md).
+Only after its checklist passes should the setting be considered safe to recommend.
 
 ## Files
 

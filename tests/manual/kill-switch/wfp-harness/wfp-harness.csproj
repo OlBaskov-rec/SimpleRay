@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>wfp-harness</AssemblyName>
+    <!-- Standalone: intentionally NOT part of SimpleRay.sln, so a crash while debugging
+         WFP never affects the app build/tests. Built on demand via `dotnet run`. -->
+  </PropertyGroup>
+
+  <!-- Link the kill-switch sources directly (no dependency on the WPF app assembly). -->
+  <ItemGroup>
+    <Compile Include="..\..\..\..\src\SimpleRay.App\Engine\IKillSwitch.cs" />
+    <Compile Include="..\..\..\..\src\SimpleRay.App\Engine\WfpKillSwitch.cs" />
+    <Compile Include="..\..\..\..\src\SimpleRay.App\Engine\WfpNative.cs" />
+  </ItemGroup>
+
+</Project>
