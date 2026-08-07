@@ -192,7 +192,7 @@ public sealed class MainViewModel : ObservableObject
     public string StatusText
     {
         get => _statusText;
-        private set => SetField(ref _statusText, value);
+        private set { if (SetField(ref _statusText, value)) OnPropertyChanged(nameof(TrayToolTip)); }
     }
 
     public string Log
@@ -843,7 +843,39 @@ public sealed class MainViewModel : ObservableObject
                 EngineState.Faulted => L["status.faulted"],
                 _ => L["status.disconnected"],
             };
+            _engineState = state;
+            OnPropertyChanged(nameof(TrayIcon));
+            OnPropertyChanged(nameof(TrayToolTip));
         });
+
+    // --- Tray status indicator -------------------------------------------
+
+    private EngineState _engineState = EngineState.Stopped;
+
+    private static readonly System.Windows.Media.ImageSource TrayOff = TrayImage("tray-off");
+    private static readonly System.Windows.Media.ImageSource TrayConnecting = TrayImage("tray-connecting");
+    private static readonly System.Windows.Media.ImageSource TrayOn = TrayImage("tray-on");
+    private static readonly System.Windows.Media.ImageSource TrayFault = TrayImage("tray-fault");
+
+    private static System.Windows.Media.ImageSource TrayImage(string name)
+    {
+        var img = new System.Windows.Media.Imaging.BitmapImage(
+            new Uri($"pack://application:,,,/Resources/{name}.ico"));
+        img.Freeze(); // shared across threads / reused
+        return img;
+    }
+
+    /// <summary>Tray icon reflecting the engine state (grey/amber/green/red).</summary>
+    public System.Windows.Media.ImageSource TrayIcon => _engineState switch
+    {
+        EngineState.Running => TrayOn,
+        EngineState.Starting or EngineState.Stopping => TrayConnecting,
+        EngineState.Faulted => TrayFault,
+        _ => TrayOff,
+    };
+
+    /// <summary>Tray tooltip: product name plus the current status line.</summary>
+    public string TrayToolTip => "SimpleRay — " + StatusText;
 
     private void OnEngineLog(object? sender, string line) =>
         _dispatcher.BeginInvoke(() =>

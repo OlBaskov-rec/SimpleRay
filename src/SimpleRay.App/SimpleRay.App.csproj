@@ -25,6 +25,11 @@
   <!-- Tray / window icon (embedded as a WPF resource, addressable via pack URI). -->
   <ItemGroup>
     <Resource Include="Resources\tray.ico" />
+    <!-- Tray status lights (grey/amber/green/red), swapped by connection state. -->
+    <Resource Include="Resources\tray-off.ico" />
+    <Resource Include="Resources\tray-connecting.ico" />
+    <Resource Include="Resources\tray-on.ico" />
+    <Resource Include="Resources\tray-fault.ico" />
   </ItemGroup>
 
   <!-- Localization strings (one JSON per language), embedded and loaded at runtime. -->

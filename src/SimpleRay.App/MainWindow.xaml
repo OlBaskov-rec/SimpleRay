@@ -24,8 +24,8 @@
 
         <!-- System tray icon (not rendered in the layout) -->
         <tb:TaskbarIcon x:Name="TrayIcon"
-                        IconSource="pack://application:,,,/Resources/tray.ico"
-                        ToolTipText="SimpleRay"
+                        IconSource="{Binding TrayIcon}"
+                        ToolTipText="{Binding TrayToolTip}"
                         TrayMouseDoubleClick="Tray_ShowWindow">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
