@@ -104,25 +104,43 @@ public sealed class WfpKillSwitch : IKillSwitch
 
     private void EnsureProviderAndSubLayer()
     {
-        var provider = new Native.FWPM_PROVIDER0
+        var allocs = new List<nint>();
+        try
         {
-            providerKey = ProviderKey,
-            displayData = new Native.FWPM_DISPLAY_DATA0 { name = Name, description = Name },
-        };
-        // AlreadyExists is fine — we reuse a stable identity.
-        var r = Native.FwpmProviderAdd0(_engine, ref provider, 0);
-        if (r != 0 && r != Native.FWP_E_ALREADY_EXISTS) Check(r, "provider add");
+            var provider = new Native.FWPM_PROVIDER0
+            {
+                providerKey = ProviderKey,
+                displayData = Display(Name, Name, allocs),
+            };
+            // AlreadyExists is fine — we reuse a stable identity.
+            var r = Native.FwpmProviderAdd0(_engine, ref provider, 0);
+            if (r != 0 && r != Native.FWP_E_ALREADY_EXISTS) Check(r, "provider add");
 
-        var sub = new Native.FWPM_SUBLAYER0
-        {
-            subLayerKey = SubLayerKey,
-            displayData = new Native.FWPM_DISPLAY_DATA0 { name = Name, description = Name },
-            providerKey = nint.Zero, // set below via marshalling helper
-            weight = 0xFFFF,
-        };
-        // providerKey is a pointer to a GUID; keep it simple and leave null (optional).
-        var rs = Native.FwpmSubLayerAdd0(_engine, ref sub, 0);
-        if (rs != 0 && rs != Native.FWP_E_ALREADY_EXISTS) Check(rs, "sublayer add");
+            var sub = new Native.FWPM_SUBLAYER0
+            {
+                subLayerKey = SubLayerKey,
+                displayData = Display(Name, Name, allocs),
+                providerKey = nint.Zero, // optional GUID* — leave null
+                weight = 0xFFFF,
+            };
+            var rs = Native.FwpmSubLayerAdd0(_engine, ref sub, 0);
+            if (rs != 0 && rs != Native.FWP_E_ALREADY_EXISTS) Check(rs, "sublayer add");
+        }
+        finally { FreeAll(allocs); }
+    }
+
+    /// <summary>Builds a display-data with LPWSTR pointers, tracking them for later free.</summary>
+    private static Native.FWPM_DISPLAY_DATA0 Display(string name, string description, List<nint> allocs)
+    {
+        var n = Marshal.StringToHGlobalUni(name);
+        var d = Marshal.StringToHGlobalUni(description);
+        allocs.Add(n); allocs.Add(d);
+        return new Native.FWPM_DISPLAY_DATA0 { name = n, description = d };
+    }
+
+    private static void FreeAll(List<nint> allocs)
+    {
+        foreach (var p in allocs) Marshal.FreeHGlobal(p);
     }
 
     private void AddBlockAndPermitFilters(string tunInterfaceName, string allowedExePath)
@@ -150,12 +168,13 @@ public sealed class WfpKillSwitch : IKillSwitch
 
     private void AddFilter(Guid layer, string tag, byte weight, bool block, Native.FWPM_FILTER_CONDITION0[] conditions)
     {
+        var allocs = new List<nint>();
         var handle = GCHandle.Alloc(conditions, GCHandleType.Pinned);
         try
         {
             var filter = new Native.FWPM_FILTER0
             {
-                displayData = new Native.FWPM_DISPLAY_DATA0 { name = Name, description = tag },
+                displayData = Display(Name, tag, allocs),
                 layerKey = layer,
                 subLayerKey = SubLayerKey,
                 weight = Native.FwpValueByte(weight),
@@ -172,6 +191,7 @@ public sealed class WfpKillSwitch : IKillSwitch
         finally
         {
             if (handle.IsAllocated) handle.Free();
+            FreeAll(allocs);
         }
     }
 

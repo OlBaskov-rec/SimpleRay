@@ -4,6 +4,10 @@
     <ProjectReference Include="..\SimpleRay.Core\SimpleRay.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="SimpleRay.App.Tests" />
+  </ItemGroup>
+
   <!-- Bundled runtime deps (sing-box.exe, wintun.dll, geo *.srs) are fetched by
        scripts\fetch-deps.ps1 into runtime\ and copied next to the exe as core\ / geo\. -->
   <ItemGroup>

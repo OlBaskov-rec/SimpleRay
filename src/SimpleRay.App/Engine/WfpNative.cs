@@ -37,11 +37,14 @@ internal static class Native
     public const uint FWP_MATCH_EQUAL = 0;
     public const uint FWP_MATCH_FLAGS_ANY_SET = 6;
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    // Blittable: name/description are LPWSTR pointers (allocated with StringToHGlobalUni).
+    // Keeping the whole struct blittable lets FWPM_FILTER0 be blitted as-is instead of
+    // field-by-field marshalled, which mislaid the embedded explicit-layout FWP_VALUE0.
+    [StructLayout(LayoutKind.Sequential)]
     public struct FWPM_DISPLAY_DATA0
     {
-        public string name;
-        public string description;
+        public nint name;
+        public nint description;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -119,7 +122,11 @@ internal static class Native
         public uint numFilterConditions;
         public nint filterCondition;    // FWPM_FILTER_CONDITION0*
         public FWPM_ACTION0 action;
-        public Guid providerContextKey; // union { UINT64 rawContext; GUID providerContextKey } — GUID is larger
+        // union { UINT64 rawContext; GUID providerContextKey } — 16 bytes, 8-byte aligned
+        // (the UINT64 member forces 8-alignment; a GUID field would be only 4-aligned and
+        // shift every following field, corrupting the struct). Two UINT64s, left zero.
+        public ulong providerContext0;
+        public ulong providerContext1;
         public nint reserved;           // GUID*
         public ulong filterId;
         public FWP_VALUE0 effectiveWeight;
