@@ -62,7 +62,16 @@ if ($iscc) {
     Write-Warning "Inno Setup (ISCC.exe) not found - skipping installer. Install: winget install JRSoftware.InnoSetup"
 }
 
-# --- 4. collect the deliverables into the pickup folder ------------------
+# --- 4. kill-switch WFP harness (self-contained, so it runs without a .NET SDK) ---
+$harnessProj = Join-Path $repo "tests\manual\kill-switch\wfp-harness\wfp-harness.csproj"
+$harnessPub = Join-Path $repo "publish\wfp-harness"
+Write-Host "Building kill-switch WFP harness..." -ForegroundColor Cyan
+dotnet publish $harnessProj -c Release -r win-x64 --self-contained true `
+    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None `
+    -o $harnessPub | Out-Null
+if ($LASTEXITCODE -ne 0) { Write-Warning "harness publish failed (skipping)" }
+
+# --- 5. collect the deliverables into the pickup folder ------------------
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 Get-ChildItem $OutDir -Filter "SimpleRay-*" -ErrorAction SilentlyContinue | Remove-Item -Force
 foreach ($pattern in @(
@@ -73,8 +82,10 @@ foreach ($pattern in @(
     $src = Join-Path $dist $pattern
     if (Test-Path $src) { Copy-Item $src $OutDir -Force }
 }
+$harnessExe = Join-Path $harnessPub "wfp-harness.exe"
+if (Test-Path $harnessExe) { Copy-Item $harnessExe $OutDir -Force }
 
 Write-Host "`nBuild $ver ready in: $OutDir" -ForegroundColor Green
-Get-ChildItem $OutDir -Filter "SimpleRay-*" | ForEach-Object {
+Get-ChildItem $OutDir -File | ForEach-Object {
     "  {0,10:N2} MB  {1}" -f ($_.Length / 1MB), $_.Name
 }

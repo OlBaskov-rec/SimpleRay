@@ -14,7 +14,8 @@
 ## Общее
 
 - Запускать **от имени администратора** (TUN и WFP требуют прав).
-- Свежую сборку берите из `build\` (`./scripts/build-local.ps1`).
+- Свежую сборку берите из `build\` (`./scripts/build-local.ps1`). Там же лежит
+  `wfp-harness.exe` — самодостаточный тестер kill-switch (запускать без .NET SDK).
 - При проблеме соберите диагностику: [`_common/collect-diagnostics.ps1`](_common/collect-diagnostics.ps1) — сложит в файл всё нужное для отчёта.
 
 > Автоматические тесты (xUnit) лежат отдельно: `SimpleRay.Core.Tests`, `SimpleRay.App.Tests`.

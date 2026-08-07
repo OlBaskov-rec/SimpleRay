@@ -18,12 +18,17 @@
 Harness гоняет только `WfpKillSwitch` — если он упадёт, пострадает лишь консоль, а не
 приложение. Так мы точно увидим, на каком вызове проблема.
 
-1. Откройте **PowerShell от администратора**.
-2. Запустите harness (укажите путь к своему `sing-box.exe`):
+Готовый **`wfp-harness.exe`** лежит в папке `build\` (самодостаточный, .NET SDK не нужен —
+кладётся туда `scripts\build-local.ps1`).
+
+1. Откройте **PowerShell от администратора** (это обязательно — WFP требует прав).
+2. Запустите harness, указав путь к своему `sing-box.exe`:
    ```powershell
-   cd D:\Development\SimpleRay
-   dotnet run --project tests\manual\kill-switch\wfp-harness -- simpleray "D:\Progs\SimpleRay\SimpleRay-0.2.0-win-x64\core\sing-box.exe"
+   cd D:\Development\SimpleRay\build
+   .\wfp-harness.exe simpleray "D:\Progs\SimpleRay\SimpleRay-0.2.0-win-x64\core\sing-box.exe"
    ```
+   > Без прав администратора harness завершится на шаге Engage с `WFP provider add failed
+   > (0x00000005)` — это ACCESS_DENIED, значит запустили не от админа.
 3. Смотрите вывод по шагам:
    - `[1/3] CleanupLeftovers` — должно быть `ok`.
    - `[2/3] Engage` — **тут была проблема**. Возможные исходы:
