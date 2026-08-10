@@ -63,7 +63,7 @@
   "routing.directDomains": "Прямі домени…",
   "tip.directDomains": "Домени, що йдуть напряму (повз VPN), в обхід geo-правил — наприклад, yandex.ru",
   "domains.title": "Прямі домени",
-  "domains.hint": "По одному домену на рядок. Трафік до цих доменів (та їх піддоменів) іде повз VPN. Приклад: yandex.ru покриє mail.yandex.ru, disk.yandex.ru.",
+  "domains.hint": "Введіть домен і натисніть кому або Enter, щоб додати його тегом. Трафік до цих доменів (та їх піддоменів) іде повз VPN. Приклад: yandex.ru покриє mail.yandex.ru, disk.yandex.ru.",
   "routing.failoverTitle": "Група каналів (автоперемикання)",
 
   "dns.title": "DNS-резолвер",

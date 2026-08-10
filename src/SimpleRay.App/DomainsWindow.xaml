@@ -2,19 +2,49 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:SimpleRay.App.Localization"
-        Title="{loc:Loc domains.title}" Height="360" Width="460"
+        Title="{loc:Loc domains.title}" Height="380" Width="460"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         FlowDirection="{Binding FlowDirection, Source={x:Static loc:LocalizationManager.Instance}}"
         FontFamily="Segoe UI" FontSize="13">
     <DockPanel Margin="14">
         <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#444"
                    Text="{loc:Loc domains.hint}" />
+
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Content="OK" IsDefault="True" Width="84" Padding="0,4" Click="Ok_Click" Margin="0,0,8,0" />
             <Button Content="{loc:Loc common.cancel}" IsCancel="True" Width="84" Padding="0,4" />
         </StackPanel>
-        <TextBox x:Name="Input" AcceptsReturn="True" AcceptsTab="False" Padding="4,3"
-                 FontFamily="Consolas"
-                 VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
+
+        <!-- Input row: type a domain, press comma or Enter to turn it into an accepted tag. -->
+        <TextBox x:Name="Input" DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="4,3"
+                 FontFamily="Consolas" AcceptsReturn="False" AcceptsTab="False"
+                 TextChanged="Input_TextChanged" PreviewKeyDown="Input_PreviewKeyDown" />
+
+        <!-- Accepted domains shown as green tags. -->
+        <Border BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="3">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                <ItemsControl x:Name="Chips">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#E3F2E4" BorderBrush="#2E7D32" BorderThickness="1"
+                                    CornerRadius="10" Margin="3" Padding="8,2">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding}" Foreground="#1B5E20" VerticalAlignment="Center" />
+                                    <Button Content="&#x2715;" Click="RemoveChip_Click" Margin="6,0,0,0" Padding="0"
+                                            Width="16" Height="16" FontSize="10" Cursor="Hand"
+                                            Background="Transparent" BorderThickness="0" Foreground="#1B5E20"
+                                            ToolTip="{loc:Loc profile.remove}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
     </DockPanel>
 </Window>

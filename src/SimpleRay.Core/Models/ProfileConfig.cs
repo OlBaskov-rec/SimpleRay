@@ -60,6 +60,21 @@ public sealed class ProfileConfig : INotifyPropertyChanged
     [JsonIgnore]
     public int? LatencyMs { get; set; }
 
+    private string? _latencyText;
+
+    /// <summary>
+    /// Display text for the latest ping (transient): "&lt;n&gt; ms" when reachable, a dash when
+    /// unreachable, null before the first ping. Lets the UI distinguish "never pinged" (hide)
+    /// from "pinged but unreachable" (show a gray dash) — <see cref="LatencyMs"/> can't, since
+    /// both are null.
+    /// </summary>
+    [JsonIgnore]
+    public string? LatencyText
+    {
+        get => _latencyText;
+        set { if (_latencyText != value) { _latencyText = value; OnPropertyChanged(nameof(LatencyText)); } }
+    }
+
     private bool _isActive;
 
     /// <summary>True while this server is the currently connected one (transient, drives list highlight).</summary>
@@ -67,13 +82,10 @@ public sealed class ProfileConfig : INotifyPropertyChanged
     public bool IsActive
     {
         get => _isActive;
-        set
-        {
-            if (_isActive == value) return;
-            _isActive = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActive)));
-        }
+        set { if (_isActive != value) { _isActive = value; OnPropertyChanged(nameof(IsActive)); } }
     }
+
+    private void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 /// <summary>

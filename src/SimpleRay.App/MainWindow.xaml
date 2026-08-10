@@ -84,13 +84,18 @@
                                       Command="{Binding DataContext.GroupChangedCommand,
                                                 RelativeSource={RelativeSource AncestorType=ListBox}}"
                                       ToolTip="{loc:Loc tip.inGroup}" />
-                            <TextBlock FontSize="11" Foreground="#2E7D32" Margin="10,0,0,0" VerticalAlignment="Center"
-                                       Text="{Binding LatencyMs, StringFormat='{}{0} ms'}">
+                            <TextBlock FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center"
+                                       Text="{Binding LatencyText}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
+                                        <!-- Reachable: green ms. Unreachable: gray dash. Never pinged: hidden. -->
+                                        <Setter Property="Foreground" Value="#2E7D32" />
                                         <Setter Property="Visibility" Value="Visible" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding LatencyMs}" Value="{x:Null}">
+                                                <Setter Property="Foreground" Value="Gray" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding LatencyText}" Value="{x:Null}">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                             </DataTrigger>
                                         </Style.Triggers>

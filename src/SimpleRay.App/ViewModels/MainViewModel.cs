@@ -821,7 +821,12 @@ public sealed class MainViewModel : ObservableObject
         StatusText = L["status.pinging"];
         var list = Profiles.ToList();
         await Task.WhenAll(list.Select(async p =>
-            p.LatencyMs = await LatencyProbe.MeasureAsync(p.Server, p.Port)));
+        {
+            p.LatencyMs = await LatencyProbe.MeasureAsync(p.Server, p.Port);
+            // Always leave a visible result so a ping renders even when disconnected:
+            // "<n> ms" when reachable, a dash when the direct probe couldn't connect.
+            p.LatencyText = p.LatencyMs is int ms ? $"{ms} ms" : "—";
+        }));
 
         // Reachable/fastest first; unreachable (null) last, then by name.
         ReplaceProfiles(list

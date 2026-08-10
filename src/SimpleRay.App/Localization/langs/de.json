@@ -63,7 +63,7 @@
   "routing.directDomains": "Direkte Domains…",
   "tip.directDomains": "Domains, die direkt (am VPN vorbei) geleitet werden und Geo-Regeln überschreiben — z. B. yandex.ru",
   "domains.title": "Direkte Domains",
-  "domains.hint": "Eine Domain pro Zeile. Verkehr zu diesen Domains (und ihren Subdomains) umgeht das VPN. Beispiel: yandex.ru deckt mail.yandex.ru, disk.yandex.ru ab.",
+  "domains.hint": "Domain eingeben und mit Komma oder Enter als Tag hinzufügen. Verkehr zu diesen Domains (und ihren Subdomains) umgeht das VPN. Beispiel: yandex.ru deckt mail.yandex.ru, disk.yandex.ru ab.",
   "routing.failoverTitle": "Kanalgruppe (Auto-Umschaltung)",
 
   "dns.title": "DNS-Resolver",
