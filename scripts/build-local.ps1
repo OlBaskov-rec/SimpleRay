@@ -83,7 +83,12 @@ foreach ($pattern in @(
     if (Test-Path $src) { Copy-Item $src $OutDir -Force }
 }
 $harnessExe = Join-Path $harnessPub "wfp-harness.exe"
-if (Test-Path $harnessExe) { Copy-Item $harnessExe $OutDir -Force }
+if (Test-Path $harnessExe) {
+    # Best-effort: the harness may be running (locked) during a live kill-switch test.
+    # Its code rarely changes, so a stale copy is harmless; don't fail the whole build.
+    try { Copy-Item $harnessExe $OutDir -Force -ErrorAction Stop }
+    catch { Write-Warning "wfp-harness.exe is in use (running?) - kept the existing copy in $OutDir" }
+}
 
 Write-Host "`nBuild $ver ready in: $OutDir" -ForegroundColor Green
 Get-ChildItem $OutDir -File | ForEach-Object {
