@@ -829,6 +829,19 @@ public sealed class MainViewModel : ObservableObject
             .ThenBy(p => p.Tag, StringComparer.OrdinalIgnoreCase));
         SaveProfiles();
         StatusText = L["status.pingDone"];
+
+        // When connected, the ping message replaced the "Connected: <server>" status.
+        // Restore it after a short delay so the user can still see what they're connected to.
+        if (IsConnected)
+            _ = RestoreConnectedStatusAsync(L["status.pingDone"]);
+    }
+
+    /// <summary>Restores the "connected to" label after a transient status, if still connected and unchanged.</summary>
+    private async Task RestoreConnectedStatusAsync(string transientMessage)
+    {
+        await Task.Delay(3000);
+        if (IsConnected && StatusText == transientMessage)
+            StatusText = L.Format("status.connectedTo", _activeLabel);
     }
 
     /// <summary>Replaces the profile list content (used to refresh non-observable items / reorder).</summary>

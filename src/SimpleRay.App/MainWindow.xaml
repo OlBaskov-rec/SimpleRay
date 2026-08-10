@@ -77,26 +77,27 @@
                         <TextBlock Text="{loc:Loc profile.insecure}" FontSize="11" Foreground="#C0392B"
                                    Visibility="{Binding SkipsCertCheck, Converter={StaticResource BoolToVis}}"
                                    ToolTip="{loc:Loc tip.insecure}" />
-                        <!-- "In group" on its own line, left-aligned (no horizontal scroll). -->
-                        <CheckBox Content="{loc:Loc profile.inGroup}" Margin="0,2,0,0" FontSize="11"
-                                  IsChecked="{Binding InGroup, Mode=TwoWay}"
-                                  Command="{Binding DataContext.GroupChangedCommand,
-                                            RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                  ToolTip="{loc:Loc tip.inGroup}" />
-                        <!-- Ping latency on its own line, below the checkbox (hidden until measured). -->
-                        <TextBlock FontSize="11" Foreground="#2E7D32" Margin="0,1,0,0"
-                                   Text="{Binding LatencyMs, StringFormat='{}{0} ms'}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding LatencyMs}" Value="{x:Null}">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <!-- "In group" checkbox with the ping latency on the same line, latency indented to the right. -->
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <CheckBox Content="{loc:Loc profile.inGroup}" FontSize="11" VerticalAlignment="Center"
+                                      IsChecked="{Binding InGroup, Mode=TwoWay}"
+                                      Command="{Binding DataContext.GroupChangedCommand,
+                                                RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                      ToolTip="{loc:Loc tip.inGroup}" />
+                            <TextBlock FontSize="11" Foreground="#2E7D32" Margin="10,0,0,0" VerticalAlignment="Center"
+                                       Text="{Binding LatencyMs, StringFormat='{}{0} ms'}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding LatencyMs}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
