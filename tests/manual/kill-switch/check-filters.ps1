@@ -5,7 +5,9 @@
   Run ELEVATED, WHILE the kill-switch is engaged (harness waiting at "Press Enter").
 
 .NOTES
-  If PowerShell blocks this script ("running scripts is disabled"), launch it with:
+  ASCII only on purpose: PowerShell 5.1 reads .ps1 as the system ANSI codepage, so
+  non-ASCII chars corrupt the file. If PowerShell blocks it ("running scripts is
+  disabled"), launch with:
     powershell -ExecutionPolicy Bypass -File .\tests\manual\kill-switch\check-filters.ps1
 #>
 $ErrorActionPreference = "Stop"
@@ -17,18 +19,16 @@ function Get-WfpItems([string]$what) {
     if (-not (Test-Path $xml)) { return @() }
     [xml]$doc = Get-Content $xml -Raw
     Remove-Item $xml -Force -ErrorAction SilentlyContinue
-    # Only items carrying our display name.
     $doc.SelectNodes('//item') | Where-Object { $_.displayData.name -eq $Name }
 }
 
 Write-Host "=== SimpleRay filters (ALE_AUTH_CONNECT v4/v6) ===" -ForegroundColor Cyan
 $filters = Get-WfpItems "filters"
 if (-not $filters) {
-    Write-Host "  (none found — kill-switch NOT engaged, or filters were removed)" -ForegroundColor Yellow
+    Write-Host "  (none found: kill-switch NOT engaged, or filters were removed)" -ForegroundColor Yellow
 } else {
-    Write-Host ("  count: {0} (expected 6-8: block-all/permit-loopback/permit-singbox [+permit-tun] x2 layers)" -f @($filters).Count)
+    Write-Host ("  count: {0} (expect 6-8: block-all/permit-loopback/permit-singbox [+permit-tun] x2 layers)" -f @($filters).Count)
     @($filters) | ForEach-Object {
-        # Layer rendered as a friendly key or GUID; shorten the common ones.
         $layer = "$($_.layerKey)"
         if ($layer -match 'CONNECT_V4|c38d57d1') { $layer = 'v4' }
         elseif ($layer -match 'CONNECT_V6|4a72393b') { $layer = 'v6' }
@@ -54,7 +54,7 @@ if (-not $subs) {
     } | Format-Table -AutoSize
 }
 
-Write-Host "=== TUN adapter (expected name: simpleray, only while sing-box runs) ===" -ForegroundColor Cyan
+Write-Host "=== TUN adapter (name simpleray, present only while sing-box runs) ===" -ForegroundColor Cyan
 Get-NetAdapter -ErrorAction SilentlyContinue |
   Where-Object { $_.Name -like '*simpleray*' -or $_.InterfaceDescription -like '*wintun*' } |
   Format-Table Name, ifIndex, InterfaceDescription, Status
