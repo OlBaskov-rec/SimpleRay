@@ -27,15 +27,16 @@ internal static class Native
     public static readonly Guid FWPM_CONDITION_IP_LOCAL_INTERFACE = new("4cd62a49-59c3-4969-b7f3-bda5d32890a4");
     public static readonly Guid FWPM_CONDITION_ALE_APP_ID = new("d78e1e87-8644-4ea5-9437-d809ecefc971");
 
-    // FWP_DATA_TYPE values we use.
+    // FWP_DATA_TYPE values (fwptypes.h enum order). Wrong values here made WFP treat a
+    // uint32 flag as a pointer type and dereference it -> AccessViolation in FwpmFilterAdd0.
     public const uint FWP_UINT8 = 1;
-    public const uint FWP_UINT32 = 4;
-    public const uint FWP_UINT64 = 5;
-    public const uint FWP_BYTE_BLOB_TYPE = 10;
+    public const uint FWP_UINT32 = 3;
+    public const uint FWP_UINT64 = 4;
+    public const uint FWP_BYTE_BLOB_TYPE = 12;
 
-    // FWP_MATCH_TYPE values.
+    // FWP_MATCH_TYPE values (fwptypes.h enum order).
     public const uint FWP_MATCH_EQUAL = 0;
-    public const uint FWP_MATCH_FLAGS_ANY_SET = 6;
+    public const uint FWP_MATCH_FLAGS_ANY_SET = 7;
 
     // Blittable: name/description are LPWSTR pointers (allocated with StringToHGlobalUni).
     // Keeping the whole struct blittable lets FWPM_FILTER0 be blitted as-is instead of

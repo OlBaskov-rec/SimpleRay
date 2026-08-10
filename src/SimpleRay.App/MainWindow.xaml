@@ -73,8 +73,6 @@
                             <Run Text="{Binding Server}" />
                             <Run Text=":" />
                             <Run Text="{Binding Port}" />
-                            <Run Foreground="#2E7D32"
-                                 Text="{Binding LatencyMs, StringFormat=' · {0} ms', TargetNullValue=''}" />
                         </TextBlock>
                         <TextBlock Text="{loc:Loc profile.insecure}" FontSize="11" Foreground="#C0392B"
                                    Visibility="{Binding SkipsCertCheck, Converter={StaticResource BoolToVis}}"
@@ -85,6 +83,20 @@
                                   Command="{Binding DataContext.GroupChangedCommand,
                                             RelativeSource={RelativeSource AncestorType=ListBox}}"
                                   ToolTip="{loc:Loc tip.inGroup}" />
+                        <!-- Ping latency on its own line, below the checkbox (hidden until measured). -->
+                        <TextBlock FontSize="11" Foreground="#2E7D32" Margin="0,1,0,0"
+                                   Text="{Binding LatencyMs, StringFormat='{}{0} ms'}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LatencyMs}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
