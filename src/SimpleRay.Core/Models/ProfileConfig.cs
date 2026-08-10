@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace SimpleRay.Core.Models;
@@ -15,8 +16,10 @@ public enum ProxyProtocol
 /// Protocol-agnostic representation of a single proxy server, decoded from a
 /// share link. The engine layer turns this into a sing-box outbound.
 /// </summary>
-public sealed class ProfileConfig
+public sealed class ProfileConfig : INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public string Tag { get; set; } = "";
     public ProxyProtocol Protocol { get; set; }
     public string Server { get; set; } = "";
@@ -56,6 +59,21 @@ public sealed class ProfileConfig
     /// <summary>Last measured direct TCP latency in ms (transient, not persisted); null = untested/unreachable.</summary>
     [JsonIgnore]
     public int? LatencyMs { get; set; }
+
+    private bool _isActive;
+
+    /// <summary>True while this server is the currently connected one (transient, drives list highlight).</summary>
+    [JsonIgnore]
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            if (_isActive == value) return;
+            _isActive = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsActive)));
+        }
+    }
 }
 
 /// <summary>

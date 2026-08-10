@@ -846,7 +846,16 @@ public sealed class MainViewModel : ObservableObject
             _engineState = state;
             OnPropertyChanged(nameof(TrayIcon));
             OnPropertyChanged(nameof(TrayToolTip));
+            UpdateActiveProfiles(state == EngineState.Running);
         });
+
+    /// <summary>Marks the connected server(s) so the list can highlight them; clears when down.</summary>
+    private void UpdateActiveProfiles(bool connected)
+    {
+        var active = connected ? ResolveConnectTargets() : new List<ProfileConfig>();
+        foreach (var p in Profiles)
+            p.IsActive = active.Contains(p);
+    }
 
     // --- Tray status indicator -------------------------------------------
 
