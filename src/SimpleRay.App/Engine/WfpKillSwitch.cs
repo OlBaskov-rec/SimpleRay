@@ -166,34 +166,53 @@ public sealed class WfpKillSwitch : IKillSwitch
         }
     }
 
+    // FWPM_FILTER0 field offsets (x64, from fwpmtypes.h — verified in WfpLayoutTests).
+    private const int OffDisplayName = 16, OffDisplayDesc = 24, OffLayerKey = 64, OffSubLayerKey = 80,
+        OffWeightType = 96, OffWeightValue = 104, OffNumConditions = 112, OffFilterCondition = 120,
+        OffActionType = 128, FilterSize = 200;
+
     private void AddFilter(Guid layer, string tag, byte weight, bool block, Native.FWPM_FILTER_CONDITION0[] conditions)
     {
-        var allocs = new List<nint>();
-        var handle = GCHandle.Alloc(conditions, GCHandleType.Pinned);
+        // Build the FWPM_FILTER0 as raw bytes and pass a pointer — passing the struct by
+        // `ref` crashes FwpmFilterAdd0 (AccessViolation) despite a byte-correct layout.
+        var name = Marshal.StringToHGlobalUni(Name);
+        var desc = Marshal.StringToHGlobalUni(tag);
+        var condHandle = conditions.Length > 0
+            ? GCHandle.Alloc(conditions, GCHandleType.Pinned)
+            : default;
         try
         {
-            var filter = new Native.FWPM_FILTER0
+            var buf = new byte[FilterSize]; // zero-initialised
+            WritePtr(buf, OffDisplayName, name);
+            WritePtr(buf, OffDisplayDesc, desc);
+            WriteGuid(buf, OffLayerKey, layer);
+            WriteGuid(buf, OffSubLayerKey, SubLayerKey);
+            WriteU32(buf, OffWeightType, Native.FWP_UINT8);
+            WriteI64(buf, OffWeightValue, weight);
+            WriteU32(buf, OffNumConditions, (uint)conditions.Length);
+            WritePtr(buf, OffFilterCondition, conditions.Length > 0 ? condHandle.AddrOfPinnedObject() : nint.Zero);
+            WriteU32(buf, OffActionType, block ? Native.FWP_ACTION_BLOCK : Native.FWP_ACTION_PERMIT);
+            // providerKey / providerData / union / reserved / filterId / effectiveWeight stay zero.
+
+            var bufHandle = GCHandle.Alloc(buf, GCHandleType.Pinned);
+            try
             {
-                displayData = Display(Name, tag, allocs),
-                layerKey = layer,
-                subLayerKey = SubLayerKey,
-                weight = Native.FwpValueByte(weight),
-                numFilterConditions = (uint)conditions.Length,
-                filterCondition = conditions.Length == 0 ? nint.Zero : handle.AddrOfPinnedObject(),
-                action = new Native.FWPM_ACTION0
-                {
-                    type = block ? Native.FWP_ACTION_BLOCK : Native.FWP_ACTION_PERMIT,
-                },
-                providerKey = nint.Zero,
-            };
-            Check(Native.FwpmFilterAdd0(_engine, ref filter, 0, out _), "filter add " + tag);
+                Check(Native.FwpmFilterAdd0(_engine, bufHandle.AddrOfPinnedObject(), nint.Zero, out _), "filter add " + tag);
+            }
+            finally { bufHandle.Free(); }
         }
         finally
         {
-            if (handle.IsAllocated) handle.Free();
-            FreeAll(allocs);
+            if (condHandle.IsAllocated) condHandle.Free();
+            Marshal.FreeHGlobal(name);
+            Marshal.FreeHGlobal(desc);
         }
     }
+
+    private static void WriteU32(byte[] b, int off, uint v) => BitConverter.GetBytes(v).CopyTo(b, off);
+    private static void WriteI64(byte[] b, int off, long v) => BitConverter.GetBytes(v).CopyTo(b, off);
+    private static void WritePtr(byte[] b, int off, nint p) => BitConverter.GetBytes((long)p).CopyTo(b, off);
+    private static void WriteGuid(byte[] b, int off, Guid g) => g.ToByteArray().CopyTo(b, off);
 
     private static void DeleteOurObjects(nint engine)
     {

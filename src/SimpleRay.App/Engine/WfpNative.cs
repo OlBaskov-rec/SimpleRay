@@ -165,8 +165,12 @@ internal static class Native
     [DllImport("fwpuclnt.dll")]
     public static extern uint FwpmSubLayerDeleteByKey0(nint engineHandle, ref Guid key);
 
+    // The filter is passed as a raw pointer to a hand-built 200-byte buffer (see
+    // WfpKillSwitch.AddFilter). Marshalling FWPM_FILTER0 by `ref` crashed FwpmFilterAdd0
+    // with AccessViolation regardless of the struct definition, so we bypass struct
+    // marshalling entirely and lay out the bytes ourselves at the documented offsets.
     [DllImport("fwpuclnt.dll")]
-    public static extern uint FwpmFilterAdd0(nint engineHandle, ref FWPM_FILTER0 filter, nint sd, out ulong id);
+    public static extern uint FwpmFilterAdd0(nint engineHandle, nint filter, nint sd, out ulong id);
 
     [DllImport("fwpuclnt.dll")]
     public static extern uint FwpmGetAppIdFromFileName0([MarshalAs(UnmanagedType.LPWStr)] string fileName, out nint appId);
