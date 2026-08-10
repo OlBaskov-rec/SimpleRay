@@ -345,6 +345,16 @@ public static class SingBoxConfigGenerator
 
         if (r.Mode == RoutingMode.Rule)
         {
+            // User's own direct-by-domain overrides (matches the domain and its subdomains),
+            // e.g. "yandex.ru" also covers mail.yandex.ru / disk.yandex.ru.
+            var domains = CleanDomains(r.DirectDomains);
+            if (domains.Count > 0)
+                rules.Add(new JsonObject
+                {
+                    ["domain_suffix"] = new JsonArray(domains.Select(d => (JsonNode)d!).ToArray()),
+                    ["outbound"] = GeneratorOptions.DirectTag,
+                });
+
             var directSets = new JsonArray();
             foreach (var tag in r.DirectGeosite.Concat(r.DirectGeoip))
             {
@@ -397,5 +407,25 @@ public static class SingBoxConfigGenerator
             arr.Add(name);
         }
         return arr;
+    }
+
+    /// <summary>Normalises user-typed direct domains: strips scheme/path/leading dots, lowercases, dedupes.</summary>
+    private static List<string> CleanDomains(IEnumerable<string> domains)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        foreach (var raw in domains)
+        {
+            var d = raw.Trim().ToLowerInvariant();
+            if (d.Length == 0) continue;
+            int scheme = d.IndexOf("://", StringComparison.Ordinal);
+            if (scheme >= 0) d = d[(scheme + 3)..];
+            int slash = d.IndexOf('/');
+            if (slash >= 0) d = d[..slash];
+            d = d.Trim('.', ' ');
+            if (d.Length == 0 || !seen.Add(d)) continue;
+            result.Add(d);
+        }
+        return result;
     }
 }

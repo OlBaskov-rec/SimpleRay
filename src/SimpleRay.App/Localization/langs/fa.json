@@ -60,6 +60,10 @@
   "routing.directRuIp": "آی‌پی‌های روسی (geoip-ru)",
   "routing.directLan": "شبکه محلی (private)",
   "routing.apps": "برنامه‌ها…",
+  "routing.directDomains": "دامنه‌های مستقیم…",
+  "tip.directDomains": "دامنه‌هایی که مستقیم (بدون VPN) هدایت می‌شوند و بر قواعد geo اولویت دارند — مثلاً yandex.ru",
+  "domains.title": "دامنه‌های مستقیم",
+  "domains.hint": "هر خط یک دامنه. ترافیک به این دامنه‌ها (و زیردامنه‌هایشان) از VPN عبور نمی‌کند. مثال: yandex.ru شامل mail.yandex.ru و disk.yandex.ru می‌شود.",
   "routing.failoverTitle": "گروه کانال‌ها (تعویض خودکار)",
 
   "dns.title": "حل‌کنندهٔ DNS",

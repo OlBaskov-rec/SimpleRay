@@ -176,9 +176,12 @@
                               IsChecked="{Binding DirectLan, Mode=TwoWay}"
                               IsEnabled="{Binding IsRuleMode}" Margin="0,2,0,0" />
 
-                    <Button Content="{loc:Loc routing.apps}" Command="{Binding OpenAppsCommand}"
-                            HorizontalAlignment="Left" Padding="10,4" Margin="0,12,0,0"
-                            ToolTip="{loc:Loc tip.apps}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="{loc:Loc routing.apps}" Command="{Binding OpenAppsCommand}"
+                                Padding="10,4" ToolTip="{loc:Loc tip.apps}" />
+                        <Button Content="{loc:Loc routing.directDomains}" Command="{Binding DirectDomainsCommand}"
+                                Padding="10,4" Margin="8,0,0,0" ToolTip="{loc:Loc tip.directDomains}" />
+                    </StackPanel>
 
                     <Separator Margin="0,12,0,8" />
 

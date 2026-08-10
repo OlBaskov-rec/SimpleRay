@@ -60,6 +60,10 @@
   "routing.directRuIp": "俄罗斯 IP (geoip-ru)",
   "routing.directLan": "本地网络 (private)",
   "routing.apps": "应用…",
+  "routing.directDomains": "直连域名…",
+  "tip.directDomains": "直连（绕过 VPN）的域名，优先级高于 geo 规则——例如 yandex.ru",
+  "domains.title": "直连域名",
+  "domains.hint": "每行一个域名。发往这些域名（及其子域名）的流量绕过 VPN。例如：yandex.ru 覆盖 mail.yandex.ru、disk.yandex.ru。",
   "routing.failoverTitle": "线路分组（自动切换）",
 
   "dns.title": "DNS 解析器",

@@ -60,6 +60,10 @@
   "routing.directRuIp": "Российские IP (geoip-ru)",
   "routing.directLan": "Локальная сеть (private)",
   "routing.apps": "Приложения…",
+  "routing.directDomains": "Прямые домены…",
+  "tip.directDomains": "Домены, идущие напрямую (мимо VPN), в обход geo-правил — например, yandex.ru",
+  "domains.title": "Прямые домены",
+  "domains.hint": "По одному домену на строку. Трафик к этим доменам (и их поддоменам) идёт мимо VPN. Пример: yandex.ru покроет mail.yandex.ru, disk.yandex.ru.",
   "routing.failoverTitle": "Группа каналов (автопереключение)",
 
   "dns.title": "DNS-резолвер",

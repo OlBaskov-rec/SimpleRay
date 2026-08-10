@@ -60,6 +60,10 @@
   "routing.directRuIp": "IP rusas (geoip-ru)",
   "routing.directLan": "Red local (private)",
   "routing.apps": "Aplicaciones…",
+  "routing.directDomains": "Dominios directos…",
+  "tip.directDomains": "Dominios enrutados directamente (sin VPN), con prioridad sobre las reglas geo — p. ej. yandex.ru",
+  "domains.title": "Dominios directos",
+  "domains.hint": "Un dominio por línea. El tráfico a estos dominios (y sus subdominios) evita la VPN. Ejemplo: yandex.ru cubre mail.yandex.ru, disk.yandex.ru.",
   "routing.failoverTitle": "Grupo de canales (conmutación auto)",
 
   "dns.title": "Resolutor DNS",

@@ -60,6 +60,10 @@
   "routing.directRuIp": "Rus IP'leri (geoip-ru)",
   "routing.directLan": "Yerel ağ (private)",
   "routing.apps": "Uygulamalar…",
+  "routing.directDomains": "Doğrudan alan adları…",
+  "tip.directDomains": "Doğrudan (VPN dışı) yönlendirilen, geo kurallarını geçersiz kılan alan adları — ör. yandex.ru",
+  "domains.title": "Doğrudan alan adları",
+  "domains.hint": "Her satıra bir alan adı. Bu alan adlarına (ve alt alan adlarına) giden trafik VPN'i atlar. Örnek: yandex.ru, mail.yandex.ru ve disk.yandex.ru'yu kapsar.",
   "routing.failoverTitle": "Kanal grubu (otomatik geçiş)",
 
   "dns.title": "DNS çözümleyici",

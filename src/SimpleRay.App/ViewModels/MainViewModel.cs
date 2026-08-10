@@ -96,6 +96,7 @@ public sealed class MainViewModel : ObservableObject
         RenameCommand = new RelayCommand(RenameSelected, () => SelectedProfile is not null);
         PingCommand = new RelayCommand(PingAllAsync, () => Profiles.Count > 0);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
+        DirectDomainsCommand = new RelayCommand(EditDirectDomains);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
         CheckDnsCommand = new RelayCommand(CheckDnsAsync);
@@ -211,6 +212,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RenameCommand { get; }
     public RelayCommand PingCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
+    public RelayCommand DirectDomainsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
     public RelayCommand CheckUpdatesCommand { get; }
     public RelayCommand CheckDnsCommand { get; }
@@ -388,6 +390,16 @@ public sealed class MainViewModel : ObservableObject
         var dlg = new AppRoutingWindow(_routing) { Owner = Application.Current?.MainWindow };
         dlg.ShowDialog();
         SaveRouting(); // dialog mutated _routing in place
+    }
+
+    private void EditDirectDomains()
+    {
+        var dlg = new DomainsWindow(_routing.DirectDomains) { Owner = Application.Current?.MainWindow };
+        if (dlg.ShowDialog() == true)
+        {
+            _routing.DirectDomains = dlg.Domains;
+            SaveRouting();
+        }
     }
 
     // --- Routing settings -------------------------------------------------

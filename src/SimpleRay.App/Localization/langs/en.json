@@ -60,6 +60,10 @@
   "routing.directRuIp": "Russian IPs (geoip-ru)",
   "routing.directLan": "Local network (private)",
   "routing.apps": "Apps…",
+  "routing.directDomains": "Direct domains…",
+  "tip.directDomains": "Domains routed directly (bypassing the VPN), overriding geo rules — e.g. yandex.ru",
+  "domains.title": "Direct domains",
+  "domains.hint": "One domain per line. Traffic to these domains (and their subdomains) bypasses the VPN. Example: yandex.ru covers mail.yandex.ru, disk.yandex.ru.",
   "routing.failoverTitle": "Channel group (auto-switch)",
 
   "dns.title": "DNS resolver",

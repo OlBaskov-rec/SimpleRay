@@ -46,4 +46,7 @@ public sealed class RoutingSettings
 
     /// <summary>Block all non-tunnel traffic while connected (kill-switch). Off by default.</summary>
     public bool KillSwitch { get; set; }
+
+    /// <summary>User domains routed directly (by suffix), overriding geo — e.g. "yandex.ru".</summary>
+    public List<string> DirectDomains { get; set; } = new();
 }
