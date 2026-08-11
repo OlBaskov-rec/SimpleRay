@@ -101,7 +101,10 @@ public static class SingBoxConfigGenerator
                 BuildDnsServer("local", DnsCatalog.ResolveLocal(dns.LocalProviderId), detour: null),
             },
             ["final"] = "remote",
-            ["strategy"] = "prefer_ipv4",
+            // IPv4-only: most target networks have no native IPv6, so a DIRECT IPv6 connection
+            // has no physical path and is reset (proxied IPv6 works, being tunnelled). Clients
+            // pick IPv6 first when given AAAA, so returning only A records avoids those resets.
+            ["strategy"] = "ipv4_only",
         };
 
         // Resolve everything that routes DIRECT via the local (direct) resolver so the direct
@@ -143,7 +146,9 @@ public static class SingBoxConfigGenerator
         ["type"] = "tun",
         ["tag"] = "tun-in",
         ["interface_name"] = o.TunInterfaceName,
-        ["address"] = new JsonArray { "172.18.0.1/30", "fdfe:dcba:9876::1/126" },
+        // IPv4-only tun (see the DNS ipv4_only note): no IPv6 address means auto_route adds no
+        // IPv6 default route, so stray IPv6 traffic can't be hijacked into the broken direct-IPv6 path.
+        ["address"] = new JsonArray { "172.18.0.1/30" },
         ["mtu"] = o.Mtu,
         ["auto_route"] = true,
         ["strict_route"] = true,

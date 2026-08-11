@@ -20,6 +20,21 @@ public class DnsSettingsTests
         (string)ServerNode(routing, tag)["server"]!;
 
     [Fact]
+    public void Config_IsIpv4Only_SoDirectIpv6DoesNotReset()
+    {
+        var cfg = SingBoxConfigGenerator.Generate(Vless(), new RoutingSettings());
+
+        // DNS returns only A records: clients never try direct IPv6 (which has no physical
+        // path on IPv6-less networks and gets reset).
+        Assert.Equal("ipv4_only", (string?)cfg["dns"]!["strategy"]);
+
+        // The tun carries no IPv6 address, so auto_route adds no IPv6 default route.
+        var addrs = cfg["inbounds"]![0]!["address"]!.AsArray().Select(a => (string?)a).ToList();
+        Assert.DoesNotContain(addrs, a => a!.Contains(':')); // no IPv6 CIDR
+        Assert.Contains("172.18.0.1/30", addrs);
+    }
+
+    [Fact]
     public void ChosenProviders_LandInTheGeneratedConfig()
     {
         var routing = new RoutingSettings
