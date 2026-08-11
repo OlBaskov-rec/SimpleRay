@@ -10,6 +10,7 @@
 | [connection/](connection/RUNBOOK.ru.md) | Базовое подключение: зарубежные сайты через прокси, обход RU |
 | [watchdog/](watchdog/RUNBOOK.ru.md) | Авто-переподключение после краха sing-box, сдача после лимита |
 | [tray-icon/](tray-icon/RUNBOOK.ru.md) | Цвет иконки в трее по состоянию |
+| [ipv6/](ipv6/RUNBOOK.ru.md) | Опция «Включить IPv6» на сети с рабочим IPv6 (по умолчанию выкл.) |
 
 ## Общее
 

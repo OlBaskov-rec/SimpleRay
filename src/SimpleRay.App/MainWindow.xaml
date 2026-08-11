@@ -170,6 +170,10 @@
                               IsChecked="{Binding KillSwitchEnabled, Mode=TwoWay}"
                               ToolTip="{loc:Loc tip.killSwitch}" Margin="0,6,0,0" />
 
+                    <CheckBox Content="{loc:Loc routing.enableIpv6}"
+                              IsChecked="{Binding EnableIpv6, Mode=TwoWay}"
+                              ToolTip="{loc:Loc tip.enableIpv6}" Margin="0,6,0,0" />
+
                     <TextBlock Text="{loc:Loc routing.directHint}"
                                Foreground="#666" Margin="0,10,0,2" TextWrapping="Wrap" />
                     <CheckBox Content="{loc:Loc routing.directRuSites}"

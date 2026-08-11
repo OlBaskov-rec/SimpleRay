@@ -474,6 +474,13 @@ public sealed class MainViewModel : ObservableObject
         set { if (_routing.KillSwitch != value) { _routing.KillSwitch = value; OnPropertyChanged(); SaveRouting(); } }
     }
 
+    /// <summary>Enable IPv6 (dual-stack). Off by default; see RoutingSettings.EnableIpv6.</summary>
+    public bool EnableIpv6
+    {
+        get => _routing.EnableIpv6;
+        set { if (_routing.EnableIpv6 != value) { _routing.EnableIpv6 = value; OnPropertyChanged(); SaveRouting(); } }
+    }
+
     // --- DNS resolver -----------------------------------------------------
 
     /// <summary>A catalog entry plus its last measured latency, shown in the picker.</summary>

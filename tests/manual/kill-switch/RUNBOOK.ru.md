@@ -21,33 +21,42 @@ Harness гоняет только `WfpKillSwitch` — если он упадёт
 Готовый **`wfp-harness.exe`** лежит в папке `build\` (самодостаточный, .NET SDK не нужен —
 кладётся туда `scripts\build-local.ps1`).
 
-1. Откройте **PowerShell от администратора** (это обязательно — WFP требует прав).
+> **Как правильно тестировать блок.** Kill-switch пропускает трафик через туннель
+> (TUN + sing-box + loopback) и блокирует только то, что идёт **мимо** туннеля. Поэтому
+> проверять блок надо **без активного туннеля** — иначе `curl` пойдёт через туннель и будет
+> (правильно) разрешён, что не является провалом блокировки.
+
+**Подготовка (один раз):**
+- Отключите приложение SimpleRay (туннеля быть не должно).
+- **Перезагрузите ПК** — это гарантирует, что не осталось ни старых WFP-фильтров, ни
+  «висящего» TUN-адаптера `simpleray`. (Фильтры не boot-persistent; плюс harness теперь
+  удаляет свои фильтры по детерминированному ключу, так что они больше не накапливаются —
+  раньше набегало 21 вместо ~8.)
+
+1. Откройте **PowerShell от администратора** (обязательно — WFP требует прав).
 2. Запустите harness, указав путь к своему `sing-box.exe`:
    ```powershell
    cd D:\Development\SimpleRay\build
    .\wfp-harness.exe simpleray "D:\Progs\SimpleRay\SimpleRay-0.2.0-win-x64\core\sing-box.exe"
    ```
-   > Без прав администратора harness завершится на шаге Engage с `WFP provider add failed
-   > (0x00000005)` — это ACCESS_DENIED, значит запустили не от админа.
-3. Смотрите вывод по шагам:
-   - `[1/3] CleanupLeftovers` — должно быть `ok`.
-   - `[2/3] Engage` — **тут была проблема**. Возможные исходы:
-     - `ok, IsEngaged=True` — фильтры встали;
-     - `Engage FAILED: …` — печатается исключение (**пришлите его целиком**);
-     - консоль молча закрылась/упала — это `AccessViolation` в marshalling (**напишите, что именно так, и на каком шаге**).
-4. Если Engage прошёл — в **другом** окне проверьте блокировку:
+   > Без прав администратора harness завершится на Engage с `0x00000005` (ACCESS_DENIED).
+3. Вывод по шагам:
+   - `[1/3] CleanupLeftovers` → `ok`.
+   - `[2/3] Engage` → `ok, IsEngaged=True`. (Прежний краш `AccessViolation` исправлен — был
+     из-за неверных значений enum `FWP_DATA_TYPE`.)
+4. Пока harness engaged, в **другом** окне (от админа):
    ```powershell
-   curl.exe -m 5 https://example.com     # ожидаем: НЕ проходит (заблокировано)
-   .\tests\manual\kill-switch\check-filters.ps1   # покажет фильтры 'SimpleRay kill-switch'
+   curl.exe -m 5 https://example.com     # ОЖИДАЕМ: НЕ проходит (таймаут/сброс = блок работает)
+   powershell -ExecutionPolicy Bypass -File .\tests\manual\kill-switch\check-filters.ps1
    ```
-5. Нажмите **Enter** в harness → `Disengage` → сеть вернётся. Проверьте `curl` снова — должно работать.
+   - `curl` **не** проходит → блок работает ✅.
+   - `check-filters.ps1`: у `block-all` действие `FWP_ACTION_BLOCK`, вес sublayer `65535`,
+     всего ~6–8 фильтров (не 21).
+5. Нажмите **Enter** в harness → `Disengage` → `curl.exe -m 5 https://example.com` снова
+   проходит ✅.
 
-**Что прислать мне:** полный вывод harness (особенно шаг Engage), и — если сеть блокировалась
-неправильно (например, пропала совсем даже для нужного) — вывод `check-filters.ps1` и
-`Get-NetAdapter` (имя TUN-адаптера). По этому я поправлю `WfpNative.cs`.
-
-Наиболее вероятная первая причина — раскладка структуры `FWPM_FILTER0`/`FWP_VALUE0` (union),
-либо имя TUN-интерфейса ≠ `simpleray`, либо app-id sing-box.
+**Если `curl` проходит при engaged (блок не сработал):** пришлите вывод `check-filters.ps1` —
+по действию `block-all` и весу sublayer будет видно, что чинить.
 
 ---
 

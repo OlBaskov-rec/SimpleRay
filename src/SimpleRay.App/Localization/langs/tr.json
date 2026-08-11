@@ -154,6 +154,8 @@
   "tip.killSwitch": "Bağlıyken VPN üzerinden gitmeyen tüm trafiği engeller — tünel düştüğü an dahil. Kurtarılamazsa erişim için yeniden bağlanmak gerekir.",
   "status.killSwitchFail": "Bağlandı, ancak kill-switch etkinleştirilemedi: {0}",
   "tip.autoConnect": "Uygulama başlarken otomatik bağlan (gruba veya ilk profile)",
+  "routing.enableIpv6": "IPv6'yı etkinleştir",
+  "tip.enableIpv6": "Varsayılan kapalı: yerel IPv6 olmayan ağlarda doğrudan IPv6 bağlantıları başarısız olur (sıfırlanır). Yalnızca ağınızda çalışan IPv6 varsa açın.",
 
   "crash.title": "SimpleRay",
   "crash.message": "Beklenmeyen hata: {0}\n\nDetaylar last-error.txt'ye kaydedildi (uygulama veri klasörü)."

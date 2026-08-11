@@ -71,6 +71,21 @@ public class EngineValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task GeneratedConfig_DualStack_PassesCheck()
+    {
+        var exe = FindSingBox();
+        if (exe is null) return; // deps not fetched — skip
+
+        var profile = ShareLinkParser.Parse("vless://11111111-1111-1111-1111-111111111111@example.com:443?security=tls#n");
+        var routing = new RoutingSettings { Mode = RoutingMode.Global, BlockAds = false, EnableIpv6 = true };
+        var cfg = SingBoxConfigGenerator.GenerateJson(
+            new[] { profile }, routing, new GeneratorOptions { RuleSetDirectory = _dir });
+
+        var (ok, output) = await Engine(exe).CheckConfigAsync(cfg);
+        Assert.True(ok, "dual-stack (IPv6-enabled) config should pass sing-box check; output: " + output);
+    }
+
+    [Fact]
     public async Task GeneratedConfig_WithDirectDomains_PassesCheck()
     {
         var exe = FindSingBox();

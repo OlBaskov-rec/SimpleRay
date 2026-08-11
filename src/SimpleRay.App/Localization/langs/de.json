@@ -154,6 +154,8 @@
   "tip.killSwitch": "Blockiert im verbundenen Zustand allen Verkehr, der nicht durch das VPN läuft — auch beim Tunnelabbruch. Lässt sich nicht wiederherstellen, ist zum Zugriff eine Neuverbindung nötig.",
   "status.killSwitchFail": "Verbunden, aber der Kill-Switch konnte nicht aktiviert werden: {0}",
   "tip.autoConnect": "Beim Start automatisch verbinden (mit der Gruppe oder dem ersten Profil)",
+  "routing.enableIpv6": "IPv6 aktivieren",
+  "tip.enableIpv6": "Standardmäßig aus: In Netzwerken ohne natives IPv6 schlagen direkte IPv6-Verbindungen fehl (sie werden zurückgesetzt). Nur bei funktionierendem IPv6 einschalten.",
 
   "crash.title": "SimpleRay",
   "crash.message": "Unerwarteter Fehler: {0}\n\nDetails in last-error.txt gespeichert (App-Datenordner)."

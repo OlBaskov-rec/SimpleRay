@@ -35,6 +35,17 @@ public class DnsSettingsTests
     }
 
     [Fact]
+    public void EnableIpv6_RestoresDualStack()
+    {
+        var cfg = SingBoxConfigGenerator.Generate(Vless(), new RoutingSettings { EnableIpv6 = true });
+
+        Assert.Equal("prefer_ipv4", (string?)cfg["dns"]!["strategy"]);
+        var addrs = cfg["inbounds"]![0]!["address"]!.AsArray().Select(a => (string?)a).ToList();
+        Assert.Contains(addrs, a => a!.Contains(':')); // IPv6 CIDR present again
+        Assert.Contains("172.18.0.1/30", addrs);
+    }
+
+    [Fact]
     public void ChosenProviders_LandInTheGeneratedConfig()
     {
         var routing = new RoutingSettings

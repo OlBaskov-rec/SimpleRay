@@ -47,6 +47,13 @@ public sealed class RoutingSettings
     /// <summary>Block all non-tunnel traffic while connected (kill-switch). Off by default.</summary>
     public bool KillSwitch { get; set; }
 
+    /// <summary>
+    /// Enable IPv6 (dual-stack tun + AAAA resolution). Off by default: on networks without
+    /// native IPv6, a DIRECT IPv6 connection has no physical path and is reset, and clients
+    /// try IPv6 first — so IPv4-only avoids those resets. Turn on only on IPv6-capable networks.
+    /// </summary>
+    public bool EnableIpv6 { get; set; }
+
     /// <summary>User domains routed directly (by suffix), overriding geo — e.g. "yandex.ru".</summary>
     public List<string> DirectDomains { get; set; } = new();
 

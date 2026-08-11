@@ -71,8 +71,8 @@ public static class SingBoxConfigGenerator
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
-            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites),
-            ["inbounds"] = new JsonArray { BuildTunInbound(options) },
+            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites, routing.EnableIpv6),
+            ["inbounds"] = new JsonArray { BuildTunInbound(options, routing.EnableIpv6) },
             ["outbounds"] = topology.Outbounds,
             ["route"] = BuildRoute(routing, options, directDomains),
         };
@@ -84,7 +84,7 @@ public static class SingBoxConfigGenerator
 
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
     // Resolvers are addressed by IP: a hostname here would itself need resolving first.
-    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites)
+    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites, bool enableIpv6)
     {
         dns ??= new DnsSettings();
         // ResolveRemote enforces DoH for the tunnelled server, so a UDP pick can never
@@ -101,10 +101,11 @@ public static class SingBoxConfigGenerator
                 BuildDnsServer("local", DnsCatalog.ResolveLocal(dns.LocalProviderId), detour: null),
             },
             ["final"] = "remote",
-            // IPv4-only: most target networks have no native IPv6, so a DIRECT IPv6 connection
-            // has no physical path and is reset (proxied IPv6 works, being tunnelled). Clients
-            // pick IPv6 first when given AAAA, so returning only A records avoids those resets.
-            ["strategy"] = "ipv4_only",
+            // Default IPv4-only: most target networks have no native IPv6, so a DIRECT IPv6
+            // connection has no physical path and is reset (proxied IPv6 works, being tunnelled).
+            // Clients pick IPv6 first when given AAAA, so returning only A records avoids those
+            // resets. enableIpv6 restores dual-stack (prefer IPv4) for IPv6-capable networks.
+            ["strategy"] = enableIpv6 ? "prefer_ipv4" : "ipv4_only",
         };
 
         // Resolve everything that routes DIRECT via the local (direct) resolver so the direct
@@ -141,14 +142,17 @@ public static class SingBoxConfigGenerator
         return server;
     }
 
-    private static JsonObject BuildTunInbound(GeneratorOptions o) => new()
+    private static JsonObject BuildTunInbound(GeneratorOptions o, bool enableIpv6) => new()
     {
         ["type"] = "tun",
         ["tag"] = "tun-in",
         ["interface_name"] = o.TunInterfaceName,
-        // IPv4-only tun (see the DNS ipv4_only note): no IPv6 address means auto_route adds no
-        // IPv6 default route, so stray IPv6 traffic can't be hijacked into the broken direct-IPv6 path.
-        ["address"] = new JsonArray { "172.18.0.1/30" },
+        // Default IPv4-only tun (see the DNS ipv4_only note): no IPv6 address means auto_route
+        // adds no IPv6 default route, so stray IPv6 traffic can't be hijacked into the broken
+        // direct-IPv6 path. enableIpv6 restores the dual-stack address for IPv6-capable networks.
+        ["address"] = enableIpv6
+            ? new JsonArray { "172.18.0.1/30", "fdfe:dcba:9876::1/126" }
+            : new JsonArray { "172.18.0.1/30" },
         ["mtu"] = o.Mtu,
         ["auto_route"] = true,
         ["strict_route"] = true,
