@@ -49,4 +49,11 @@ public sealed class RoutingSettings
 
     /// <summary>User domains routed directly (by suffix), overriding geo — e.g. "yandex.ru".</summary>
     public List<string> DirectDomains { get; set; } = new();
+
+    /// <summary>
+    /// Tag of the last single server connected to. Restored as the selection on the next
+    /// launch (including the elevated relaunch) so reconnect targets the same server, not
+    /// the first in the list. Ignored when a failover group is active.
+    /// </summary>
+    public string? LastProfileTag { get; set; }
 }

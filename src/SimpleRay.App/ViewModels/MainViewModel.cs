@@ -59,7 +59,10 @@ public sealed class MainViewModel : ObservableObject
 
         foreach (var p in _store.Load())
             Profiles.Add(p);
-        _selectedProfile = Profiles.FirstOrDefault();
+        // Restore the last connected server as the selection (survives the elevated relaunch),
+        // falling back to the first profile.
+        _selectedProfile = Profiles.FirstOrDefault(p => p.Tag == _routing.LastProfileTag)
+                           ?? Profiles.FirstOrDefault();
 
         _engine = new SingBoxEngine(new EngineOptions
         {
@@ -597,6 +600,14 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusText = L["status.selectProfile"];
             return;
+        }
+
+        // Remember a single-server target so the elevated relaunch (and the next launch)
+        // reconnects to it, not the first profile. Save before the relaunch below.
+        if (targets.Count == 1 && _routing.LastProfileTag != targets[0].Tag)
+        {
+            _routing.LastProfileTag = targets[0].Tag;
+            SaveRouting();
         }
 
         if (!File.Exists(AppPaths.CoreExe))
