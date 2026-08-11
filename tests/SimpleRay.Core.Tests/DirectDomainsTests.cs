@@ -68,6 +68,24 @@ public class DirectDomainsTests
     }
 
     [Fact]
+    public void DirectGeosite_AlsoResolvesViaLocalDns()
+    {
+        var routing = new RoutingSettings
+        {
+            Mode = RoutingMode.Rule,
+            DirectGeosite = new() { "geosite-category-ru", "geosite-private" },
+        };
+
+        var dnsRules = SingBoxConfigGenerator.Generate(Vless(), routing)["dns"]!["rules"]!.AsArray();
+        var rule = dnsRules.FirstOrDefault(r => r!["rule_set"] is JsonArray);
+        Assert.NotNull(rule);
+        Assert.Equal("local", (string?)rule!["server"]);
+        var sets = ((JsonArray)rule["rule_set"]!).Select(x => (string?)x).ToList();
+        Assert.Contains("geosite-category-ru", sets);
+        Assert.DoesNotContain("geosite-private", sets); // private stays on the default resolver
+    }
+
+    [Fact]
     public void NoDirectDomains_NoDnsRule()
     {
         var routing = new RoutingSettings { Mode = RoutingMode.Rule };

@@ -96,6 +96,33 @@ public class EngineValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task GeneratedConfig_WithDirectGeosite_PassesCheck()
+    {
+        var exe = FindSingBox();
+        if (exe is null) return; // deps not fetched — skip
+
+        // geosite direct routing emits a DNS rule referencing the rule_set (server=local).
+        // That needs the real .srs files, so point at the geo dir shipped next to sing-box.exe.
+        var geoDir = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(exe)!)!, "geo");
+        if (!File.Exists(Path.Combine(geoDir, "geosite-category-ru.srs"))) return; // geo not present — skip
+
+        var profile = ShareLinkParser.Parse("vless://11111111-1111-1111-1111-111111111111@example.com:443?security=tls#n");
+        var routing = new RoutingSettings
+        {
+            Mode = RoutingMode.Rule,
+            BlockAds = false,
+            DirectGeosite = new() { "geosite-category-ru", "geosite-private" },
+            DirectGeoip = new(),
+            DirectDomains = new() { "yandex.ru" },
+        };
+        var cfg = SingBoxConfigGenerator.GenerateJson(
+            new[] { profile }, routing, new GeneratorOptions { RuleSetDirectory = geoDir });
+
+        var (ok, output) = await Engine(exe).CheckConfigAsync(cfg);
+        Assert.True(ok, "config with geosite DNS rule should pass sing-box check; output: " + output);
+    }
+
+    [Fact]
     public async Task StartAsync_InvalidConfig_ThrowsBeforeStarting()
     {
         var exe = FindSingBox();

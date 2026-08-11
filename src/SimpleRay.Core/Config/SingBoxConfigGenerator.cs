@@ -56,17 +56,22 @@ public static class SingBoxConfigGenerator
 
         var topology = BuildProxyTopology(profiles, routing.Failover);
 
-        // User's direct-by-domain list (Rule mode only). Cleaned once and used for BOTH the
-        // route rule (send to direct) and a DNS rule (resolve via the local/direct resolver),
-        // so the direct connection uses region-correct IPs instead of tunnel-resolved ones.
+        // Direct routing (Rule mode) must also resolve DIRECTLY, or a direct connection uses
+        // tunnel-resolved (foreign) IPs and gets reset. Collect what routes direct — the user's
+        // domains and the direct geosite sets (e.g. geosite-category-ru: ya.ru, vk.com, ...) —
+        // and give each a DNS rule pointing at the local resolver. (geoip is IP-based, so it
+        // can't drive DNS; most Russian sites are covered by the geosite anyway.)
         var directDomains = routing.Mode == RoutingMode.Rule
             ? CleanDomains(routing.DirectDomains)
+            : new List<string>();
+        var directGeosites = routing.Mode == RoutingMode.Rule
+            ? routing.DirectGeosite.Where(t => t != "geosite-private").ToList()
             : new List<string>();
 
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
-            ["dns"] = BuildDns(routing.Dns, directDomains),
+            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites),
             ["inbounds"] = new JsonArray { BuildTunInbound(options) },
             ["outbounds"] = topology.Outbounds,
             ["route"] = BuildRoute(routing, options, directDomains),
@@ -79,7 +84,7 @@ public static class SingBoxConfigGenerator
 
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
     // Resolvers are addressed by IP: a hostname here would itself need resolving first.
-    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains)
+    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites)
     {
         dns ??= new DnsSettings();
         // ResolveRemote enforces DoH for the tunnelled server, so a UDP pick can never
@@ -99,18 +104,24 @@ public static class SingBoxConfigGenerator
             ["strategy"] = "prefer_ipv4",
         };
 
-        // Resolve the user's direct domains via the local (direct) resolver so the direct
+        // Resolve everything that routes DIRECT via the local (direct) resolver so the direct
         // outbound connects to region-correct IPs — otherwise they'd be resolved through the
         // tunnel and a direct connection to a foreign-resolved IP can be reset.
+        var dnsRules = new JsonArray();
         if (directDomains.Count > 0)
-            root["rules"] = new JsonArray
+            dnsRules.Add(new JsonObject
             {
-                new JsonObject
-                {
-                    ["domain_suffix"] = new JsonArray(directDomains.Select(d => (JsonNode)d!).ToArray()),
-                    ["server"] = "local",
-                },
-            };
+                ["domain_suffix"] = new JsonArray(directDomains.Select(d => (JsonNode)d!).ToArray()),
+                ["server"] = "local",
+            });
+        if (directGeosites.Count > 0)
+            dnsRules.Add(new JsonObject
+            {
+                ["rule_set"] = new JsonArray(directGeosites.Select(t => (JsonNode)t!).ToArray()),
+                ["server"] = "local",
+            });
+        if (dnsRules.Count > 0)
+            root["rules"] = dnsRules;
         return root;
     }
 
