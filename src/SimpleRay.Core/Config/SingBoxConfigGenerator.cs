@@ -56,13 +56,20 @@ public static class SingBoxConfigGenerator
 
         var topology = BuildProxyTopology(profiles, routing.Failover);
 
+        // User's direct-by-domain list (Rule mode only). Cleaned once and used for BOTH the
+        // route rule (send to direct) and a DNS rule (resolve via the local/direct resolver),
+        // so the direct connection uses region-correct IPs instead of tunnel-resolved ones.
+        var directDomains = routing.Mode == RoutingMode.Rule
+            ? CleanDomains(routing.DirectDomains)
+            : new List<string>();
+
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
-            ["dns"] = BuildDns(routing.Dns),
+            ["dns"] = BuildDns(routing.Dns, directDomains),
             ["inbounds"] = new JsonArray { BuildTunInbound(options) },
             ["outbounds"] = topology.Outbounds,
-            ["route"] = BuildRoute(routing, options),
+            ["route"] = BuildRoute(routing, options, directDomains),
         };
         // WireGuard servers live in "endpoints" (sing-box 1.11+); only emit when present.
         if (topology.Endpoints.Count > 0)
@@ -72,12 +79,12 @@ public static class SingBoxConfigGenerator
 
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
     // Resolvers are addressed by IP: a hostname here would itself need resolving first.
-    private static JsonObject BuildDns(DnsSettings dns)
+    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains)
     {
         dns ??= new DnsSettings();
         // ResolveRemote enforces DoH for the tunnelled server, so a UDP pick can never
         // send plaintext DNS through the proxy.
-        return new JsonObject
+        var root = new JsonObject
         {
             ["servers"] = new JsonArray
             {
@@ -91,6 +98,20 @@ public static class SingBoxConfigGenerator
             ["final"] = "remote",
             ["strategy"] = "prefer_ipv4",
         };
+
+        // Resolve the user's direct domains via the local (direct) resolver so the direct
+        // outbound connects to region-correct IPs — otherwise they'd be resolved through the
+        // tunnel and a direct connection to a foreign-resolved IP can be reset.
+        if (directDomains.Count > 0)
+            root["rules"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["domain_suffix"] = new JsonArray(directDomains.Select(d => (JsonNode)d!).ToArray()),
+                    ["server"] = "local",
+                },
+            };
+        return root;
     }
 
     private static JsonObject BuildDnsServer(string tag, DnsProvider provider, string? detour)
@@ -311,7 +332,7 @@ public static class SingBoxConfigGenerator
         }
     }
 
-    private static JsonObject BuildRoute(RoutingSettings r, GeneratorOptions o)
+    private static JsonObject BuildRoute(RoutingSettings r, GeneratorOptions o, IReadOnlyList<string> directDomains)
     {
         var rules = new JsonArray
         {
@@ -346,12 +367,12 @@ public static class SingBoxConfigGenerator
         if (r.Mode == RoutingMode.Rule)
         {
             // User's own direct-by-domain overrides (matches the domain and its subdomains),
-            // e.g. "yandex.ru" also covers mail.yandex.ru / disk.yandex.ru.
-            var domains = CleanDomains(r.DirectDomains);
-            if (domains.Count > 0)
+            // e.g. "yandex.ru" also covers mail.yandex.ru / disk.yandex.ru. Already cleaned
+            // and paired with a DNS rule (see BuildDns) so resolution is direct too.
+            if (directDomains.Count > 0)
                 rules.Add(new JsonObject
                 {
-                    ["domain_suffix"] = new JsonArray(domains.Select(d => (JsonNode)d!).ToArray()),
+                    ["domain_suffix"] = new JsonArray(directDomains.Select(d => (JsonNode)d!).ToArray()),
                     ["outbound"] = GeneratorOptions.DirectTag,
                 });
 

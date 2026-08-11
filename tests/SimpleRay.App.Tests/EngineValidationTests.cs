@@ -71,6 +71,31 @@ public class EngineValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task GeneratedConfig_WithDirectDomains_PassesCheck()
+    {
+        var exe = FindSingBox();
+        if (exe is null) return; // deps not fetched — skip
+
+        // Rule mode with direct domains emits a dns rule (server=local) + a route rule.
+        // No rule-set files referenced, so `check` needs only the binary. This guards the
+        // direct-domain DNS-rule syntax against the real binary.
+        var profile = ShareLinkParser.Parse("vless://11111111-1111-1111-1111-111111111111@example.com:443?security=tls#n");
+        var routing = new RoutingSettings
+        {
+            Mode = RoutingMode.Rule,
+            BlockAds = false,
+            DirectGeosite = new(),
+            DirectGeoip = new(),
+            DirectDomains = new() { "yandex.ru", "mail.ru" },
+        };
+        var cfg = SingBoxConfigGenerator.GenerateJson(
+            new[] { profile }, routing, new GeneratorOptions { RuleSetDirectory = _dir });
+
+        var (ok, output) = await Engine(exe).CheckConfigAsync(cfg);
+        Assert.True(ok, "config with direct-domain DNS rule should pass sing-box check; output: " + output);
+    }
+
+    [Fact]
     public async Task StartAsync_InvalidConfig_ThrowsBeforeStarting()
     {
         var exe = FindSingBox();

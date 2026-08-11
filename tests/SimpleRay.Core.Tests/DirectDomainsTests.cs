@@ -51,6 +51,31 @@ public class DirectDomainsTests
     }
 
     [Fact]
+    public void DirectDomains_AlsoResolveViaLocalDns()
+    {
+        var routing = new RoutingSettings
+        {
+            Mode = RoutingMode.Rule,
+            DirectDomains = new() { "yandex.ru" },
+        };
+
+        var dnsRules = SingBoxConfigGenerator.Generate(Vless(), routing)["dns"]!["rules"]!.AsArray();
+        var rule = dnsRules.FirstOrDefault(r => r!["domain_suffix"] is JsonArray);
+        Assert.NotNull(rule);
+        Assert.Equal("local", (string?)rule!["server"]); // direct resolver, not the tunnelled one
+        var suffixes = ((JsonArray)rule["domain_suffix"]!).Select(x => (string?)x).ToList();
+        Assert.Contains("yandex.ru", suffixes);
+    }
+
+    [Fact]
+    public void NoDirectDomains_NoDnsRule()
+    {
+        var routing = new RoutingSettings { Mode = RoutingMode.Rule };
+        var dns = SingBoxConfigGenerator.Generate(Vless(), routing)["dns"]!.AsObject();
+        Assert.False(dns.ContainsKey("rules")); // no direct domains -> no DNS override
+    }
+
+    [Fact]
     public void DirectDomains_OnlyInRuleMode()
     {
         var routing = new RoutingSettings { Mode = RoutingMode.Global, DirectDomains = new() { "yandex.ru" } };
