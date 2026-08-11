@@ -44,13 +44,26 @@ if (-not $filters) {
 }
 
 Write-Host "=== SimpleRay sublayer (want a high weight, e.g. 65535) ===" -ForegroundColor Cyan
-$subs = Get-WfpItems "sublayers"
+$SubKey = "6f1e2a55-9b7c-4c3a-8d21-5a2f9c0b1e77"   # WfpKillSwitch.SubLayerKey
+$sxml = Join-Path $env:TEMP "sr-sublayers.xml"
+netsh wfp show sublayers file=$sxml | Out-Null
+$subs = @()
+if (Test-Path $sxml) {
+    [xml]$sdoc = Get-Content $sxml -Raw
+    # Match by our display name OR our stable sublayer key (name matching alone missed it before).
+    $subs = $sdoc.SelectNodes('//item') | Where-Object {
+        $_.displayData.name -eq $Name -or "$($_.subLayerKey.'#text')$($_.subLayerKey)" -match $SubKey
+    }
+    Remove-Item $sxml -Force -ErrorAction SilentlyContinue
+}
 if (-not $subs) {
-    Write-Host "  (none found)" -ForegroundColor Yellow
+    Write-Host "  (none found) -> our sublayer is missing; filters would fall to the default sublayer" -ForegroundColor Yellow
 } else {
     @($subs) | ForEach-Object {
-        $w = if ($_.weight.uint16) { $_.weight.uint16 } else { "$($_.weight)".Trim() }
-        [pscustomobject]@{ Weight = $w; Key = "$($_.subLayerKey)" }
+        $w = if ($_.weight.uint16) { $_.weight.uint16 }
+             elseif ($_.weight.'#text') { $_.weight.'#text' }
+             else { "$($_.weight)".Trim() }
+        [pscustomobject]@{ Name = "$($_.displayData.name)"; Weight = $w; Key = "$($_.subLayerKey.'#text')$($_.subLayerKey)".Trim() }
     } | Format-Table -AutoSize
 }
 

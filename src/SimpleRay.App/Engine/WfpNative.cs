@@ -11,6 +11,7 @@ internal static class Native
 {
     public const uint RPC_C_AUTHN_WINNT = 10;
     public const uint FWP_E_ALREADY_EXISTS = 0x80320009;
+    public const uint FWP_E_FILTER_NOT_FOUND = 0x80320003;
 
     public const uint FWP_ACTION_FLAG_TERMINATING = 0x00001000;
     public const uint FWP_ACTION_BLOCK = 0x00000001 | FWP_ACTION_FLAG_TERMINATING;
@@ -172,6 +173,9 @@ internal static class Native
     // marshalling entirely and lay out the bytes ourselves at the documented offsets.
     [DllImport("fwpuclnt.dll")]
     public static extern uint FwpmFilterAdd0(nint engineHandle, nint filter, nint sd, out ulong id);
+
+    [DllImport("fwpuclnt.dll")]
+    public static extern uint FwpmFilterDeleteByKey0(nint engineHandle, ref Guid key);
 
     [DllImport("fwpuclnt.dll")]
     public static extern uint FwpmGetAppIdFromFileName0([MarshalAs(UnmanagedType.LPWStr)] string fileName, out nint appId);

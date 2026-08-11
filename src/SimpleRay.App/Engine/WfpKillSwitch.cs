@@ -24,6 +24,11 @@ public sealed class WfpKillSwitch : IKillSwitch
     private static readonly Guid SubLayerKey = new("6f1e2a55-9b7c-4c3a-8d21-5a2f9c0b1e77");
     private const string Name = "SimpleRay kill-switch";
 
+    // The filter tags we may add (per layer). Cleanup deletes filters by deterministic key
+    // built from (layer, tag) — deleting the sublayer does NOT cascade to its filters, so
+    // without per-key deletion the filters accumulate across runs.
+    private static readonly string[] FilterTags = { "block-all", "permit-loopback", "permit-tun", "permit-singbox" };
+
     private readonly object _gate = new();
     private nint _engine;
 
@@ -167,9 +172,17 @@ public sealed class WfpKillSwitch : IKillSwitch
     }
 
     // FWPM_FILTER0 field offsets (x64, from fwpmtypes.h — verified in WfpLayoutTests).
-    private const int OffDisplayName = 16, OffDisplayDesc = 24, OffLayerKey = 64, OffSubLayerKey = 80,
+    private const int OffFilterKey = 0, OffDisplayName = 16, OffDisplayDesc = 24, OffLayerKey = 64, OffSubLayerKey = 80,
         OffWeightType = 96, OffWeightValue = 104, OffNumConditions = 112, OffFilterCondition = 120,
         OffActionType = 128, FilterSize = 200;
+
+    /// <summary>Deterministic filter key from (layer, tag) so cleanup can delete it by key across runs.</summary>
+    private static Guid FilterKey(Guid layer, string tag)
+    {
+        var bytes = System.Security.Cryptography.MD5.HashData(
+            System.Text.Encoding.UTF8.GetBytes($"SimpleRay-killswitch|{layer}|{tag}"));
+        return new Guid(bytes);
+    }
 
     private void AddFilter(Guid layer, string tag, byte weight, bool block, Native.FWPM_FILTER_CONDITION0[] conditions)
     {
@@ -183,6 +196,7 @@ public sealed class WfpKillSwitch : IKillSwitch
         try
         {
             var buf = new byte[FilterSize]; // zero-initialised
+            WriteGuid(buf, OffFilterKey, FilterKey(layer, tag)); // deterministic, for cleanup-by-key
             WritePtr(buf, OffDisplayName, name);
             WritePtr(buf, OffDisplayDesc, desc);
             WriteGuid(buf, OffLayerKey, layer);
@@ -197,7 +211,9 @@ public sealed class WfpKillSwitch : IKillSwitch
             var bufHandle = GCHandle.Alloc(buf, GCHandleType.Pinned);
             try
             {
-                Check(Native.FwpmFilterAdd0(_engine, bufHandle.AddrOfPinnedObject(), nint.Zero, out _), "filter add " + tag);
+                var r = Native.FwpmFilterAdd0(_engine, bufHandle.AddrOfPinnedObject(), nint.Zero, out _);
+                // AlreadyExists means a prior cleanup missed it; the filter is present, so it's fine.
+                if (r != 0 && r != Native.FWP_E_ALREADY_EXISTS) Check(r, "filter add " + tag);
             }
             finally { bufHandle.Free(); }
         }
@@ -216,7 +232,15 @@ public sealed class WfpKillSwitch : IKillSwitch
 
     private static void DeleteOurObjects(nint engine)
     {
-        // Deleting the sublayer removes the filters that reference it; then the provider.
+        // Delete filters by their deterministic keys FIRST: deleting the sublayer does not
+        // cascade to filters (and would fail while they reference it), so they'd otherwise
+        // pile up across runs. Then remove the now-unused sublayer and provider.
+        foreach (var layer in new[] { Native.FWPM_LAYER_ALE_AUTH_CONNECT_V4, Native.FWPM_LAYER_ALE_AUTH_CONNECT_V6 })
+            foreach (var tag in FilterTags)
+            {
+                var key = FilterKey(layer, tag);
+                try { Native.FwpmFilterDeleteByKey0(engine, ref key); } catch { }
+            }
         var sub = SubLayerKey;
         var prov = ProviderKey;
         try { Native.FwpmSubLayerDeleteByKey0(engine, ref sub); } catch { }
