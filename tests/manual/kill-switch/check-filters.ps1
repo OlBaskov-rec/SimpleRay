@@ -43,28 +43,26 @@ if (-not $filters) {
     } | Format-Table -AutoSize
 }
 
-Write-Host "=== SimpleRay sublayer (want a high weight, e.g. 65535) ===" -ForegroundColor Cyan
+Write-Host "=== SimpleRay sublayer ===" -ForegroundColor Cyan
 $SubKey = "6f1e2a55-9b7c-4c3a-8d21-5a2f9c0b1e77"   # WfpKillSwitch.SubLayerKey
 $sxml = Join-Path $env:TEMP "sr-sublayers.xml"
 netsh wfp show sublayers file=$sxml | Out-Null
-$subs = @()
 if (Test-Path $sxml) {
-    [xml]$sdoc = Get-Content $sxml -Raw
-    # Match by our display name OR our stable sublayer key (name matching alone missed it before).
-    $subs = $sdoc.SelectNodes('//item') | Where-Object {
-        $_.displayData.name -eq $Name -or "$($_.subLayerKey.'#text')$($_.subLayerKey)" -match $SubKey
+    # Raw-text search: robust vs the exact XML shape (XML-node parsing gave false negatives).
+    $raw = Get-Content $sxml -Raw
+    if ($raw -match [regex]::Escape($SubKey)) {
+        Write-Host "  present (key $SubKey found)" -ForegroundColor Green
+        # Best-effort weight: first <weight>...<uint16>N</uint16> after our key.
+        $tail = $raw.Substring($raw.IndexOf($SubKey))
+        if ($tail -match '(?s)<weight>.*?<uint16>(\d+)</uint16>') {
+            Write-Host ("  weight: {0} (want 65535)" -f $matches[1])
+        }
+    } else {
+        Write-Host "  (our sublayer key NOT in netsh output) -> filters fell to the default sublayer" -ForegroundColor Yellow
     }
     Remove-Item $sxml -Force -ErrorAction SilentlyContinue
-}
-if (-not $subs) {
-    Write-Host "  (none found) -> our sublayer is missing; filters would fall to the default sublayer" -ForegroundColor Yellow
 } else {
-    @($subs) | ForEach-Object {
-        $w = if ($_.weight.uint16) { $_.weight.uint16 }
-             elseif ($_.weight.'#text') { $_.weight.'#text' }
-             else { "$($_.weight)".Trim() }
-        [pscustomobject]@{ Name = "$($_.displayData.name)"; Weight = $w; Key = "$($_.subLayerKey.'#text')$($_.subLayerKey)".Trim() }
-    } | Format-Table -AutoSize
+    Write-Host "  (netsh produced no output - run this window elevated)" -ForegroundColor Yellow
 }
 
 Write-Host "=== TUN adapter (name simpleray, present only while sing-box runs) ===" -ForegroundColor Cyan

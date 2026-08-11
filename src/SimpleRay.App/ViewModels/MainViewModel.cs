@@ -49,9 +49,12 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(IDialogService? dialogs = null, IKillSwitch? killSwitch = null)
     {
         _dialogs = dialogs ?? new MessageBoxDialogService();
-        // WfpKillSwitch is unverified native code that currently crashes on Engage; keep it
-        // wired to a no-op until it's validated on a real machine (see docs/KILL-SWITCH.md).
-        _killSwitch = killSwitch ?? new NoOpKillSwitch();
+        // WfpKillSwitch validated on a real machine (harness Stage A: Engage/Disengage clean,
+        // block confirmed, filters cleaned by deterministic key). Engaged on connect only when
+        // the kill-switch setting is on; Engage failures are caught so they never break the
+        // connection, and CleanupLeftovers (App startup) + Disengage (disconnect/exit) + the
+        // non-boot-persistent filters make it fail-closed but recoverable.
+        _killSwitch = killSwitch ?? new WfpKillSwitch();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
