@@ -102,12 +102,13 @@ public class EngineValidationTests : IDisposable
             DirectGeosite = new(),
             DirectGeoip = new(),
             DirectDomains = new() { "yandex.ru", "mail.ru" },
+            ProxyDomains = new() { "example.com" }, // exercises the proxy route + remote DNS rules
         };
         var cfg = SingBoxConfigGenerator.GenerateJson(
             new[] { profile }, routing, new GeneratorOptions { RuleSetDirectory = _dir });
 
         var (ok, output) = await Engine(exe).CheckConfigAsync(cfg);
-        Assert.True(ok, "config with direct-domain DNS rule should pass sing-box check; output: " + output);
+        Assert.True(ok, "config with direct/proxy-domain DNS rules should pass sing-box check; output: " + output);
     }
 
     [Fact]

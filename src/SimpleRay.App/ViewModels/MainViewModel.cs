@@ -81,8 +81,17 @@ public sealed class MainViewModel : ObservableObject
             StatusText = L.Format("status.reconnecting", attempt, max));
         _watchdog.GaveUp += () => _dispatcher.BeginInvoke(() =>
         {
-            _killSwitch.Disengage(); // stop blocking once we've given up, so the user isn't left offline
-            StatusText = L["status.reconnectGaveUp"];
+            if (_routing.KillSwitch)
+            {
+                // Fail-closed: keep blocking after we give up, so the tunnel dropping never leaks
+                // the real IP (the whole point of the kill-switch). The user reconnects manually.
+                StatusText = L["status.reconnectGaveUpBlocked"];
+            }
+            else
+            {
+                _killSwitch.Disengage(); // no kill-switch: fall back to direct so the user isn't left offline
+                StatusText = L["status.reconnectGaveUp"];
+            }
         });
 
         foreach (var provider in DnsCatalog.All)
@@ -103,6 +112,7 @@ public sealed class MainViewModel : ObservableObject
         PingCommand = new RelayCommand(PingAllAsync, () => Profiles.Count > 0);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         DirectDomainsCommand = new RelayCommand(EditDirectDomains);
+        ProxyDomainsCommand = new RelayCommand(EditProxyDomains);
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
         CheckDnsCommand = new RelayCommand(CheckDnsAsync);
@@ -219,6 +229,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand PingCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand DirectDomainsCommand { get; }
+    public RelayCommand ProxyDomainsCommand { get; }
     public RelayCommand GroupChangedCommand { get; }
     public RelayCommand CheckUpdatesCommand { get; }
     public RelayCommand CheckDnsCommand { get; }
@@ -404,6 +415,19 @@ public sealed class MainViewModel : ObservableObject
         if (dlg.ShowDialog() == true)
         {
             _routing.DirectDomains = dlg.Domains;
+            SaveRouting();
+        }
+    }
+
+    private void EditProxyDomains()
+    {
+        var dlg = new DomainsWindow(_routing.ProxyDomains, L["proxyDomains.title"], L["proxyDomains.hint"])
+        {
+            Owner = Application.Current?.MainWindow,
+        };
+        if (dlg.ShowDialog() == true)
+        {
+            _routing.ProxyDomains = dlg.Domains;
             SaveRouting();
         }
     }

@@ -13,6 +13,7 @@
   "status.disconnectError": "Erreur de déconnexion : {0}",
   "status.reconnecting": "Connexion perdue — reconnexion ({0}/{1})…",
   "status.reconnectGaveUp": "Reconnexion impossible — appuyez sur Connecter",
+  "status.reconnectGaveUpBlocked": "Échec de la reconnexion — trafic bloqué (kill-switch). Appuyez sur Connecter.",
   "status.error": "Erreur : {0}",
   "status.clipReadFail": "Impossible de lire le presse-papiers",
   "status.noLinksClip": "Aucun lien reconnu dans le presse-papiers",
@@ -64,6 +65,10 @@
   "tip.directDomains": "Domaines routés en direct (hors VPN), prioritaires sur les règles geo — p. ex. yandex.ru",
   "domains.title": "Domaines directs",
   "domains.hint": "Saisissez un domaine et appuyez sur virgule ou Entrée pour l'ajouter comme étiquette. Le trafic vers ces domaines (et leurs sous-domaines) contourne le VPN. Exemple : yandex.ru couvre mail.yandex.ru, disk.yandex.ru.",
+  "routing.proxyDomains": "Via le VPN…",
+  "tip.proxyDomains": "Domaines forcés via le VPN, prioritaires sur les règles directes/géo — p. ex. un site étranger classé à tort comme russe.",
+  "proxyDomains.title": "Domaines via le VPN",
+  "proxyDomains.hint": "Saisissez un domaine et appuyez sur virgule ou Entrée pour l'ajouter comme étiquette. Le trafic vers ces domaines (et leurs sous-domaines) passe par le VPN, en priorité sur les règles directes/russes.",
   "routing.failoverTitle": "Groupe de canaux (bascule auto)",
 
   "dns.title": "Résolveur DNS",

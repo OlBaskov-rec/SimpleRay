@@ -13,6 +13,7 @@
   "status.disconnectError": "Trennungsfehler: {0}",
   "status.reconnecting": "Verbindung verloren — Neuverbindung ({0}/{1})…",
   "status.reconnectGaveUp": "Neuverbindung fehlgeschlagen — auf Verbinden drücken",
+  "status.reconnectGaveUpBlocked": "Wiederverbindung fehlgeschlagen — Verkehr blockiert (Kill-Switch). Auf Verbinden drücken.",
   "status.error": "Fehler: {0}",
   "status.clipReadFail": "Zwischenablage konnte nicht gelesen werden",
   "status.noLinksClip": "Keine erkannten Links in der Zwischenablage",
@@ -64,6 +65,10 @@
   "tip.directDomains": "Domains, die direkt (am VPN vorbei) geleitet werden und Geo-Regeln überschreiben — z. B. yandex.ru",
   "domains.title": "Direkte Domains",
   "domains.hint": "Domain eingeben und mit Komma oder Enter als Tag hinzufügen. Verkehr zu diesen Domains (und ihren Subdomains) umgeht das VPN. Beispiel: yandex.ru deckt mail.yandex.ru, disk.yandex.ru ab.",
+  "routing.proxyDomains": "Über VPN…",
+  "tip.proxyDomains": "Domains, die erzwungen über das VPN geleitet werden, vorrangig vor den Direkt-/Geo-Regeln — z. B. eine ausländische Seite, die fälschlich als russisch gilt.",
+  "proxyDomains.title": "Domains über VPN",
+  "proxyDomains.hint": "Domain eingeben und mit Komma oder Enter als Tag hinzufügen. Verkehr zu diesen Domains (und Subdomains) läuft über das VPN, vorrangig vor den Direkt-/Russland-Regeln.",
   "routing.failoverTitle": "Kanalgruppe (Auto-Umschaltung)",
 
   "dns.title": "DNS-Resolver",

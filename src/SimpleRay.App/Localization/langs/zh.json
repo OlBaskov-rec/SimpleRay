@@ -13,6 +13,7 @@
   "status.disconnectError": "断开出错：{0}",
   "status.reconnecting": "连接中断——正在重连（{0}/{1}）…",
   "status.reconnectGaveUp": "重连失败——请点击「连接」",
+  "status.reconnectGaveUpBlocked": "重连失败——流量已阻断（断网保护）。请点击「连接」。",
   "status.error": "错误：{0}",
   "status.clipReadFail": "无法读取剪贴板",
   "status.noLinksClip": "剪贴板中没有可识别的链接",
@@ -64,6 +65,10 @@
   "tip.directDomains": "直连（绕过 VPN）的域名，优先级高于 geo 规则——例如 yandex.ru",
   "domains.title": "直连域名",
   "domains.hint": "输入域名并按逗号或回车将其添加为标签。发往这些域名（及其子域名）的流量绕过 VPN。例如：yandex.ru 覆盖 mail.yandex.ru、disk.yandex.ru。",
+  "routing.proxyDomains": "走 VPN 域名…",
+  "tip.proxyDomains": "强制走 VPN 的域名，优先级高于直连/geo 规则——例如被误判为俄罗斯站点的外国站点。",
+  "proxyDomains.title": "走 VPN 的域名",
+  "proxyDomains.hint": "输入域名并按逗号或回车将其添加为标签。发往这些域名（及其子域名）的流量走 VPN，优先级高于直连/俄罗斯站点规则。",
   "routing.failoverTitle": "线路分组（自动切换）",
 
   "dns.title": "DNS 解析器",

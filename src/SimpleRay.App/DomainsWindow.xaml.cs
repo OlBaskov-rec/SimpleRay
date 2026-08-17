@@ -21,9 +21,11 @@ public partial class DomainsWindow : Window
     private readonly ObservableCollection<string> _chips = new();
     private bool _suppressTextChanged;
 
-    public DomainsWindow(IEnumerable<string> current)
+    public DomainsWindow(IEnumerable<string> current, string? title = null, string? hint = null)
     {
         InitializeComponent();
+        if (!string.IsNullOrEmpty(title)) Title = title; // else keep the XAML default (direct domains)
+        if (!string.IsNullOrEmpty(hint)) Hint.Text = hint;
         foreach (var d in current.Select(Normalize).Where(s => s.Length > 0))
             if (!_chips.Contains(d))
                 _chips.Add(d);

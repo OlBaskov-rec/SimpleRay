@@ -7,7 +7,7 @@
         FlowDirection="{Binding FlowDirection, Source={x:Static loc:LocalizationManager.Instance}}"
         FontFamily="Segoe UI" FontSize="13">
     <DockPanel Margin="14">
-        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#444"
+        <TextBlock x:Name="Hint" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#444"
                    Text="{loc:Loc domains.hint}" />
 
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">

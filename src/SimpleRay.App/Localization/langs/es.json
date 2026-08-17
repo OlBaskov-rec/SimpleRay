@@ -13,6 +13,7 @@
   "status.disconnectError": "Error al desconectar: {0}",
   "status.reconnecting": "Conexión perdida — reconectando ({0}/{1})…",
   "status.reconnectGaveUp": "No se pudo reconectar — pulse Conectar",
+  "status.reconnectGaveUpBlocked": "No se pudo reconectar — tráfico bloqueado (kill-switch). Pulse Conectar.",
   "status.error": "Error: {0}",
   "status.clipReadFail": "No se pudo leer el portapapeles",
   "status.noLinksClip": "No hay enlaces reconocidos en el portapapeles",
@@ -64,6 +65,10 @@
   "tip.directDomains": "Dominios enrutados directamente (sin VPN), con prioridad sobre las reglas geo — p. ej. yandex.ru",
   "domains.title": "Dominios directos",
   "domains.hint": "Escriba un dominio y pulse coma o Entrar para añadirlo como etiqueta. El tráfico a estos dominios (y sus subdominios) evita la VPN. Ejemplo: yandex.ru cubre mail.yandex.ru, disk.yandex.ru.",
+  "routing.proxyDomains": "Vía VPN…",
+  "tip.proxyDomains": "Dominios forzados a través de la VPN, con prioridad sobre las reglas directas/geo — p. ej. un sitio extranjero tratado por error como ruso.",
+  "proxyDomains.title": "Dominios vía VPN",
+  "proxyDomains.hint": "Escriba un dominio y pulse coma o Entrar para añadirlo como etiqueta. El tráfico a estos dominios (y sus subdominios) pasa por la VPN, con prioridad sobre las reglas directas/rusas.",
   "routing.failoverTitle": "Grupo de canales (conmutación auto)",
 
   "dns.title": "Resolutor DNS",

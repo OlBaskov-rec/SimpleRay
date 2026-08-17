@@ -94,6 +94,46 @@ public class DirectDomainsTests
     }
 
     [Fact]
+    public void ProxyDomains_EmitProxyRouteAndRemoteDns()
+    {
+        var routing = new RoutingSettings { Mode = RoutingMode.Rule, ProxyDomains = new() { "example.com" } };
+        var cfg = SingBoxConfigGenerator.Generate(Vless(), routing);
+
+        var routeRule = cfg["route"]!["rules"]!.AsArray()
+            .FirstOrDefault(r => r!["domain_suffix"] is JsonArray && (string?)r["outbound"] == "proxy");
+        Assert.NotNull(routeRule);
+        Assert.Contains("example.com", ((JsonArray)routeRule!["domain_suffix"]!).Select(x => (string?)x));
+
+        var dnsRule = cfg["dns"]!["rules"]!.AsArray().FirstOrDefault(r => (string?)r!["server"] == "remote");
+        Assert.NotNull(dnsRule);
+        Assert.Contains("example.com", ((JsonArray)dnsRule!["domain_suffix"]!).Select(x => (string?)x));
+    }
+
+    [Fact]
+    public void ProxyDomains_TakePrecedenceOverDirectDomains()
+    {
+        var routing = new RoutingSettings
+        {
+            Mode = RoutingMode.Rule,
+            DirectDomains = new() { "a.com" },
+            ProxyDomains = new() { "b.com" },
+        };
+        var rules = Rules(routing);
+        int proxyIdx = IndexOfDomainRule(rules, "b.com");
+        int directIdx = IndexOfDomainRule(rules, "a.com");
+        Assert.True(proxyIdx >= 0 && directIdx >= 0);
+        Assert.True(proxyIdx < directIdx, "proxy-domain rule must be evaluated before the direct-domain rule");
+    }
+
+    private static int IndexOfDomainRule(JsonArray rules, string domain)
+    {
+        for (int i = 0; i < rules.Count; i++)
+            if (rules[i]!["domain_suffix"] is JsonArray arr && arr.Any(x => (string?)x == domain))
+                return i;
+        return -1;
+    }
+
+    [Fact]
     public void DirectDomains_OnlyInRuleMode()
     {
         var routing = new RoutingSettings { Mode = RoutingMode.Global, DirectDomains = new() { "yandex.ru" } };

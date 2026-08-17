@@ -67,14 +67,18 @@ public static class SingBoxConfigGenerator
         var directGeosites = routing.Mode == RoutingMode.Rule
             ? routing.DirectGeosite.Where(t => t != "geosite-private").ToList()
             : new List<string>();
+        // Domains forced THROUGH the VPN, overriding the direct/geo lists (both routing and DNS).
+        var proxyDomains = routing.Mode == RoutingMode.Rule
+            ? CleanDomains(routing.ProxyDomains)
+            : new List<string>();
 
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
-            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites, routing.EnableIpv6),
+            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites, proxyDomains, routing.EnableIpv6),
             ["inbounds"] = new JsonArray { BuildTunInbound(options, routing.EnableIpv6) },
             ["outbounds"] = topology.Outbounds,
-            ["route"] = BuildRoute(routing, options, directDomains),
+            ["route"] = BuildRoute(routing, options, directDomains, proxyDomains),
         };
         // WireGuard servers live in "endpoints" (sing-box 1.11+); only emit when present.
         if (topology.Endpoints.Count > 0)
@@ -84,7 +88,7 @@ public static class SingBoxConfigGenerator
 
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
     // Resolvers are addressed by IP: a hostname here would itself need resolving first.
-    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites, bool enableIpv6)
+    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites, IReadOnlyList<string> proxyDomains, bool enableIpv6)
     {
         dns ??= new DnsSettings();
         // ResolveRemote enforces DoH for the tunnelled server, so a UDP pick can never
@@ -112,6 +116,14 @@ public static class SingBoxConfigGenerator
         // outbound connects to region-correct IPs — otherwise they'd be resolved through the
         // tunnel and a direct connection to a foreign-resolved IP can be reset.
         var dnsRules = new JsonArray();
+        // Proxy-domains first: force them onto the remote (tunnel) resolver, overriding the
+        // direct/geosite local rules below for any domain that appears in both.
+        if (proxyDomains.Count > 0)
+            dnsRules.Add(new JsonObject
+            {
+                ["domain_suffix"] = new JsonArray(proxyDomains.Select(d => (JsonNode)d!).ToArray()),
+                ["server"] = "remote",
+            });
         if (directDomains.Count > 0)
             dnsRules.Add(new JsonObject
             {
@@ -352,7 +364,7 @@ public static class SingBoxConfigGenerator
         }
     }
 
-    private static JsonObject BuildRoute(RoutingSettings r, GeneratorOptions o, IReadOnlyList<string> directDomains)
+    private static JsonObject BuildRoute(RoutingSettings r, GeneratorOptions o, IReadOnlyList<string> directDomains, IReadOnlyList<string> proxyDomains)
     {
         var rules = new JsonArray
         {
@@ -386,6 +398,14 @@ public static class SingBoxConfigGenerator
 
         if (r.Mode == RoutingMode.Rule)
         {
+            // Force-through-VPN domains first, so they override the direct/geo rules below.
+            if (proxyDomains.Count > 0)
+                rules.Add(new JsonObject
+                {
+                    ["domain_suffix"] = new JsonArray(proxyDomains.Select(d => (JsonNode)d!).ToArray()),
+                    ["outbound"] = GeneratorOptions.ProxyTag,
+                });
+
             // User's own direct-by-domain overrides (matches the domain and its subdomains),
             // e.g. "yandex.ru" also covers mail.yandex.ru / disk.yandex.ru. Already cleaned
             // and paired with a DNS rule (see BuildDns) so resolution is direct too.

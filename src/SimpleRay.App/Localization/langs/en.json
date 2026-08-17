@@ -13,6 +13,7 @@
   "status.disconnectError": "Disconnect error: {0}",
   "status.reconnecting": "Connection lost — reconnecting ({0}/{1})…",
   "status.reconnectGaveUp": "Could not reconnect — press Connect to retry",
+  "status.reconnectGaveUpBlocked": "Reconnect failed — traffic blocked (kill-switch). Press Connect.",
   "status.error": "Error: {0}",
   "status.clipReadFail": "Could not read the clipboard",
   "status.noLinksClip": "No recognized links in the clipboard",
@@ -64,6 +65,10 @@
   "tip.directDomains": "Domains routed directly (bypassing the VPN), overriding geo rules — e.g. yandex.ru",
   "domains.title": "Direct domains",
   "domains.hint": "Type a domain and press comma or Enter to add it as a tag. Traffic to these domains (and their subdomains) bypasses the VPN. Example: yandex.ru covers mail.yandex.ru, disk.yandex.ru.",
+  "routing.proxyDomains": "Via-VPN domains…",
+  "tip.proxyDomains": "Domains forced through the VPN, overriding the direct/geo rules — e.g. a foreign site wrongly treated as Russian.",
+  "proxyDomains.title": "Via-VPN domains",
+  "proxyDomains.hint": "Type a domain and press comma or Enter to add it as a tag. Traffic to these domains (and their subdomains) goes through the VPN, overriding the direct / Russian-site rules.",
   "routing.failoverTitle": "Channel group (auto-switch)",
 
   "dns.title": "DNS resolver",

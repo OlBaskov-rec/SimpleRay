@@ -13,6 +13,7 @@
   "status.disconnectError": "Bağlantı kesme hatası: {0}",
   "status.reconnecting": "Bağlantı koptu — yeniden bağlanılıyor ({0}/{1})…",
   "status.reconnectGaveUp": "Yeniden bağlanılamadı — Bağlan'a basın",
+  "status.reconnectGaveUpBlocked": "Yeniden bağlanılamadı — trafik engellendi (kill-switch). Bağlan'a basın.",
   "status.error": "Hata: {0}",
   "status.clipReadFail": "Pano okunamadı",
   "status.noLinksClip": "Panoda tanınan bağlantı yok",
@@ -64,6 +65,10 @@
   "tip.directDomains": "Doğrudan (VPN dışı) yönlendirilen, geo kurallarını geçersiz kılan alan adları — ör. yandex.ru",
   "domains.title": "Doğrudan alan adları",
   "domains.hint": "Bir alan adı yazın ve virgül veya Enter'a basarak etiket olarak ekleyin. Bu alan adlarına (ve alt alan adlarına) giden trafik VPN'i atlar. Örnek: yandex.ru, mail.yandex.ru ve disk.yandex.ru'yu kapsar.",
+  "routing.proxyDomains": "VPN üzerinden…",
+  "tip.proxyDomains": "VPN üzerinden gitmeye zorlanan alan adları; doğrudan/geo kurallarını geçersiz kılar — ör. yanlışlıkla Rus sayılan yabancı bir site.",
+  "proxyDomains.title": "VPN üzerinden alan adları",
+  "proxyDomains.hint": "Bir alan adı yazın ve virgül veya Enter'a basarak etiket olarak ekleyin. Bu alan adlarına (ve alt alan adlarına) giden trafik, doğrudan/Rus kurallarını geçersiz kılarak VPN üzerinden gider.",
   "routing.failoverTitle": "Kanal grubu (otomatik geçiş)",
 
   "dns.title": "DNS çözümleyici",

@@ -58,6 +58,12 @@ public sealed class RoutingSettings
     public List<string> DirectDomains { get; set; } = new();
 
     /// <summary>
+    /// User domains forced THROUGH the VPN (by suffix), overriding geo/direct — e.g. a foreign
+    /// site wrongly caught by a Russian geosite. Takes precedence over the direct lists.
+    /// </summary>
+    public List<string> ProxyDomains { get; set; } = new();
+
+    /// <summary>
     /// Tag of the last single server connected to. Restored as the selection on the next
     /// launch (including the elevated relaunch) so reconnect targets the same server, not
     /// the first in the list. Ignored when a failover group is active.
