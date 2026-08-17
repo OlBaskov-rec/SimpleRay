@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "Profiller kaydedilemedi: {0}",
   "status.saveSettingsFail": "Ayarlar kaydedilemedi: {0}",
 
+  "import.add": "Ekle ▾",
   "import.clipboard": "Panodan",
   "import.file": "Dosya…",
   "import.qrFile": "Dosyadan QR",

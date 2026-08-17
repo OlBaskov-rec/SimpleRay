@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "Profile konnten nicht gespeichert werden: {0}",
   "status.saveSettingsFail": "Einstellungen konnten nicht gespeichert werden: {0}",
 
+  "import.add": "Hinzufügen ▾",
   "import.clipboard": "Zwischenablage",
   "import.file": "Datei…",
   "import.qrFile": "QR aus Datei",

@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "No se pudieron guardar los perfiles: {0}",
   "status.saveSettingsFail": "No se pudo guardar la configuración: {0}",
 
+  "import.add": "Añadir ▾",
   "import.clipboard": "Portapapeles",
   "import.file": "Archivo…",
   "import.qrFile": "QR desde archivo",

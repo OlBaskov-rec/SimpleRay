@@ -110,20 +110,30 @@
 
         <!-- Profile actions -->
         <WrapPanel Grid.Row="1" Grid.Column="0" Margin="0,8,0,0">
-            <Button Content="{loc:Loc import.clipboard}" Command="{Binding ImportClipboardCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.importClipboard}" />
-            <Button Content="{loc:Loc import.file}" Command="{Binding ImportFileCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.importFile}" />
-            <Button Content="{loc:Loc import.qrFile}" Command="{Binding ImportQrFileCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.qrFile}" />
-            <Button Content="{loc:Loc import.qrClipboard}" Command="{Binding ImportQrClipboardCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.qrClipboard}" />
-            <Button Content="{loc:Loc import.qrWebcam}" Command="{Binding ImportQrWebcamCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.qrWebcam}" />
-            <Button Content="{loc:Loc subscription.add}" Command="{Binding AddSubscriptionCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.subscriptionAdd}" />
-            <Button Content="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
-                    Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.subscriptionRefresh}" />
+            <!-- All the "add" methods grouped into one dropdown. -->
+            <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="2"
+                    Margin="0,0,6,6" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                <Menu Background="Transparent">
+                    <MenuItem Header="{loc:Loc import.add}" Padding="10,4">
+                        <MenuItem Header="{loc:Loc import.clipboard}" Command="{Binding ImportClipboardCommand}"
+                                  ToolTip="{loc:Loc tip.importClipboard}" />
+                        <MenuItem Header="{loc:Loc import.file}" Command="{Binding ImportFileCommand}"
+                                  ToolTip="{loc:Loc tip.importFile}" />
+                        <Separator />
+                        <MenuItem Header="{loc:Loc import.qrFile}" Command="{Binding ImportQrFileCommand}"
+                                  ToolTip="{loc:Loc tip.qrFile}" />
+                        <MenuItem Header="{loc:Loc import.qrClipboard}" Command="{Binding ImportQrClipboardCommand}"
+                                  ToolTip="{loc:Loc tip.qrClipboard}" />
+                        <MenuItem Header="{loc:Loc import.qrWebcam}" Command="{Binding ImportQrWebcamCommand}"
+                                  ToolTip="{loc:Loc tip.qrWebcam}" />
+                        <Separator />
+                        <MenuItem Header="{loc:Loc subscription.add}" Command="{Binding AddSubscriptionCommand}"
+                                  ToolTip="{loc:Loc tip.subscriptionAdd}" />
+                        <MenuItem Header="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
+                                  ToolTip="{loc:Loc tip.subscriptionRefresh}" />
+                    </MenuItem>
+                </Menu>
+            </Border>
             <Button Content="{loc:Loc profile.ping}" Command="{Binding PingCommand}"
                     Padding="10,4" Margin="0,0,6,6" ToolTip="{loc:Loc tip.ping}" />
             <Button Content="{loc:Loc profile.rename}" Command="{Binding RenameCommand}"

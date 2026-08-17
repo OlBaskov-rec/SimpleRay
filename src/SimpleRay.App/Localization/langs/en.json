@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "Could not save profiles: {0}",
   "status.saveSettingsFail": "Could not save settings: {0}",
 
+  "import.add": "Add ▾",
   "import.clipboard": "From clipboard",
   "import.file": "File…",
   "import.qrFile": "QR from file",

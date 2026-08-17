@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "Не вдалося зберегти профілі: {0}",
   "status.saveSettingsFail": "Не вдалося зберегти налаштування: {0}",
 
+  "import.add": "Додати ▾",
   "import.clipboard": "З буфера",
   "import.file": "Файл…",
   "import.qrFile": "QR із файлу",

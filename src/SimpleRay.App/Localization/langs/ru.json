@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "Не удалось сохранить профили: {0}",
   "status.saveSettingsFail": "Не удалось сохранить настройки: {0}",
 
+  "import.add": "Добавить ▾",
   "import.clipboard": "Из буфера",
   "import.file": "Файл…",
   "import.qrFile": "QR из файла",

@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "ذخیره پروفایل‌ها ممکن نشد: {0}",
   "status.saveSettingsFail": "ذخیره تنظیمات ممکن نشد: {0}",
 
+  "import.add": "افزودن ▾",
   "import.clipboard": "از کلیپ‌بورد",
   "import.file": "فایل…",
   "import.qrFile": "QR از فایل",

@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "Impossible d'enregistrer les profils : {0}",
   "status.saveSettingsFail": "Impossible d'enregistrer les paramètres : {0}",
 
+  "import.add": "Ajouter ▾",
   "import.clipboard": "Presse-papiers",
   "import.file": "Fichier…",
   "import.qrFile": "QR depuis un fichier",

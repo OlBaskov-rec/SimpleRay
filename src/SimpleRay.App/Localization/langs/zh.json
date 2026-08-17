@@ -30,6 +30,7 @@
   "status.saveProfilesFail": "无法保存配置：{0}",
   "status.saveSettingsFail": "无法保存设置：{0}",
 
+  "import.add": "添加 ▾",
   "import.clipboard": "从剪贴板",
   "import.file": "文件…",
   "import.qrFile": "从文件读二维码",
