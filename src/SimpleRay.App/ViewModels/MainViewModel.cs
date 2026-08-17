@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Threading;
 using SimpleRay.App.Engine;
@@ -30,6 +31,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly List<string> _subscriptions;
     private readonly IVpnEngine _engine;
     private readonly EngineWatchdog _watchdog;
+    private readonly TunnelLivenessMonitor _liveness;
     private readonly IKillSwitch _killSwitch;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
@@ -92,7 +94,16 @@ public sealed class MainViewModel : ObservableObject
                 _killSwitch.Disengage(); // no kill-switch: fall back to direct so the user isn't left offline
                 StatusText = L["status.reconnectGaveUp"];
             }
+            _liveness.Stop(); // gave up — stop probing (a manual reconnect restarts it)
         });
+
+        // Detect a "silent" tunnel death (process alive, connection gone) that the process
+        // watchdog can't see, and force a reconnect through it.
+        _liveness = new TunnelLivenessMonitor(
+            probe: ProbeTunnelAsync,
+            onDead: _ => { _watchdog.NotifyUnhealthy(); return Task.CompletedTask; },
+            interval: TimeSpan.FromSeconds(20),
+            threshold: 3);
 
         foreach (var provider in DnsCatalog.All)
             DnsProviders.Add(new DnsProviderItem(provider));
@@ -623,6 +634,7 @@ public sealed class MainViewModel : ObservableObject
         if (IsConnected)
         {
             _watchdog.Disarm();     // user-initiated stop: don't auto-reconnect
+            _liveness.Stop();        // and stop probing the tunnel
             _killSwitch.Disengage(); // and stop blocking non-tunnel traffic
             try { await _engine.StopAsync(); }
             catch (Exception ex) { StatusText = L.Format("status.disconnectError", ex.Message); }
@@ -673,6 +685,7 @@ public sealed class MainViewModel : ObservableObject
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _engine.StartAsync(configJson);
             _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
+            _liveness.Start();         // and force a reconnect if the tunnel silently dies
             if (_routing.KillSwitch)   // block non-tunnel traffic while we intend to be connected
             {
                 // A kill-switch failure must not fail the connection: stay connected, just
@@ -685,6 +698,24 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusText = L.Format("status.error", ex.Message);
         }
+    }
+
+    private static readonly HttpClient _livenessHttp = new() { Timeout = TimeSpan.FromSeconds(6) };
+
+    /// <summary>
+    /// Liveness probe: a tiny request that must travel THROUGH the tunnel to succeed (foreign
+    /// host → proxy in Rule/Global mode). Returns false on any failure so the monitor can react.
+    /// </summary>
+    private static async Task<bool> ProbeTunnelAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var resp = await _livenessHttp.GetAsync(
+                "https://www.gstatic.com/generate_204", HttpCompletionOption.ResponseHeadersRead, ct)
+                .ConfigureAwait(false);
+            return (int)resp.StatusCode is 204 or 200;
+        }
+        catch { return false; }
     }
 
     /// <summary>Servers to connect: the failover group if ≥2 are marked, else the selected one.</summary>
@@ -979,6 +1010,7 @@ public sealed class MainViewModel : ObservableObject
     public Task ShutdownAsync()
     {
         _watchdog.Disarm();      // don't let a shutdown-time fault trigger a reconnect
+        _liveness.Stop();        // stop probing
         _killSwitch.Disengage(); // never leave the machine blocked after we exit
         return _engine.DisposeAsync().AsTask();
     }

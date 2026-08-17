@@ -138,6 +138,35 @@ public class EngineWatchdogTests
     }
 
     [Fact]
+    public async Task NotifyUnhealthy_WhileArmed_StopsThenReconnects()
+    {
+        var engine = new FakeEngine(_ => true);
+        var wd = new EngineWatchdog(engine, Instant());
+
+        await engine.StartAsync("cfg");
+        wd.Arm("cfg");
+        wd.NotifyUnhealthy();       // silent tunnel death: process alive, connection gone
+        await wd.ReconnectTask!;
+
+        Assert.Equal(2, engine.StartCalls); // initial + one restart
+        Assert.Equal(EngineState.Running, engine.State);
+    }
+
+    [Fact]
+    public async Task NotifyUnhealthy_WhenNotArmed_DoesNothing()
+    {
+        var engine = new FakeEngine(_ => true);
+        var wd = new EngineWatchdog(engine, Instant());
+
+        await engine.StartAsync("cfg");
+        // not armed
+        wd.NotifyUnhealthy();
+
+        Assert.Null(wd.ReconnectTask);
+        Assert.Equal(1, engine.StartCalls);
+    }
+
+    [Fact]
     public async Task Crash_WhenNotArmed_DoesNothing()
     {
         var engine = new FakeEngine(_ => true);

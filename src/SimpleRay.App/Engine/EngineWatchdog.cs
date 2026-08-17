@@ -78,6 +78,24 @@ public sealed class EngineWatchdog
             ReconnectTask = ReconnectLoopAsync();
     }
 
+    /// <summary>
+    /// Force a reconnect because the tunnel is dead even though the process is alive (the
+    /// process watchdog can't see this). Stops the stalled engine, then runs the normal
+    /// reconnect loop. No-op if not armed or a reconnect is already in progress.
+    /// </summary>
+    public void NotifyUnhealthy()
+    {
+        if (!_armed || _reconnecting)
+            return;
+        ReconnectTask = RestartAsync();
+    }
+
+    private async Task RestartAsync()
+    {
+        try { await _engine.StopAsync().ConfigureAwait(false); } catch { /* stop is best-effort */ }
+        await ReconnectLoopAsync().ConfigureAwait(false);
+    }
+
     private async Task ReconnectLoopAsync()
     {
         _reconnecting = true;
