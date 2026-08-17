@@ -79,6 +79,16 @@ public sealed class MainViewModel : ObservableObject
         _engine.LogReceived += OnEngineLog;
 
         _watchdog = new EngineWatchdog(_engine);
+
+        // Detect a "silent" tunnel death (process alive, connection gone) that the process
+        // watchdog can't see, and force a reconnect through it. Created before the handlers
+        // below so they can reference it.
+        _liveness = new TunnelLivenessMonitor(
+            probe: ProbeTunnelAsync,
+            onDead: _ => { _watchdog.NotifyUnhealthy(); return Task.CompletedTask; },
+            interval: TimeSpan.FromSeconds(20),
+            threshold: 3);
+
         _watchdog.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
             StatusText = L.Format("status.reconnecting", attempt, max));
         _watchdog.GaveUp += () => _dispatcher.BeginInvoke(() =>
@@ -96,14 +106,6 @@ public sealed class MainViewModel : ObservableObject
             }
             _liveness.Stop(); // gave up — stop probing (a manual reconnect restarts it)
         });
-
-        // Detect a "silent" tunnel death (process alive, connection gone) that the process
-        // watchdog can't see, and force a reconnect through it.
-        _liveness = new TunnelLivenessMonitor(
-            probe: ProbeTunnelAsync,
-            onDead: _ => { _watchdog.NotifyUnhealthy(); return Task.CompletedTask; },
-            interval: TimeSpan.FromSeconds(20),
-            threshold: 3);
 
         foreach (var provider in DnsCatalog.All)
             DnsProviders.Add(new DnsProviderItem(provider));
