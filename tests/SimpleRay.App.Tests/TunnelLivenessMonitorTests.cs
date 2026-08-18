@@ -56,7 +56,7 @@ public class TunnelLivenessMonitorTests
             probe: _ => Task.FromResult(true),                 // tunnel healthy
             onDead: _ => { deaths++; return Task.CompletedTask; },
             interval: TimeSpan.Zero, threshold: 3,
-            delay: async (_, ct) => { await gate.Task.WaitAsync(ct).ConfigureAwait(false); });
+            delay: (_, ct) => gate.Task.WaitAsync(ct));
 
         mon.Start();
         mon.Stop();          // cancel while parked in delay

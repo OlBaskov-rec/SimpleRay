@@ -685,10 +685,7 @@ public sealed class MainViewModel : ObservableObject
             StatusText = L["status.connecting"];
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
-            // Clear any orphaned engine holding the TUN adapter (e.g. from a prior force-kill),
-            // so the fresh start doesn't fail with "Cannot create ... already exists".
-            await Task.Run(() => EngineOrphans.KillStale(AppPaths.CoreExe));
-            await _engine.StartAsync(configJson);
+            await StartEngineWithRetryAsync(configJson);
             _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
             _liveness.Start();         // and force a reconnect if the tunnel silently dies
             if (_routing.KillSwitch)   // block non-tunnel traffic while we intend to be connected
@@ -703,6 +700,30 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusText = L.Format("status.error", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Starts the engine, first clearing any orphaned engine still holding the TUN adapter, and
+    /// retrying briefly when the start fails immediately — most often the adapter from a
+    /// just-killed engine hasn't been released yet ("Cannot create ... already exists").
+    /// </summary>
+    private async Task StartEngineWithRetryAsync(string configJson)
+    {
+        const int maxAttempts = 3;
+        for (int attempt = 1; ; attempt++)
+        {
+            await Task.Run(() => EngineOrphans.KillStale(AppPaths.CoreExe));
+            try
+            {
+                await _engine.StartAsync(configJson);
+                return;
+            }
+            catch (InvalidOperationException ex)
+                when (attempt < maxAttempts && ex.Message.Contains("exited immediately", StringComparison.Ordinal))
+            {
+                await Task.Delay(1200); // give the stale TUN adapter time to be released, then retry
+            }
         }
     }
 

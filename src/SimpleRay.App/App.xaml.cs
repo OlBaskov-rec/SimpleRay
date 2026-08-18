@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -80,6 +82,15 @@ public partial class App : Application
             return;
         }
 
+        // Single instance: if SimpleRay is already running, activate it and don't start a
+        // second window. The elevated "--connect" relaunch is exempt — it deliberately replaces
+        // the instance that spawned it (which is exiting).
+        if (!e.Args.Contains("--connect") && TryActivateRunningInstance())
+        {
+            Shutdown();
+            return;
+        }
+
         // Recovery: remove any kill-switch filters left over from a previous run that
         // crashed while engaged (fail-closed filters survive the crash). Best-effort and
         // no-op when not elevated or when nothing is present.
@@ -89,6 +100,49 @@ public partial class App : Application
         // instance connects automatically instead of making the user click again.
         new MainWindow(connectOnStartup: e.Args.Contains("--connect")).Show();
     }
+
+    /// <summary>
+    /// True if another SimpleRay process is already running (so this one should exit). Also makes
+    /// a best-effort attempt to restore and focus its window — which succeeds within the same
+    /// integrity level (e.g. before the other instance elevated) and is silently skipped across
+    /// integrity levels (UIPI), where simply not starting a second window is enough.
+    /// </summary>
+    private static bool TryActivateRunningInstance()
+    {
+        try
+        {
+            var me = Process.GetCurrentProcess();
+            var other = Process.GetProcessesByName(me.ProcessName)
+                .FirstOrDefault(p => p.Id != me.Id && SameImage(p, me));
+            if (other is null)
+                return false;
+
+            var h = other.MainWindowHandle;
+            if (h != nint.Zero)
+            {
+                ShowWindow(h, SW_RESTORE);
+                SetForegroundWindow(h);
+            }
+            return true;
+        }
+        catch { return false; } // never let the guard itself block startup
+    }
+
+    /// <summary>Same executable image? Compares paths; if the other is unreadable (higher integrity), assume yes.</summary>
+    private static bool SameImage(Process other, Process me)
+    {
+        try
+        {
+            string? mine = me.MainModule?.FileName;
+            string? theirs = other.MainModule?.FileName; // throws for a higher-integrity process
+            return theirs is null || mine is null || string.Equals(theirs, mine, StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return true; }
+    }
+
+    private const int SW_RESTORE = 9;
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint hWnd);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(nint hWnd, int nCmdShow);
 
     private static async Task RunCameraSelfTestAsync()
     {
