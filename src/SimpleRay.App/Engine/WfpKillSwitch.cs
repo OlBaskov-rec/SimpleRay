@@ -1,4 +1,4 @@
-using System.Net.NetworkInformation;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace SimpleRay.App.Engine;
@@ -40,12 +40,19 @@ public sealed class WfpKillSwitch : IKillSwitch
         {
             if (IsEngaged) return;
 
+            // Wait for the TUN adapter so permit-tun is actually installed. sing-box brings the
+            // adapter up a second or two AFTER the process starts, and the app engages right after
+            // start — without permit-tun, block-all drops ALL tunnelled traffic (the browser's
+            // connections egress via the TUN) and the machine goes fully offline. If it never
+            // appears (e.g. the harness with no sing-box), luid stays 0 and we still block-all.
+            ulong tunLuid = WaitForLuid(tunInterfaceName, TimeSpan.FromSeconds(8));
+
             Open();
             try
             {
                 Native.FwpmTransactionBegin0(_engine, 0);
                 EnsureProviderAndSubLayer();
-                AddBlockAndPermitFilters(tunInterfaceName, allowedExePath);
+                AddBlockAndPermitFilters(tunLuid, allowedExePath);
                 Check(Native.FwpmTransactionCommit0(_engine), "commit");
                 IsEngaged = true;
             }
@@ -148,7 +155,7 @@ public sealed class WfpKillSwitch : IKillSwitch
         foreach (var p in allocs) Marshal.FreeHGlobal(p);
     }
 
-    private void AddBlockAndPermitFilters(string tunInterfaceName, string allowedExePath)
+    private void AddBlockAndPermitFilters(ulong tunLuid, string allowedExePath)
     {
         foreach (var layer in new[] { Native.FWPM_LAYER_ALE_AUTH_CONNECT_V4, Native.FWPM_LAYER_ALE_AUTH_CONNECT_V6 })
         {
@@ -159,9 +166,10 @@ public sealed class WfpKillSwitch : IKillSwitch
             using (var loopback = Conditions.Loopback())
                 AddFilter(layer, "permit-loopback", weight: 15, block: false, loopback.Items);
 
-            // 3) Permit the TUN interface (tunnel traffic).
-            if (TryGetLuid(tunInterfaceName, out ulong luid))
-                using (var iface = Conditions.LocalInterface(luid))
+            // 3) Permit the TUN interface (tunnel traffic). Skipped only if the adapter never
+            //    came up (luid 0) — e.g. the harness without a running sing-box.
+            if (tunLuid != 0)
+                using (var iface = Conditions.LocalInterface(tunLuid))
                     AddFilter(layer, "permit-tun", weight: 12, block: false, iface.Items);
 
             // 4) Permit sing-box.exe so it can reach the server over the physical NIC.
@@ -247,23 +255,28 @@ public sealed class WfpKillSwitch : IKillSwitch
         try { Native.FwpmProviderDeleteByKey0(engine, ref prov); } catch { }
     }
 
-    private static bool TryGetLuid(string interfaceName, out ulong luid)
+    /// <summary>
+    /// Resolves the interface LUID, polling until the adapter appears or <paramref name="timeout"/>
+    /// elapses (sing-box brings the TUN up a beat after the process starts). Returns 0 if it never
+    /// appears — the caller then engages without permit-tun (block-all only), which is what the
+    /// harness (no sing-box) wants but must never happen in the app once connected.
+    /// </summary>
+    private static ulong WaitForLuid(string interfaceName, TimeSpan timeout)
     {
-        luid = 0;
-        try
+        var sw = Stopwatch.StartNew();
+        while (true)
         {
-            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            try
             {
-                if (!string.Equals(ni.Name, interfaceName, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                // Resolve the interface LUID from its alias.
-                if (Native.ConvertInterfaceAliasToLuid(interfaceName, out luid) == 0)
-                    return true;
+                if (Native.ConvertInterfaceAliasToLuid(interfaceName, out ulong luid) == 0 && luid != 0)
+                    return luid;
             }
-            // Fall back to a direct alias lookup even if enumeration didn't match yet.
-            return Native.ConvertInterfaceAliasToLuid(interfaceName, out luid) == 0;
+            catch { /* keep polling */ }
+
+            if (sw.Elapsed >= timeout)
+                return 0;
+            Thread.Sleep(200);
         }
-        catch { return false; }
     }
 
     private static void Check(uint error, string what)

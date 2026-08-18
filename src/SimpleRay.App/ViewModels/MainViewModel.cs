@@ -691,8 +691,9 @@ public sealed class MainViewModel : ObservableObject
             if (_routing.KillSwitch)   // block non-tunnel traffic while we intend to be connected
             {
                 // A kill-switch failure must not fail the connection: stay connected, just
-                // tell the user it isn't protecting them.
-                try { _killSwitch.Engage(options.TunInterfaceName, AppPaths.CoreExe); }
+                // tell the user it isn't protecting them. Run off the UI thread: Engage waits
+                // a beat for the TUN adapter to appear (so permit-tun is installed).
+                try { await Task.Run(() => _killSwitch.Engage(options.TunInterfaceName, AppPaths.CoreExe)); }
                 catch (Exception ex) { StatusText = L.Format("status.killSwitchFail", ex.Message); }
             }
         }
