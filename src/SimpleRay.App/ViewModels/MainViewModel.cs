@@ -685,6 +685,9 @@ public sealed class MainViewModel : ObservableObject
             StatusText = L["status.connecting"];
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
+            // Clear any orphaned engine holding the TUN adapter (e.g. from a prior force-kill),
+            // so the fresh start doesn't fail with "Cannot create ... already exists".
+            await Task.Run(() => EngineOrphans.KillStale(AppPaths.CoreExe));
             await _engine.StartAsync(configJson);
             _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
             _liveness.Start();         // and force a reconnect if the tunnel silently dies
