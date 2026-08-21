@@ -79,4 +79,52 @@ public class LocalizationTests
         Assert.Equal("no.such.key.exists", LocalizationManager.Instance["no.such.key.exists"]);
         Assert.NotEqual("connect.connect", LocalizationManager.Instance["connect.connect"]); // known → translated
     }
+
+    /// <summary>The generated typed keys must mirror en.json exactly (run scripts/gen-lockeys.ps1 if this fails).</summary>
+    [Fact]
+    public void LocKeys_MirrorEnglishJsonExactly()
+    {
+        var jsonKeys = Load("en").Keys.ToHashSet();
+        var constValues = typeof(LocKeys)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+            .Select(f => (string)f.GetRawConstantValue()!)
+            .ToHashSet();
+
+        var missing = jsonKeys.Except(constValues).ToList(); // JSON keys without a const → regenerate
+        var stale = constValues.Except(jsonKeys).ToList();    // consts for removed keys → regenerate
+        Assert.True(missing.Count == 0, $"LocKeys missing consts (run gen-lockeys.ps1): {string.Join(", ", missing)}");
+        Assert.True(stale.Count == 0, $"LocKeys has stale consts (run gen-lockeys.ps1): {string.Join(", ", stale)}");
+    }
+
+    /// <summary>Every key referenced from XAML via {loc:Loc ...} must exist in en.json (catches typos).</summary>
+    [Fact]
+    public void XamlLocKeys_ExistInEnglishJson()
+    {
+        var en = Load("en");
+        var appDir = FindAppSourceDir();
+        if (appDir is null) return; // source tree not present (e.g. packaged run) — skip
+
+        var missing = new List<string>();
+        foreach (var xaml in Directory.GetFiles(appDir, "*.xaml", SearchOption.AllDirectories))
+        {
+            var text = File.ReadAllText(xaml);
+            foreach (Match m in Regex.Matches(text, @"loc:Loc\s+([A-Za-z0-9_.]+)"))
+            {
+                var key = m.Groups[1].Value;
+                if (!en.ContainsKey(key))
+                    missing.Add($"{Path.GetFileName(xaml)}: {key}");
+            }
+        }
+        Assert.True(missing.Count == 0, "XAML {loc:Loc} keys not in en.json: " + string.Join(", ", missing));
+    }
+
+    private static string? FindAppSourceDir()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SimpleRay.sln")))
+            dir = dir.Parent;
+        var app = dir is null ? null : Path.Combine(dir.FullName, "src", "SimpleRay.App");
+        return app is not null && Directory.Exists(app) ? app : null;
+    }
 }
