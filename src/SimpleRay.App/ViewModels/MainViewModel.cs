@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Net.Http;
 using System.Windows;
 using System.Windows.Threading;
 using SimpleRay.App.Engine;
@@ -29,10 +28,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly SubscriptionService _subscriptionService = new();
     private readonly SubscriptionStore _subscriptionStore = new();
     private readonly List<string> _subscriptions;
-    private readonly IVpnEngine _engine;
-    private readonly EngineWatchdog _watchdog;
-    private readonly TunnelLivenessMonitor _liveness;
-    private readonly IKillSwitch _killSwitch;
+    private readonly ConnectionController _connection;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
     private readonly IDialogService _dialogs;
@@ -51,12 +47,6 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(IDialogService? dialogs = null, IKillSwitch? killSwitch = null)
     {
         _dialogs = dialogs ?? new MessageBoxDialogService();
-        // WfpKillSwitch validated on a real machine (harness Stage A: Engage/Disengage clean,
-        // block confirmed, filters cleaned by deterministic key). Engaged on connect only when
-        // the kill-switch setting is on; Engage failures are caught so they never break the
-        // connection, and CleanupLeftovers (App startup) + Disengage (disconnect/exit) + the
-        // non-boot-persistent filters make it fail-closed but recoverable.
-        _killSwitch = killSwitch ?? new WfpKillSwitch();
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
@@ -69,43 +59,29 @@ public sealed class MainViewModel : ObservableObject
         _selectedProfile = Profiles.FirstOrDefault(p => p.Tag == _routing.LastProfileTag)
                            ?? Profiles.FirstOrDefault();
 
-        _engine = new SingBoxEngine(new EngineOptions
+        // WfpKillSwitch validated on a real machine (harness Stage A: Engage/Disengage clean,
+        // block confirmed, filters cleaned by deterministic key). Engaged on connect only when
+        // the kill-switch setting is on; Engage failures never break the connection, and
+        // CleanupLeftovers (App startup) + Disengage (disconnect/exit) + the non-boot-persistent
+        // filters make it fail-closed but recoverable. The ConnectionController owns the engine +
+        // watchdog + liveness + kill-switch lifecycle; the view-model just maps its events to UI.
+        var engine = new SingBoxEngine(new EngineOptions
         {
             ExecutablePath = AppPaths.CoreExe,
             WorkingDirectory = AppPaths.RuntimeDir,
             Terminator = new ConsoleCtrlTerminator(),
         });
-        _engine.StateChanged += OnEngineStateChanged;
-        _engine.LogReceived += OnEngineLog;
-
-        _watchdog = new EngineWatchdog(_engine);
-
-        // Detect a "silent" tunnel death (process alive, connection gone) that the process
-        // watchdog can't see, and force a reconnect through it. Created before the handlers
-        // below so they can reference it.
-        _liveness = new TunnelLivenessMonitor(
-            probe: ProbeTunnelAsync,
-            onDead: _ => { _watchdog.NotifyUnhealthy(); return Task.CompletedTask; },
-            interval: TimeSpan.FromSeconds(20),
-            threshold: 3);
-
-        _watchdog.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
+        _connection = new ConnectionController(engine, killSwitch ?? new WfpKillSwitch(), () => _routing.KillSwitch);
+        _connection.StateChanged += OnEngineStateChanged;
+        _connection.LogReceived += OnEngineLog;
+        _connection.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
             StatusText = L.Format("status.reconnecting", attempt, max));
-        _watchdog.GaveUp += () => _dispatcher.BeginInvoke(() =>
-        {
-            if (_routing.KillSwitch)
-            {
-                // Fail-closed: keep blocking after we give up, so the tunnel dropping never leaks
-                // the real IP (the whole point of the kill-switch). The user reconnects manually.
-                StatusText = L["status.reconnectGaveUpBlocked"];
-            }
-            else
-            {
-                _killSwitch.Disengage(); // no kill-switch: fall back to direct so the user isn't left offline
-                StatusText = L["status.reconnectGaveUp"];
-            }
-            _liveness.Stop(); // gave up — stop probing (a manual reconnect restarts it)
-        });
+        _connection.GaveUpBlocked += () => _dispatcher.BeginInvoke(() =>
+            StatusText = L["status.reconnectGaveUpBlocked"]);
+        _connection.GaveUpDisengaged += () => _dispatcher.BeginInvoke(() =>
+            StatusText = L["status.reconnectGaveUp"]);
+        _connection.KillSwitchEngageFailed += ex => _dispatcher.BeginInvoke(() =>
+            StatusText = L.Format("status.killSwitchFail", ex.Message));
 
         foreach (var provider in DnsCatalog.All)
             DnsProviders.Add(new DnsProviderItem(provider));
@@ -366,7 +342,7 @@ public sealed class MainViewModel : ObservableObject
             var staging = await _updateService.DownloadAndStageAsync(info, progress);
 
             StatusText = L["status.updateApplying"];
-            await _engine.DisposeAsync(); // stop sing-box so its files aren't locked
+            await _connection.ShutdownAsync(); // stop sing-box so its files aren't locked
             _updateService.ApplyAndRestart(staging);
             Application.Current.Shutdown();
         }
@@ -635,10 +611,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsConnected)
         {
-            _watchdog.Disarm();     // user-initiated stop: don't auto-reconnect
-            _liveness.Stop();        // and stop probing the tunnel
-            _killSwitch.Disengage(); // and stop blocking non-tunnel traffic
-            try { await _engine.StopAsync(); }
+            try { await _connection.DisconnectAsync(); }
             catch (Exception ex) { StatusText = L.Format("status.disconnectError", ex.Message); }
             return;
         }
@@ -685,64 +658,12 @@ public sealed class MainViewModel : ObservableObject
             StatusText = L["status.connecting"];
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
-            await StartEngineWithRetryAsync(configJson);
-            _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
-            _liveness.Start();         // and force a reconnect if the tunnel silently dies
-            if (_routing.KillSwitch)   // block non-tunnel traffic while we intend to be connected
-            {
-                // A kill-switch failure must not fail the connection: stay connected, just
-                // tell the user it isn't protecting them. Run off the UI thread: Engage waits
-                // a beat for the TUN adapter to appear (so permit-tun is installed).
-                try { await Task.Run(() => _killSwitch.Engage(options.TunInterfaceName, AppPaths.CoreExe)); }
-                catch (Exception ex) { StatusText = L.Format("status.killSwitchFail", ex.Message); }
-            }
+            await _connection.ConnectAsync(configJson, options.TunInterfaceName, AppPaths.CoreExe, _routing.KillSwitch);
         }
         catch (Exception ex)
         {
             StatusText = L.Format("status.error", ex.Message);
         }
-    }
-
-    /// <summary>
-    /// Starts the engine, first clearing any orphaned engine still holding the TUN adapter, and
-    /// retrying briefly when the start fails immediately — most often the adapter from a
-    /// just-killed engine hasn't been released yet ("Cannot create ... already exists").
-    /// </summary>
-    private async Task StartEngineWithRetryAsync(string configJson)
-    {
-        const int maxAttempts = 3;
-        for (int attempt = 1; ; attempt++)
-        {
-            await Task.Run(() => EngineOrphans.KillStale(AppPaths.CoreExe));
-            try
-            {
-                await _engine.StartAsync(configJson);
-                return;
-            }
-            catch (InvalidOperationException ex)
-                when (attempt < maxAttempts && ex.Message.Contains("exited immediately", StringComparison.Ordinal))
-            {
-                await Task.Delay(1200); // give the stale TUN adapter time to be released, then retry
-            }
-        }
-    }
-
-    private static readonly HttpClient _livenessHttp = new() { Timeout = TimeSpan.FromSeconds(6) };
-
-    /// <summary>
-    /// Liveness probe: a tiny request that must travel THROUGH the tunnel to succeed (foreign
-    /// host → proxy in Rule/Global mode). Returns false on any failure so the monitor can react.
-    /// </summary>
-    private static async Task<bool> ProbeTunnelAsync(CancellationToken ct)
-    {
-        try
-        {
-            using var resp = await _livenessHttp.GetAsync(
-                "https://www.gstatic.com/generate_204", HttpCompletionOption.ResponseHeadersRead, ct)
-                .ConfigureAwait(false);
-            return (int)resp.StatusCode is 204 or 200;
-        }
-        catch { return false; }
     }
 
     /// <summary>Servers to connect: the failover group if ≥2 are marked, else the selected one.</summary>
@@ -1034,11 +955,5 @@ public sealed class MainViewModel : ObservableObject
     /// to a UI thread that is already blocked — deadlocking the app on exit. The engine
     /// uses ConfigureAwait(false) throughout, so the returned task completes off the UI thread.
     /// </summary>
-    public Task ShutdownAsync()
-    {
-        _watchdog.Disarm();      // don't let a shutdown-time fault trigger a reconnect
-        _liveness.Stop();        // stop probing
-        _killSwitch.Disengage(); // never leave the machine blocked after we exit
-        return _engine.DisposeAsync().AsTask();
-    }
+    public Task ShutdownAsync() => _connection.ShutdownAsync();
 }
