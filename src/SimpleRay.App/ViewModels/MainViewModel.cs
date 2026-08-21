@@ -32,6 +32,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
     private readonly IDialogService _dialogs;
+    private readonly ImportCoordinator _import = new();
 
     // geosite/geoip tags backing the routing presets (must exist as *.srs in GeoDir).
     private const string TagRuSites = "geosite-category-ru";
@@ -675,143 +676,50 @@ public sealed class MainViewModel : ObservableObject
         return new List<ProfileConfig>();
     }
 
-    private void ImportFromClipboard()
-    {
-        string text;
-        try
-        {
-            text = Clipboard.ContainsText() ? Clipboard.GetText() : "";
-        }
-        catch (Exception)
-        {
-            StatusText = L["status.clipReadFail"];
-            return;
-        }
+    // Acquisition lives in ImportCoordinator; the view-model only maps the outcome to a status
+    // and, on success, parses/dedups (ProfileImporter) and merges into the list.
+    private void ImportFromClipboard() => ApplyImport(_import.FromClipboard(), "status.noLinksClip");
+    private void ImportFromFile() => ApplyImport(_import.FromFile(), "status.noLinksFile");
+    private void ImportQrFromFile() => ApplyImport(_import.FromQrFile(), "status.noLinksQr");
+    private void ImportQrFromClipboard() => ApplyImport(_import.FromQrClipboard(), "status.noLinksQr");
+    private void ImportQrFromWebcam() => ApplyImport(_import.FromWebcam(), "status.noLinksQr");
 
-        AddLinks(text, L["status.noLinksClip"]);
+    /// <summary>Maps an acquisition outcome to a status; on Ok, parses and adds the profiles.</summary>
+    private void ApplyImport(ImportOutcome outcome, string noneFoundKey)
+    {
+        switch (outcome.Status)
+        {
+            case ImportStatus.Cancelled: return;
+            case ImportStatus.ClipboardReadFail: StatusText = L["status.clipReadFail"]; return;
+            case ImportStatus.FileReadFail: StatusText = L.Format("status.fileReadFail", outcome.Detail ?? ""); return;
+            case ImportStatus.ImageReadFail: StatusText = L.Format("status.imgReadFail", outcome.Detail ?? ""); return;
+            case ImportStatus.ImageClipboardReadFail: StatusText = L["status.imgClipReadFail"]; return;
+            case ImportStatus.NoImage: StatusText = L["status.noImgClip"]; return;
+            case ImportStatus.QrError: StatusText = L.Format("status.qrError", outcome.Detail ?? ""); return;
+            case ImportStatus.QrNotRecognized: StatusText = L["status.qrNotRecognized"]; return;
+            case ImportStatus.Ok: AddParsedProfiles(outcome.Text ?? "", noneFoundKey); return;
+            default: throw new ArgumentOutOfRangeException(nameof(outcome), outcome.Status, "Unhandled import status");
+        }
     }
 
-    private void ImportFromFile()
+    /// <summary>Parses share-links from <paramref name="text"/>, adds new (deduped) ones, persists.</summary>
+    private void AddParsedProfiles(string text, string noneFoundKey)
     {
-        var dlg = new Microsoft.Win32.OpenFileDialog
+        var result = ProfileImporter.Import(text, Profiles);
+        if (!result.AnyParsed)
         {
-            Title = L["import.file"],
-            Filter = "*.conf;*.txt|*.conf;*.txt;*.conf.txt|*.*|*.*",
-        };
-        if (dlg.ShowDialog() != true)
-            return;
-
-        string text;
-        try
-        {
-            text = File.ReadAllText(dlg.FileName);
-        }
-        catch (Exception ex)
-        {
-            StatusText = L.Format("status.fileReadFail", ex.Message);
+            StatusText = L[noneFoundKey];
             return;
         }
 
-        AddLinks(text, L["status.noLinksFile"]);
-    }
-
-    private void ImportQrFromFile()
-    {
-        var dlg = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = L["import.qrFile"],
-            Filter = "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.webp|*.*|*.*",
-        };
-        if (dlg.ShowDialog() != true)
-            return;
-
-        string? text;
-        try
-        {
-            text = QrDecoder.DecodeFile(dlg.FileName);
-        }
-        catch (Exception ex)
-        {
-            StatusText = L.Format("status.imgReadFail", ex.Message);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            StatusText = L["status.qrNotRecognized"];
-            return;
-        }
-        AddLinks(text, L["status.noLinksQr"]);
-    }
-
-    private void ImportQrFromClipboard()
-    {
-        System.Windows.Media.Imaging.BitmapSource? image;
-        try
-        {
-            image = Clipboard.ContainsImage() ? Clipboard.GetImage() : null;
-        }
-        catch (Exception)
-        {
-            StatusText = L["status.imgClipReadFail"];
-            return;
-        }
-
-        if (image is null)
-        {
-            StatusText = L["status.noImgClip"];
-            return;
-        }
-
-        string? text;
-        try
-        {
-            text = QrDecoder.Decode(image);
-        }
-        catch (Exception ex)
-        {
-            StatusText = L.Format("status.qrError", ex.Message);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            StatusText = L["status.qrNotRecognized"];
-            return;
-        }
-        AddLinks(text, L["status.noLinksQr"]);
-    }
-
-    private void ImportQrFromWebcam()
-    {
-        var dlg = new WebcamQrWindow { Owner = Application.Current?.MainWindow };
-        var ok = dlg.ShowDialog();
-        if (ok == true && !string.IsNullOrWhiteSpace(dlg.Result))
-            AddLinks(dlg.Result, L["status.noLinksQr"]);
-    }
-
-    /// <summary>Parses share-links from <paramref name="text"/>, adds new ones, persists.</summary>
-    private void AddLinks(string text, string noneFoundMessage)
-    {
-        var parsed = ShareLinkParser.ParseMany(text);
-        if (parsed.Count == 0)
-        {
-            StatusText = noneFoundMessage;
-            return;
-        }
-
-        int added = 0;
-        foreach (var p in parsed)
-        {
-            if (Profiles.Any(x => x.Raw == p.Raw))
-                continue;
+        foreach (var p in result.New)
             Profiles.Add(p);
-            added++;
-        }
 
         SelectedProfile ??= Profiles.FirstOrDefault();
         SaveProfiles();
-        StatusText = added > 0 ? L.Format("status.profilesAdded", added) : L["status.profilesExist"];
+        StatusText = result.New.Count > 0
+            ? L.Format("status.profilesAdded", result.New.Count)
+            : L["status.profilesExist"];
     }
 
     private void RemoveSelected()
