@@ -11,10 +11,11 @@ public class ConnectionControllerTests
     /// <summary>IVpnEngine whose StartAsync outcome is scripted per call.</summary>
     private sealed class FakeEngine : IVpnEngine
     {
-        private readonly Func<int, bool> _startSucceeds;
+        private readonly Func<int, string?> _script; // per call: null = success, else throw this message
         public int StartCalls { get; private set; }
 
-        public FakeEngine(Func<int, bool> startSucceeds) => _startSucceeds = startSucceeds;
+        public FakeEngine(Func<int, bool> startSucceeds) : this(c => startSucceeds(c) ? null : "start failed") { }
+        public FakeEngine(Func<int, string?> script) => _script = script;
 
         public EngineState State { get; private set; } = EngineState.Stopped;
         public event EventHandler<EngineState>? StateChanged;
@@ -26,9 +27,10 @@ public class ConnectionControllerTests
         {
             StartCalls++;
             SetState(EngineState.Starting);
-            if (_startSucceeds(StartCalls)) { SetState(EngineState.Running); return Task.CompletedTask; }
+            var fail = _script(StartCalls);
+            if (fail is null) { SetState(EngineState.Running); return Task.CompletedTask; }
             SetState(EngineState.Faulted);
-            throw new InvalidOperationException("start failed");
+            throw new InvalidOperationException(fail);
         }
 
         public Task StopAsync() { SetState(EngineState.Stopped); return Task.CompletedTask; }
@@ -59,7 +61,8 @@ public class ConnectionControllerTests
 
     private static ConnectionController Make(FakeEngine engine, IKillSwitch ks, Func<bool> wanted,
         WatchdogOptions? wd = null) =>
-        new(engine, ks, wanted, livenessProbe: _ => Task.FromResult(true), watchdogOptions: wd);
+        new(engine, ks, wanted, livenessProbe: _ => Task.FromResult(true), watchdogOptions: wd,
+            retryDelay: TimeSpan.Zero); // no real waits between start retries in tests
 
     private const string Core = "sr-fake-engine.exe"; // KillStale finds no such process -> no-op
 
@@ -144,5 +147,62 @@ public class ConnectionControllerTests
 
         await disengaged.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(ks.DisengageCount >= 1);
+    }
+
+    // --- characterization of the async start/reconnect lifecycle ---------
+
+    [Fact]
+    public async Task ConnectAsync_RetriesOnceOnExitedImmediately_ThenSucceeds()
+    {
+        // First start fails with the "exited immediately" signature (stale TUN adapter); retry works.
+        var engine = new FakeEngine(call => call == 1 ? "sing-box exited immediately (code 1)" : null);
+        var c = Make(engine, new CountingKillSwitch(), () => false);
+
+        await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
+
+        Assert.Equal(2, engine.StartCalls); // retried once, then up
+        Assert.Equal(EngineState.Running, engine.State);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_ExitedImmediatelyEveryTime_GivesUpAfterThreeAndThrows()
+    {
+        var engine = new FakeEngine(_ => "sing-box exited immediately (code 1)");
+        var c = Make(engine, new CountingKillSwitch(), () => false);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false));
+
+        Assert.Equal(3, engine.StartCalls); // bounded: 3 attempts, then surfaces the error
+    }
+
+    [Fact]
+    public async Task ConnectAsync_NonRetryableStartFailure_ThrowsWithoutRetrying()
+    {
+        // A start failure that is NOT "exited immediately" must not be retried.
+        var engine = new FakeEngine(_ => "invalid configuration: something");
+        var c = Make(engine, new CountingKillSwitch(), () => false);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false));
+
+        Assert.Equal(1, engine.StartCalls); // no retry
+    }
+
+    [Fact]
+    public async Task Crash_AfterConnect_AutoReconnects()
+    {
+        var engine = new FakeEngine(_ => (string?)null); // every start succeeds
+        var c = Make(engine, new CountingKillSwitch(), () => false, Instant());
+
+        await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false); // Running (call 1)
+
+        var reconnected = new TaskCompletionSource();
+        c.StateChanged += (_, s) => { if (s == EngineState.Running) reconnected.TrySetResult(); };
+        engine.Crash(); // Faulted -> watchdog restarts
+
+        await reconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(2, engine.StartCalls); // initial + one auto-reconnect
+        Assert.Equal(EngineState.Running, engine.State);
     }
 }

@@ -19,16 +19,20 @@ public sealed class ConnectionController
     private readonly EngineWatchdog _watchdog;
     private readonly TunnelLivenessMonitor _liveness;
 
+    private readonly TimeSpan _retryDelay;
+
     public ConnectionController(
         IVpnEngine engine,
         IKillSwitch killSwitch,
         Func<bool> killSwitchWanted,
         Func<CancellationToken, Task<bool>>? livenessProbe = null,
-        WatchdogOptions? watchdogOptions = null)
+        WatchdogOptions? watchdogOptions = null,
+        TimeSpan? retryDelay = null)
     {
         _engine = engine;
         _killSwitch = killSwitch;
         _killSwitchWanted = killSwitchWanted;
+        _retryDelay = retryDelay ?? TimeSpan.FromMilliseconds(1200); // pause before a start retry (injectable for tests)
 
         // Forward the engine's own events so the view-model subscribes here, not to the engine.
         _engine.StateChanged += (_, state) => StateChanged?.Invoke(this, state);
@@ -141,7 +145,7 @@ public sealed class ConnectionController
             catch (InvalidOperationException ex)
                 when (attempt < maxAttempts && ex.Message.Contains("exited immediately", StringComparison.Ordinal))
             {
-                await Task.Delay(1200); // give the stale TUN adapter time to be released, then retry
+                await Task.Delay(_retryDelay); // give the stale TUN adapter time to be released, then retry
             }
         }
     }
