@@ -55,6 +55,34 @@ public class LocalizationTests
         Assert.True(empties.Count == 0, $"{code}.json has empty values: {string.Join(", ", empties)}");
     }
 
+    // "lang:key" pairs whose non-English value legitimately equals English — product name,
+    // unit, loanword, or cognate (adjudicated). Everything else that equals English is an
+    // untranslated placeholder (e.g. left behind by scripts/loc-add-key.ps1).
+    private static readonly HashSet<string> IdenticalToEnglishAllowed = new(StringComparer.Ordinal)
+    {
+        "ru:crash.title", "uk:crash.title", "de:crash.title", "fr:crash.title", "es:crash.title",
+        "tr:crash.title", "zh:crash.title", "fa:crash.title",
+        "de:routing.title", "de:routing.apps", "de:updates.check", "de:active.auto", "de:profile.ping", "de:dns.latency",
+        "fr:routing.mode", "fr:active.auto", "fr:apps.toDirect", "fr:profile.ping", "fr:dns.latency",
+        "es:status.error", "es:active.auto", "es:active.manual", "es:profile.ping", "es:dns.latency",
+        "tr:profile.ping", "tr:dns.latency",
+    };
+
+    /// <summary>A non-English value equal to English is an untranslated placeholder unless whitelisted.</summary>
+    [Theory]
+    [MemberData(nameof(NonEnglishCodes))]
+    public void EveryLanguage_HasNoUntranslatedPlaceholders(string code)
+    {
+        var en = Load("en");
+        var other = Load(code);
+        var untranslated = en.Keys
+            .Where(k => other.TryGetValue(k, out var v) && v == en[k] && !IdenticalToEnglishAllowed.Contains($"{code}:{k}"))
+            .ToList();
+        Assert.True(untranslated.Count == 0,
+            $"{code}.json has untranslated (== English) values: {string.Join(", ", untranslated)}. " +
+            "Translate them, or add legitimately-identical ones to IdenticalToEnglishAllowed.");
+    }
+
     [Theory]
     [MemberData(nameof(NonEnglishCodes))]
     public void EveryLanguage_KeepsSamePlaceholders(string code)
