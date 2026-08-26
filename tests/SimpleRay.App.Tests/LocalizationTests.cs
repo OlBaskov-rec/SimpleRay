@@ -68,19 +68,27 @@ public class LocalizationTests
         "tr:profile.ping", "tr:dns.latency",
     };
 
-    /// <summary>A non-English value equal to English is an untranslated placeholder unless whitelisted.</summary>
+    /// <summary>
+    /// The set of non-English values equal to English must match the allowlist EXACTLY — so both
+    /// a new untranslated placeholder (identical but not allowed) and a stale allowlist entry
+    /// (allowed but since translated) fail, keeping the allowlist honest.
+    /// </summary>
     [Theory]
     [MemberData(nameof(NonEnglishCodes))]
-    public void EveryLanguage_HasNoUntranslatedPlaceholders(string code)
+    public void IdenticalToEnglishValues_MatchAllowlistExactly(string code)
     {
         var en = Load("en");
         var other = Load(code);
-        var untranslated = en.Keys
-            .Where(k => other.TryGetValue(k, out var v) && v == en[k] && !IdenticalToEnglishAllowed.Contains($"{code}:{k}"))
-            .ToList();
-        Assert.True(untranslated.Count == 0,
-            $"{code}.json has untranslated (== English) values: {string.Join(", ", untranslated)}. " +
-            "Translate them, or add legitimately-identical ones to IdenticalToEnglishAllowed.");
+        var actual = en.Keys
+            .Where(k => other.TryGetValue(k, out var v) && v == en[k])
+            .Select(k => $"{code}:{k}").ToHashSet();
+        var expected = IdenticalToEnglishAllowed
+            .Where(e => e.StartsWith($"{code}:", StringComparison.Ordinal)).ToHashSet();
+
+        var untranslated = actual.Except(expected).ToList(); // == English but not allowed → translate it
+        var stale = expected.Except(actual).ToList();         // allowed but now translated → drop from allowlist
+        Assert.True(untranslated.Count == 0, $"{code}.json untranslated (== English): {string.Join(", ", untranslated)}");
+        Assert.True(stale.Count == 0, $"{code}.json stale allowlist entries (now translated, remove them): {string.Join(", ", stale)}");
     }
 
     [Theory]

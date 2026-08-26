@@ -50,6 +50,15 @@ public class ConnectionControllerTests
         public void Dispose() => Disengage();
     }
 
+    /// <summary>IKillSwitch whose Engage always throws (WFP failure).</summary>
+    private sealed class ThrowingKillSwitch : IKillSwitch
+    {
+        public bool IsEngaged => false;
+        public void Engage(string tun, string exe) => throw new InvalidOperationException("WFP boom");
+        public void Disengage() { }
+        public void Dispose() { }
+    }
+
     // Instant watchdog: no real waits, so GaveUp is reached synchronously in tests.
     private static WatchdogOptions Instant(int maxAttempts = 2) => new()
     {
@@ -187,6 +196,20 @@ public class ConnectionControllerTests
             () => c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false));
 
         Assert.Equal(1, engine.StartCalls); // no retry
+    }
+
+    [Fact]
+    public async Task ConnectAsync_KillSwitchEngageFails_RaisesEventAndStaysConnected()
+    {
+        var engine = new FakeEngine(_ => (string?)null); // engine starts fine
+        var c = Make(engine, new ThrowingKillSwitch(), () => true);
+        Exception? reported = null;
+        c.KillSwitchEngageFailed += ex => reported = ex;
+
+        await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: true); // must NOT throw
+
+        Assert.Equal(EngineState.Running, engine.State); // connection stays up (degraded)
+        Assert.NotNull(reported);                        // failure surfaced via the event, not thrown
     }
 
     [Fact]
