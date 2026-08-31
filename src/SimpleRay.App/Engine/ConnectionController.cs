@@ -21,6 +21,12 @@ public sealed class ConnectionController
 
     private readonly TimeSpan _retryDelay;
 
+    // Synchronization: _gate serializes access to the engine, _sync protects CTS/Task state
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly object _sync = new();
+    private CancellationTokenSource? _connectCts;
+    private Task? _connectTask;
+
     public ConnectionController(
         IVpnEngine engine,
         IKillSwitch killSwitch,
@@ -90,28 +96,95 @@ public sealed class ConnectionController
     /// failure is surfaced via <see cref="KillSwitchEngageFailed"/> and never fails the connect;
     /// an engine start failure propagates to the caller.
     /// </summary>
-    public async Task ConnectAsync(string configJson, string tunInterfaceName, string coreExePath, bool killSwitch)
+    public Task ConnectAsync(string configJson, string tunInterfaceName, string coreExePath, bool killSwitch)
     {
-        await StartWithRetryAsync(configJson, coreExePath);
-        _watchdog.Arm(configJson); // auto-reconnect this config if sing-box later crashes
-        _liveness.Start();         // and force a reconnect if the tunnel silently dies
-        if (killSwitch)            // block non-tunnel traffic while we intend to be connected
+        lock (_sync)
         {
-            // Run off the UI thread: Engage waits a beat for the TUN adapter to appear (so
-            // permit-tun is installed). A failure must not fail the connection.
-            try { await Task.Run(() => _killSwitch.Engage(tunInterfaceName, coreExePath)); }
-            catch (Exception ex) { KillSwitchEngageFailed?.Invoke(ex); }
+            if (_connectTask is not null && !_connectTask.IsCompleted)
+                return _connectTask;
+            _connectCts = new CancellationTokenSource();
+        }
+
+        var cts = _connectCts!; // just created above
+        var t = ConnectCoreAsync(configJson, tunInterfaceName, coreExePath, killSwitch, cts.Token);
+        _connectTask = t;
+        return t;
+    }
+
+    /// <summary>
+    /// Internal implementation of ConnectAsync: acquires the gate, starts the engine with retry,
+    /// arms watchdog/liveness, engages kill-switch, and cleans up on cancellation.
+    /// </summary>
+    private async Task ConnectCoreAsync(string configJson, string tunInterfaceName, string coreExePath, bool killSwitch, CancellationToken token)
+    {
+        var cts = _connectCts; // capture for reference equality check in finally
+        await _gate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            await StartWithRetryAsync(configJson, coreExePath, token);
+            token.ThrowIfCancellationRequested();
+            _watchdog.Arm(configJson);
+            _liveness.Start();
+            if (killSwitch)
+            {
+                try
+                {
+                    await Task.Run(() => _killSwitch.Engage(tunInterfaceName, coreExePath), token);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex) { KillSwitchEngageFailed?.Invoke(ex); }
+            }
+        }
+        finally
+        {
+            _gate.Release();
+            lock (_sync)
+            {
+                if (ReferenceEquals(_connectCts, cts))
+                {
+                    _connectCts = null;
+                    _connectTask = null;
+                }
+            }
+            cts?.Dispose();
         }
     }
+
 
     /// <summary>User-initiated stop: no auto-reconnect, stop probing, stop blocking, stop the engine.</summary>
     public async Task DisconnectAsync()
     {
-        _watchdog.Disarm();      // user-initiated stop: don't auto-reconnect
-        _liveness.Stop();        // and stop probing the tunnel
-        _killSwitch.Disengage(); // and stop blocking non-tunnel traffic
-        await _engine.StopAsync();
+        Task? inflight;
+        lock (_sync)
+        {
+            _connectCts?.Cancel();
+            inflight = _connectTask;
+        }
+
+        if (inflight is not null)
+        {
+            try
+            {
+                await inflight.ConfigureAwait(false);
+            }
+            catch { }
+        }
+
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            _watchdog.Disarm();
+            _liveness.Stop();
+            _killSwitch.Disengage();
+            await _engine.StopAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
+
 
     /// <summary>
     /// Tears the connection down and disposes the engine. Deliberately does not await the
@@ -120,32 +193,39 @@ public sealed class ConnectionController
     /// </summary>
     public Task ShutdownAsync()
     {
-        _watchdog.Disarm();      // don't let a shutdown-time fault trigger a reconnect
-        _liveness.Stop();        // stop probing
-        _killSwitch.Disengage(); // never leave the machine blocked after we exit
+        lock (_sync)
+        {
+            _connectCts?.Cancel();
+        }
+
+        _watchdog.Disarm();
+        _liveness.Stop();
+        _killSwitch.Disengage();
         return _engine.DisposeAsync().AsTask();
     }
+
 
     /// <summary>
     /// Starts the engine, first clearing any orphaned engine still holding the TUN adapter, and
     /// retrying briefly when the start fails immediately — most often the adapter from a
     /// just-killed engine hasn't been released yet ("Cannot create ... already exists").
     /// </summary>
-    private async Task StartWithRetryAsync(string configJson, string coreExePath)
+    private async Task StartWithRetryAsync(string configJson, string coreExePath, CancellationToken ct)
     {
         const int maxAttempts = 3;
         for (int attempt = 1; ; attempt++)
         {
-            await Task.Run(() => EngineOrphans.KillStale(coreExePath));
+            ct.ThrowIfCancellationRequested();
+            await Task.Run(() => EngineOrphans.KillStale(coreExePath), ct);
             try
             {
-                await _engine.StartAsync(configJson);
+                await _engine.StartAsync(configJson, ct);
                 return;
             }
             catch (InvalidOperationException ex)
                 when (attempt < maxAttempts && ex.Message.Contains("exited immediately", StringComparison.Ordinal))
             {
-                await Task.Delay(_retryDelay); // give the stale TUN adapter time to be released, then retry
+                await Task.Delay(_retryDelay, ct); // give the stale TUN adapter time to be released, then retry (cancellable)
             }
         }
     }

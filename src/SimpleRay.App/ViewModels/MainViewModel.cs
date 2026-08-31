@@ -661,6 +661,10 @@ public sealed class MainViewModel : ObservableObject
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _connection.ConnectAsync(configJson, options.TunInterfaceName, AppPaths.CoreExe, _routing.KillSwitch);
         }
+        catch (OperationCanceledException)
+        {
+            // Connect was cancelled by a disconnect/shutdown — not an error.
+        }
         catch (Exception ex)
         {
             StatusText = L.Format("status.error", ex.Message);

@@ -12,9 +12,14 @@ public class ConnectionControllerTests
     private sealed class FakeEngine : IVpnEngine
     {
         private readonly Func<int, string?> _script; // per call: null = success, else throw this message
+        private TaskCompletionSource? _startGate;
+
         public int StartCalls { get; private set; }
 
+        public void SetStartGate(TaskCompletionSource gate) => _startGate = gate;
+
         public FakeEngine(Func<int, bool> startSucceeds) : this(c => startSucceeds(c) ? null : "start failed") { }
+
         public FakeEngine(Func<int, string?> script) => _script = script;
 
         public EngineState State { get; private set; } = EngineState.Stopped;
@@ -28,6 +33,7 @@ public class ConnectionControllerTests
             StartCalls++;
             SetState(EngineState.Starting);
             var fail = _script(StartCalls);
+            if (_startGate is not null) { _startGate.Task.Wait(ct); }
             if (fail is null) { SetState(EngineState.Running); return Task.CompletedTask; }
             SetState(EngineState.Faulted);
             throw new InvalidOperationException(fail);
@@ -69,9 +75,9 @@ public class ConnectionControllerTests
     };
 
     private static ConnectionController Make(FakeEngine engine, IKillSwitch ks, Func<bool> wanted,
-        WatchdogOptions? wd = null) =>
+        WatchdogOptions? wd = null, TimeSpan? retryDelay = null) =>
         new(engine, ks, wanted, livenessProbe: _ => Task.FromResult(true), watchdogOptions: wd,
-            retryDelay: TimeSpan.Zero); // no real waits between start retries in tests
+            retryDelay: retryDelay ?? TimeSpan.Zero); // no real waits between start retries in tests
 
     private const string Core = "sr-fake-engine.exe"; // KillStale finds no such process -> no-op
 
@@ -227,5 +233,60 @@ public class ConnectionControllerTests
         await reconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, engine.StartCalls); // initial + one auto-reconnect
         Assert.Equal(EngineState.Running, engine.State);
+    }
+
+    [Fact]
+    public async Task DisconnectDuringRetry_DoesNotResurrect()
+    {
+        var engine = new FakeEngine(call => call == 1 ? "sing-box exited immediately (code 1)" : null);
+        var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false, retryDelay: TimeSpan.FromSeconds(10));
+
+        var connectTask = c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (engine.StartCalls < 1 && sw.ElapsedMilliseconds < 2000) { await Task.Delay(10); }
+        Assert.Equal(1, engine.StartCalls);
+
+        await c.DisconnectAsync();
+
+        var exThrown = false;
+        try { await connectTask; }
+        catch (OperationCanceledException) { exThrown = true; }
+        Assert.True(exThrown || connectTask.IsCanceled);
+        Assert.Equal(1, engine.StartCalls);
+        Assert.NotEqual(EngineState.Running, engine.State);
+    }
+
+    [Fact]
+    public async Task ConcurrentConnect_IsSingleFlight()
+    {
+        var startGate = new TaskCompletionSource();
+        var engine = new FakeEngine(_ => (string?)null);
+        engine.SetStartGate(startGate);
+        var c = Make(engine, new CountingKillSwitch(), () => false);
+
+        var t1 = c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
+        await Task.Delay(50); // give t1 time to enter StartAsync
+        var t2 = c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
+
+        Assert.Same(t1, t2);
+        Assert.Equal(1, engine.StartCalls);
+
+        startGate.TrySetResult();
+        await t1;
+        Assert.Equal(1, engine.StartCalls);
+    }
+
+    [Fact]
+    public async Task DisconnectAsync_Idempotent()
+    {
+        var engine = new FakeEngine(_ => (string?)null);
+        var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false);
+
+        await c.DisconnectAsync();
+        await c.DisconnectAsync();
+
+        Assert.Equal(EngineState.Stopped, engine.State);
     }
 }
