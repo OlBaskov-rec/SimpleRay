@@ -72,7 +72,7 @@ public sealed class MainViewModel : ObservableObject
             WorkingDirectory = AppPaths.RuntimeDir,
             Terminator = new ConsoleCtrlTerminator(),
         });
-        _connection = new ConnectionController(engine, killSwitch ?? new WfpKillSwitch(), () => _routing.KillSwitch);
+        _connection = new ConnectionController(engine, killSwitch ?? new WfpKillSwitch());
         _connection.StateChanged += OnEngineStateChanged;
         _connection.LogReceived += OnEngineLog;
         _connection.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
@@ -764,10 +764,13 @@ public sealed class MainViewModel : ObservableObject
             p.LatencyText = p.LatencyMs is int ms ? $"{ms} ms" : "—";
         }));
 
+        // Reorder the CURRENT list (not the pre-await snapshot) so a profile removed or imported
+        // during the probe isn't resurrected or dropped. Materialize before ReplaceProfiles clears.
         // Reachable/fastest first; unreachable (null) last, then by name.
-        ReplaceProfiles(list
+        ReplaceProfiles(Profiles
             .OrderBy(p => p.LatencyMs ?? int.MaxValue)
-            .ThenBy(p => p.Tag, StringComparer.OrdinalIgnoreCase));
+            .ThenBy(p => p.Tag, StringComparer.OrdinalIgnoreCase)
+            .ToList());
         SaveProfiles();
         StatusText = L["status.pingDone"];
 

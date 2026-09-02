@@ -74,9 +74,11 @@ public class ConnectionControllerTests
         StabilityWindow = TimeSpan.Zero,
     };
 
+    // `wanted` is vestigial (kept so call sites stay unchanged): give-up now decides on the
+    // kill-switch's ACTUAL IsEngaged state, driven by the ConnectAsync killSwitch flag.
     private static ConnectionController Make(FakeEngine engine, IKillSwitch ks, Func<bool> wanted,
         WatchdogOptions? wd = null, TimeSpan? retryDelay = null) =>
-        new(engine, ks, wanted, livenessProbe: _ => Task.FromResult(true), watchdogOptions: wd,
+        new(engine, ks, livenessProbe: _ => Task.FromResult(true), watchdogOptions: wd,
             retryDelay: retryDelay ?? TimeSpan.Zero); // no real waits between start retries in tests
 
     private const string Core = "sr-fake-engine.exe"; // KillStale finds no such process -> no-op

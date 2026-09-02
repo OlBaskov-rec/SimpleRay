@@ -15,7 +15,6 @@ public sealed class ConnectionController
 {
     private readonly IVpnEngine _engine;
     private readonly IKillSwitch _killSwitch;
-    private readonly Func<bool> _killSwitchWanted;
     private readonly EngineWatchdog _watchdog;
     private readonly TunnelLivenessMonitor _liveness;
 
@@ -30,14 +29,12 @@ public sealed class ConnectionController
     public ConnectionController(
         IVpnEngine engine,
         IKillSwitch killSwitch,
-        Func<bool> killSwitchWanted,
         Func<CancellationToken, Task<bool>>? livenessProbe = null,
         WatchdogOptions? watchdogOptions = null,
         TimeSpan? retryDelay = null)
     {
         _engine = engine;
         _killSwitch = killSwitch;
-        _killSwitchWanted = killSwitchWanted;
         _retryDelay = retryDelay ?? TimeSpan.FromMilliseconds(1200); // pause before a start retry (injectable for tests)
 
         // Forward the engine's own events so the view-model subscribes here, not to the engine.
@@ -57,7 +54,10 @@ public sealed class ConnectionController
         _watchdog.Reconnecting += (attempt, max) => Reconnecting?.Invoke(attempt, max);
         _watchdog.GaveUp += () =>
         {
-            if (_killSwitchWanted())
+            // Decide on the ACTUAL kill-switch state, not the checkbox intent: if the user toggled
+            // the setting on mid-session (no Engage ran), the filters aren't installed, so reporting
+            // "blocked" would be a false sense of protection.
+            if (_killSwitch.IsEngaged)
             {
                 // Fail-closed: keep blocking after we give up, so the tunnel dropping never leaks
                 // the real IP (the whole point of the kill-switch). The user reconnects manually.
@@ -101,14 +101,13 @@ public sealed class ConnectionController
         lock (_sync)
         {
             if (_connectTask is not null && !_connectTask.IsCompleted)
-                return _connectTask;
-            _connectCts = new CancellationTokenSource();
-        }
+                return _connectTask; // single-flight: coalesce a re-entrant connect
 
-        var cts = _connectCts!; // just created above
-        var t = ConnectCoreAsync(configJson, tunInterfaceName, coreExePath, killSwitch, cts.Token);
-        _connectTask = t;
-        return t;
+            _connectCts = new CancellationTokenSource();
+            // Publish the task under the lock so a concurrent caller can't miss it and double-start.
+            _connectTask = ConnectCoreAsync(configJson, tunInterfaceName, coreExePath, killSwitch, _connectCts.Token);
+            return _connectTask;
+        }
     }
 
     /// <summary>
