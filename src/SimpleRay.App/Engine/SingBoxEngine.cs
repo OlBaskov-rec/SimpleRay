@@ -63,6 +63,10 @@ public sealed class SingBoxEngine : IVpnEngine
     private readonly object _gate = new();
     private IEngineProcess? _process;
 
+    // Serializes the whole start/stop lifecycle so no two StartAsync (e.g. the watchdog's direct
+    // restart racing a manual connect) run concurrently and the check-and-set of State is atomic.
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+
     public SingBoxEngine(EngineOptions options)
     {
         _options = options;
@@ -78,62 +82,70 @@ public sealed class SingBoxEngine : IVpnEngine
 
     public async Task StartAsync(string configJson, CancellationToken ct = default)
     {
-        EnsureFilesExist();
-        if (State is EngineState.Running or EngineState.Starting)
-            throw new InvalidOperationException("Engine already running.");
-
-        WriteConfig(configJson);
-
-        // Pre-flight validation, before we enter Starting or spawn the tunnel: a bad
-        // config throws here with the checker's own message, so the caller shows a real
-        // reason instead of the later "exited immediately (code 1)".
-        if (_options.ValidateBeforeStart)
-            await ValidateConfigAsync(ct).ConfigureAwait(false);
-
-        SetState(EngineState.Starting);
-
-        var process = _launcher.Create(
-            _options.ExecutablePath,
-            $"run -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"",
-            _options.WorkingDirectory);
-        process.OutputReceived += line => LogReceived?.Invoke(this, line);
-        // The crash handler is attached only once we know the process is up, so the
-        // fail-fast probe below can read HasExited/ExitCode without racing a disposal.
-
-        lock (_gate)
-        {
-            _process = process;
-        }
-
-        if (!process.Start())
-        {
-            ClearProcess(process);
-            SetState(EngineState.Faulted);
-            throw new InvalidOperationException("Failed to start sing-box.");
-        }
-
-        // Give the process a moment to fail fast (bad config, no admin for TUN).
+        await _lifecycleGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await Task.Delay(_options.StartupProbeDelay, ct).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            await StopAsync().ConfigureAwait(false);
-            throw;
-        }
+            EnsureFilesExist();
+            if (State is EngineState.Running or EngineState.Starting)
+                throw new InvalidOperationException("Engine already running.");
 
-        if (process.HasExited)
-        {
-            int code = process.ExitCode;
-            ClearProcess(process);
-            SetState(EngineState.Faulted);
-            throw new InvalidOperationException(
-                $"sing-box exited immediately (code {code}). Check logs / admin rights for TUN.");
-        }
+            WriteConfig(configJson);
 
-        process.Exited += OnProcessExited;
-        SetState(EngineState.Running);
+            // Pre-flight validation, before we enter Starting or spawn the tunnel: a bad
+            // config throws here with the checker's own message, so the caller shows a real
+            // reason instead of the later "exited immediately (code 1)".
+            if (_options.ValidateBeforeStart)
+                await ValidateConfigAsync(ct).ConfigureAwait(false);
+
+            SetState(EngineState.Starting);
+
+            var process = _launcher.Create(
+                _options.ExecutablePath,
+                $"run -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"",
+                _options.WorkingDirectory);
+            process.OutputReceived += line => LogReceived?.Invoke(this, line);
+            // The crash handler is attached only once we know the process is up, so the
+            // fail-fast probe below can read HasExited/ExitCode without racing a disposal.
+
+            lock (_gate)
+            {
+                _process = process;
+            }
+
+            if (!process.Start())
+            {
+                ClearProcess(process);
+                SetState(EngineState.Faulted);
+                throw new InvalidOperationException("Failed to start sing-box.");
+            }
+
+            // Give the process a moment to fail fast (bad config, no admin for TUN).
+            try
+            {
+                await Task.Delay(_options.StartupProbeDelay, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                await StopCoreAsync().ConfigureAwait(false); // teardown must NOT be cancellable
+                throw;
+            }
+
+            if (process.HasExited)
+            {
+                int code = process.ExitCode;
+                ClearProcess(process);
+                SetState(EngineState.Faulted);
+                throw new InvalidOperationException(
+                    $"sing-box exited immediately (code {code}). Check logs / admin rights for TUN.");
+            }
+
+            process.Exited += OnProcessExited;
+            SetState(EngineState.Running);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
     }
 
     /// <summary>Runs <c>sing-box check</c>; returns (ok, combined output). No side effects.</summary>
@@ -189,6 +201,23 @@ public sealed class SingBoxEngine : IVpnEngine
     }
 
     public async Task StopAsync()
+    {
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await StopCoreAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Stops the process without touching the lifecycle gate. Callers already holding the gate
+    /// (the StartAsync cancellation path) use this to avoid a self-deadlock.
+    /// </summary>
+    private async Task StopCoreAsync()
     {
         IEngineProcess? process;
         lock (_gate)
@@ -249,22 +278,25 @@ public sealed class SingBoxEngine : IVpnEngine
 
     private void OnProcessExited(object? sender, EventArgs e)
     {
-        // Fires only for unexpected exits; StopAsync detaches this handler first.
-        if (sender is IEngineProcess p)
-            ClearProcess(p);
-        SetState(EngineState.Faulted);
+        // Fault only when the process that exited is the one we currently own. A stale exit
+        // (from a process already replaced or stopped) must not flip a fresh state to Faulted.
+        if (sender is IEngineProcess p && ClearProcess(p))
+            SetState(EngineState.Faulted);
     }
 
-    /// <summary>Detaches, clears and disposes the process if it is the current one.</summary>
-    private void ClearProcess(IEngineProcess process)
+    /// <summary>Detaches, clears and disposes the process; returns true if it was the current one.</summary>
+    private bool ClearProcess(IEngineProcess process)
     {
+        bool wasCurrent;
         lock (_gate)
         {
-            if (ReferenceEquals(_process, process))
+            wasCurrent = ReferenceEquals(_process, process);
+            if (wasCurrent)
                 _process = null;
         }
         try { process.Exited -= OnProcessExited; } catch { /* ignore */ }
         try { process.Dispose(); } catch { /* ignore */ }
+        return wasCurrent;
     }
 
     private void WriteConfig(string configJson)

@@ -316,4 +316,36 @@ public class SingBoxEngineTests : IDisposable
         Assert.False(ok);
         Assert.Contains("decode config", output);
     }
+
+    [Fact]
+    public async Task ConcurrentStart_IsSerialized_NoDoubleProcess()
+    {
+        // t1's config check is held open, parking t1 inside StartAsync WITH the lifecycle gate
+        // held (State still Stopped). A second StartAsync must block on the gate rather than
+        // racing into its own validate+launch — otherwise two "run" processes would be created.
+        var check1 = new FakeProcess();          // does NOT exit until released
+        var run1 = Running();
+        var launcher = new FakeLauncher(check1, run1);
+        var engine = new SingBoxEngine(Options(launcher, validate: true));
+
+        var t1 = engine.StartAsync("{}");
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (launcher.CreatedArgs.Count < 1 && sw.ElapsedMilliseconds < 2000) await Task.Delay(10);
+        Assert.Single(launcher.CreatedArgs);                 // only t1's check so far
+        Assert.False(t1.IsCompleted);
+
+        var t2 = engine.StartAsync("{}");
+        await Task.Delay(100);                                // t2 is blocked on the gate forever until release
+        Assert.False(t2.IsCompleted);
+        Assert.Single(launcher.CreatedArgs);                  // t2 did NOT start its own check/run
+
+        check1.RaiseExit(0);                                  // t1's check passes -> t1 continues
+        await t1;                                             // t1 reaches Running
+        Assert.Equal(EngineState.Running, engine.State);
+
+        // t2 now runs, sees State==Running and throws WITHOUT launching a second process.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => t2);
+        Assert.Equal(2, launcher.CreatedArgs.Count);          // check1 + run1 only — no second run
+        Assert.Contains("run", launcher.CreatedArgs[1]);
+    }
 }

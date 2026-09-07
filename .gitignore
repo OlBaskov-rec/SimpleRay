@@ -488,6 +488,10 @@ $RECYCLE.BIN/
 # are still ignored by the rules above / below).
 !src/SimpleRay.App/
 
+# --- External implementer (codex) build scratch — never commit ---
+**/.codex-obj/
+**/.codex-bin/
+
 # --- SimpleRay release output ---
 /publish/
 /dist/
