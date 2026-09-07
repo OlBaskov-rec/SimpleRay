@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleRay.App.Infrastructure;
@@ -111,12 +114,13 @@ public sealed class UpdateService
         psi.ArgumentList.Add(appDir);
         psi.ArgumentList.Add(selfExe);
         psi.ArgumentList.Add(Environment.ProcessId.ToString());
+        psi.ArgumentList.Add(ComputeStagingManifest(stagingDir)); // apply-time integrity re-check
         Process.Start(psi);
     }
 
     // --- updater branch (runs in the temp copy) ---------------------------
 
-    /// <summary>args: --apply-update &lt;staging&gt; &lt;targetDir&gt; &lt;relaunchExe&gt; &lt;waitPid&gt;</summary>
+    /// <summary>args: --apply-update &lt;staging&gt; &lt;targetDir&gt; &lt;relaunchExe&gt; &lt;waitPid&gt; [&lt;stagingManifest&gt;]</summary>
     public static void RunApplyUpdate(string[] args)
     {
         if (args.Length < 5) return;
@@ -124,8 +128,19 @@ public sealed class UpdateService
         var target = args[2];
         var relaunch = args[3];
         int.TryParse(args[4], out var waitPid);
+        var expectedManifest = args.Length >= 6 ? args[5] : null;
 
         WaitForExit(waitPid, TimeSpan.FromSeconds(30));
+
+        // Re-verify the staged payload right before applying it. The zip was authenticated at
+        // download time, but the extracted staging dir lives in a user-writable location; a local
+        // process could tamper it between staging and this (possibly elevated) apply. If the
+        // manifest no longer matches what we staged, refuse to apply and relaunch the current build.
+        if (expectedManifest is not null && !ManifestMatches(staging, expectedManifest))
+        {
+            TryStart(relaunch, target);
+            return;
+        }
 
         // Snapshot the current install so a broken new build can be rolled back.
         var backup = target.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + ".backup";
@@ -250,5 +265,31 @@ public sealed class UpdateService
         using var stream = File.OpenRead(path);
         using var sha = SHA256.Create();
         return Convert.ToHexString(sha.ComputeHash(stream));
+    }
+
+    /// <summary>
+    /// A deterministic digest over a directory tree: for every file (sorted by its normalized
+    /// relative path) the path and its SHA-256 are folded into one hash. Any added, removed,
+    /// renamed or modified file changes the result, so it detects post-staging tampering.
+    /// </summary>
+    public static string ComputeStagingManifest(string dir)
+    {
+        var entries = Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)
+            .Select(f => (rel: Path.GetRelativePath(dir, f).Replace('\\', '/'), full: f))
+            .OrderBy(e => e.rel, StringComparer.Ordinal)
+            .ToList();
+
+        var acc = new StringBuilder();
+        foreach (var (rel, full) in entries)
+            acc.Append(rel).Append('\0').Append(Sha256File(full)).Append('\n');
+
+        using var sha = SHA256.Create();
+        return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(acc.ToString())));
+    }
+
+    private static bool ManifestMatches(string stagingDir, string expected)
+    {
+        try { return string.Equals(ComputeStagingManifest(stagingDir), expected, StringComparison.OrdinalIgnoreCase); }
+        catch { return false; } // can't verify → fail safe, don't apply
     }
 }

@@ -66,4 +66,46 @@ public class UpdateApplyTests : IDisposable
         // Should return without throwing.
         UpdateService.RunApplyUpdate(new[] { "--apply-update", "only-one" });
     }
+
+    [Fact]
+    public void RunApplyUpdate_Applies_WhenManifestMatches()
+    {
+        var staging = Path.Combine(_base, "staging");
+        var target = Path.Combine(_base, "target");
+        Directory.CreateDirectory(staging);
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(staging, "SimpleRay.exe"), "NEW");
+        File.WriteAllText(Path.Combine(target, "SimpleRay.exe"), "OLD");
+
+        var manifest = UpdateService.ComputeStagingManifest(staging);
+        UpdateService.RunApplyUpdate(new[]
+        {
+            "--apply-update", staging, target, Path.Combine(_base, "nope.exe"), "999999", manifest
+        });
+
+        Assert.Equal("NEW", File.ReadAllText(Path.Combine(target, "SimpleRay.exe")));
+    }
+
+    [Fact]
+    public void RunApplyUpdate_RefusesApply_WhenStagingTamperedAfterManifest()
+    {
+        var staging = Path.Combine(_base, "staging");
+        var target = Path.Combine(_base, "target");
+        Directory.CreateDirectory(staging);
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(staging, "SimpleRay.exe"), "NEW");
+        File.WriteAllText(Path.Combine(target, "SimpleRay.exe"), "OLD");
+
+        var manifest = UpdateService.ComputeStagingManifest(staging);
+        // A local process tampers the staged payload AFTER we captured the manifest.
+        File.WriteAllText(Path.Combine(staging, "SimpleRay.exe"), "EVIL");
+
+        UpdateService.RunApplyUpdate(new[]
+        {
+            "--apply-update", staging, target, Path.Combine(_base, "nope.exe"), "999999", manifest
+        });
+
+        // Tamper detected → the install is left untouched (never overwritten with EVIL).
+        Assert.Equal("OLD", File.ReadAllText(Path.Combine(target, "SimpleRay.exe")));
+    }
 }
