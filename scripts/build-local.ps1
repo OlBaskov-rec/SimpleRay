@@ -95,11 +95,22 @@ Get-ChildItem $OutDir -File | ForEach-Object {
     "  {0,10:N2} MB  {1}" -f ($_.Length / 1MB), $_.Name
 }
 
-# --- 6. archive this version into the persistent builds/<ver>/ folder -----
-# build/ above is a latest-only pickup; builds/ keeps every version (see builds/README.md).
-$archive = Join-Path $repo "builds\$ver"
-New-Item -ItemType Directory -Force $archive | Out-Null
-Get-ChildItem $OutDir -Filter "SimpleRay-$ver-*" -File | ForEach-Object {
-    Copy-Item $_.FullName $archive -Force
+# --- 6. drop the changelog next to the pickup build ----------------------
+$changelog = Join-Path $repo "CHANGELOG.md"
+if (Test-Path $changelog) { Copy-Item $changelog $OutDir -Force }
+
+# --- 7. stage setup + portable (+ changelog) for publishing to GitHub -----
+# releases/ always holds the current version's publishable artifacts (see releases/README.md).
+$releases = Join-Path $repo "releases"
+New-Item -ItemType Directory -Force $releases | Out-Null
+Get-ChildItem $releases -Filter "SimpleRay-*" -File -ErrorAction SilentlyContinue | Remove-Item -Force
+foreach ($pattern in @(
+    "SimpleRay-$ver-win-x64.zip",
+    "SimpleRay-$ver-win-x64.zip.sha256",
+    "SimpleRay-$ver-setup.exe"
+)) {
+    $src = Join-Path $dist $pattern
+    if (Test-Path $src) { Copy-Item $src $releases -Force }
 }
-Write-Host "Archived $ver to: $archive" -ForegroundColor Green
+if (Test-Path $changelog) { Copy-Item $changelog $releases -Force }
+Write-Host "Staged release artifacts in: $releases" -ForegroundColor Green
