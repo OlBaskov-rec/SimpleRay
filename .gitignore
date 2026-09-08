@@ -523,3 +523,8 @@ update-signing.*
 
 # Local build pickup folder (scripts/build-local.ps1 output)
 /build/
+
+# Local archive of built versions (scripts/build-local.ps1 -> builds/<ver>/).
+# Keep the folder and its README in the repo, but never commit the large binaries.
+/builds/*
+!/builds/README.md

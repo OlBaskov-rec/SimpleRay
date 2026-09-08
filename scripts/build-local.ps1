@@ -94,3 +94,12 @@ Write-Host "`nBuild $ver ready in: $OutDir" -ForegroundColor Green
 Get-ChildItem $OutDir -File | ForEach-Object {
     "  {0,10:N2} MB  {1}" -f ($_.Length / 1MB), $_.Name
 }
+
+# --- 6. archive this version into the persistent builds/<ver>/ folder -----
+# build/ above is a latest-only pickup; builds/ keeps every version (see builds/README.md).
+$archive = Join-Path $repo "builds\$ver"
+New-Item -ItemType Directory -Force $archive | Out-Null
+Get-ChildItem $OutDir -Filter "SimpleRay-$ver-*" -File | ForEach-Object {
+    Copy-Item $_.FullName $archive -Force
+}
+Write-Host "Archived $ver to: $archive" -ForegroundColor Green
