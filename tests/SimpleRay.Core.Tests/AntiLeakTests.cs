@@ -51,6 +51,22 @@ public class AntiLeakTests
         Assert.Contains(rules, r => (bool?)r!["ip_is_private"] == true && (string?)r["outbound"] == "direct");
     }
 
+    [Theory]
+    [MemberData(nameof(AllModes))]
+    public void LanRanges_AreExcludedFromTunnel_SoLocalTrafficStaysReachable(RoutingMode mode)
+    {
+        var tun = SingBoxConfigGenerator.Generate(Vless(), new RoutingSettings { Mode = mode })
+            ["inbounds"]!.AsArray().Single(n => (string?)n!["type"] == "tun")!.AsObject();
+
+        // Regression: strict_route + auto_route were dropping LAN traffic (a 172.16.x ping failed
+        // with "General failure"). Private/link-local ranges must be excluded from the tunnel.
+        var excluded = tun["route_exclude_address"]!.AsArray().Select(n => (string?)n).ToList();
+        Assert.Contains("10.0.0.0/8", excluded);
+        Assert.Contains("172.16.0.0/12", excluded);
+        Assert.Contains("192.168.0.0/16", excluded);
+        Assert.Contains("169.254.0.0/16", excluded);
+    }
+
     [Fact]
     public void PerAppRules_TakePrecedenceOverGeo_AndMapCorrectly()
     {

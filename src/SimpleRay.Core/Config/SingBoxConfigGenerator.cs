@@ -154,22 +154,47 @@ public static class SingBoxConfigGenerator
         return server;
     }
 
-    private static JsonObject BuildTunInbound(GeneratorOptions o, bool enableIpv6) => new()
+    // LAN, link-local, multicast and broadcast ranges are kept OFF the tunnel. With auto_route +
+    // strict_route, sing-box otherwise forces even local traffic through the TUN, where it can't
+    // proxy ICMP and strict_route's WFP rules drop the OS-level bypass — so pinging a LAN host or
+    // reaching a printer/NAS fails with "General failure". Excluding them lets local traffic stay
+    // local (the ip_is_private route rule already expresses the same intent for packets that do
+    // enter the tunnel; this makes the OS routing match it instead of black-holing the LAN).
+    private static readonly string[] LocalV4Ranges =
     {
-        ["type"] = "tun",
-        ["tag"] = "tun-in",
-        ["interface_name"] = o.TunInterfaceName,
-        // Default IPv4-only tun (see the DNS ipv4_only note): no IPv6 address means auto_route
-        // adds no IPv6 default route, so stray IPv6 traffic can't be hijacked into the broken
-        // direct-IPv6 path. enableIpv6 restores the dual-stack address for IPv6-capable networks.
-        ["address"] = enableIpv6
-            ? new JsonArray { "172.18.0.1/30", "fdfe:dcba:9876::1/126" }
-            : new JsonArray { "172.18.0.1/30" },
-        ["mtu"] = o.Mtu,
-        ["auto_route"] = true,
-        ["strict_route"] = true,
-        ["stack"] = "system",
+        "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+        "169.254.0.0/16", "224.0.0.0/4", "255.255.255.255/32",
     };
+
+    private static readonly string[] LocalV6Ranges = { "fc00::/7", "fe80::/10", "ff00::/8" };
+
+    private static JsonObject BuildTunInbound(GeneratorOptions o, bool enableIpv6)
+    {
+        var tun = new JsonObject
+        {
+            ["type"] = "tun",
+            ["tag"] = "tun-in",
+            ["interface_name"] = o.TunInterfaceName,
+            // Default IPv4-only tun (see the DNS ipv4_only note): no IPv6 address means auto_route
+            // adds no IPv6 default route, so stray IPv6 traffic can't be hijacked into the broken
+            // direct-IPv6 path. enableIpv6 restores the dual-stack address for IPv6-capable networks.
+            ["address"] = enableIpv6
+                ? new JsonArray { "172.18.0.1/30", "fdfe:dcba:9876::1/126" }
+                : new JsonArray { "172.18.0.1/30" },
+            ["mtu"] = o.Mtu,
+            ["auto_route"] = true,
+            ["strict_route"] = true,
+            // Unified route field (sing-box 1.10+; legacy inet4_/inet6_ variants were removed in
+            // 1.12). v6 ranges are only added when the dual-stack tun is enabled.
+            ["route_exclude_address"] = ToJsonArray(
+                enableIpv6 ? LocalV4Ranges.Concat(LocalV6Ranges) : LocalV4Ranges),
+            ["stack"] = "system",
+        };
+        return tun;
+    }
+
+    private static JsonArray ToJsonArray(IEnumerable<string> items) =>
+        new(items.Select(s => (JsonNode)s!).ToArray());
 
     /// <summary>Proxy nodes split into plain outbounds and WireGuard endpoints (plus the direct outbound).</summary>
     private readonly record struct ProxyTopology(JsonArray Outbounds, JsonArray Endpoints);
