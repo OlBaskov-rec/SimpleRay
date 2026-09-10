@@ -69,6 +69,12 @@ public sealed class WfpKillSwitch : IKillSwitch
     public bool IsEngaged { get; private set; }
 
     public void Engage(string tunInterfaceName, string allowedExePath)
+        => Engage(tunInterfaceName, allowedExePath, requireTunPermit: true);
+
+    public void Engage(string tunInterfaceName, string allowedExePath, bool requireTunPermit)
+        => EngageCore(tunInterfaceName, allowedExePath, requireTunPermit);
+
+    private void EngageCore(string tun, string exe, bool requireTunPermit)
     {
         lock (_gate)
         {
@@ -78,15 +84,20 @@ public sealed class WfpKillSwitch : IKillSwitch
             // adapter up a second or two AFTER the process starts, and the app engages right after
             // start — without permit-tun, block-all drops ALL tunnelled traffic (the browser's
             // connections egress via the TUN) and the machine goes fully offline. If it never
-            // appears (e.g. the harness with no sing-box), luid stays 0 and we still block-all.
-            ulong tunLuid = WaitForLuid(tunInterfaceName, TimeSpan.FromSeconds(8));
+            // appears, fail-open unless block-only mode was explicitly requested by the harness.
+            ulong tunLuid = WaitForLuid(tun, TimeSpan.FromSeconds(8));
+            // Fail-open: better to stay connected without the kill-switch than to black-hole the
+            // whole machine. The caller surfaces this as "kill-switch could not be enabled".
+            if (requireTunPermit && tunLuid == 0)
+                throw new InvalidOperationException(
+                    "Kill-switch not engaged: the TUN adapter did not appear, so blocking would cut all traffic. The connection stays up without the kill-switch.");
 
             Open();
             try
             {
-                Native.FwpmTransactionBegin0(_engine, 0);
+                Check(Native.FwpmTransactionBegin0(_engine, 0), "transaction begin");
                 EnsureProviderAndSubLayer();
-                AddBlockAndPermitFilters(tunLuid, allowedExePath);
+                AddBlockAndPermitFilters(tunLuid, exe);
                 Check(Native.FwpmTransactionCommit0(_engine), "commit");
                 IsEngaged = true;
             }

@@ -25,7 +25,8 @@ var ks = new WfpKillSwitch();
 Console.WriteLine("[2/3] Engage() — add the block + permit filters (WFP)...");
 try
 {
-    ks.Engage(tun, exe);
+    // Harness intentionally tests block-only mode without a live TUN adapter.
+    ks.Engage(tun, exe, requireTunPermit: false);
     Console.WriteLine($"      ok, IsEngaged={ks.IsEngaged}");
 }
 catch (Exception e)
