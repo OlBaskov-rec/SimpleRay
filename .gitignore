@@ -516,9 +516,12 @@ lang.txt
 *.conf
 *.p12
 *.pvk
-# Update-signing private keys — the private key must NEVER be committed (CI secret only)
+# Update-signing private keys — the private key must NEVER be committed (CI secret only).
+# Keep these specific to key material so they don't also swallow docs/UPDATE-SIGNING.md
+# (gitignore is case-insensitive on Windows).
 *.key
-update-signing.*
+update-signing.pem
+update-signing.p8
 !*.key.example
 
 # Local build pickup folder (scripts/build-local.ps1 output)

@@ -68,6 +68,9 @@ and the in-app updater can write there). Upload it to the release as an extra as
 
 ## Update signing (recommended, one-time setup)
 
+> Full guide — key generation, manual signing, secure key storage and rotation:
+> [UPDATE-SIGNING.md](UPDATE-SIGNING.md).
+
 The updater verifies each update's authenticity with an embedded ECDSA P-256 public key.
 A `.sha256` sidecar only proves the download wasn't corrupted; a signature proves it came
 from whoever holds the private key, so a compromised GitHub release can't push a forged
