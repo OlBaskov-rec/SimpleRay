@@ -3,6 +3,21 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## 0.3.1 — 2026-09-10
+
+### English
+- **Fix — LAN unreachable with the kill-switch on.** The WFP kill-switch blocked all non-tunnel
+  traffic, including the local network, so LAN hosts, printers and NAS were unreachable while
+  connected (a LAN ping failed with "General failure"). It now permits private, link-local,
+  multicast and broadcast ranges, so the LAN stays reachable while the internet is still blocked
+  if the tunnel drops.
+
+### Русский
+- **Исправление — LAN недоступен при включённом kill-switch.** WFP kill-switch блокировал весь
+  не-туннельный трафик, включая локальную сеть — LAN-хосты, принтеры и NAS были недоступны при
+  подключении (пинг LAN падал в «Общий сбой»). Теперь разрешены приватные, link-local, multicast
+  и broadcast диапазоны: LAN доступна, а интернет по-прежнему блокируется при падении туннеля.
+
 ## 0.3.0 — 2026-09-10
 
 ### English

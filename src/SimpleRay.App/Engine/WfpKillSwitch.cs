@@ -27,7 +27,41 @@ public sealed class WfpKillSwitch : IKillSwitch
     // The filter tags we may add (per layer). Cleanup deletes filters by deterministic key
     // built from (layer, tag) — deleting the sublayer does NOT cascade to its filters, so
     // without per-key deletion the filters accumulate across runs.
-    private static readonly string[] FilterTags = { "block-all", "permit-loopback", "permit-tun", "permit-singbox" };
+    private static readonly string[] FilterTags =
+    {
+        "block-all", "permit-loopback", "permit-tun", "permit-singbox",
+        // LAN permits (see LanV4/LanV6). Cleanup tries every tag on both layers; a v4 tag on the
+        // v6 layer (or vice-versa) simply isn't found and is skipped.
+        "permit-lan-10", "permit-lan-172", "permit-lan-192", "permit-lan-169", "permit-lan-mcast", "permit-lan-bcast",
+        "permit-lan-v6ll", "permit-lan-v6ula", "permit-lan-v6mcast",
+    };
+
+    // Private / link-local / multicast / broadcast ranges kept reachable while engaged, so the
+    // kill-switch blocks the internet but not the LAN. These are non-routable, so permitting them
+    // never opens an internet leak. IPv4 addr/mask are host byte order.
+    private static readonly (string tag, uint addr, uint mask)[] LanV4 =
+    {
+        ("permit-lan-10",    0x0A000000, 0xFF000000), // 10.0.0.0/8
+        ("permit-lan-172",   0xAC100000, 0xFFF00000), // 172.16.0.0/12
+        ("permit-lan-192",   0xC0A80000, 0xFFFF0000), // 192.168.0.0/16
+        ("permit-lan-169",   0xA9FE0000, 0xFFFF0000), // 169.254.0.0/16 link-local
+        ("permit-lan-mcast", 0xE0000000, 0xF0000000), // 224.0.0.0/4 multicast (mDNS/SSDP)
+        ("permit-lan-bcast", 0xFFFFFFFF, 0xFFFFFFFF), // 255.255.255.255 broadcast
+    };
+
+    private static readonly (string tag, byte[] addr, byte prefix)[] LanV6 =
+    {
+        ("permit-lan-v6ll",    Ip6(0xFE, 0x80), 10), // fe80::/10 link-local
+        ("permit-lan-v6ula",   Ip6(0xFC),        7), // fc00::/7 unique-local
+        ("permit-lan-v6mcast", Ip6(0xFF),        8), // ff00::/8 multicast
+    };
+
+    private static byte[] Ip6(params byte[] lead)
+    {
+        var a = new byte[16];
+        Array.Copy(lead, a, lead.Length);
+        return a;
+    }
 
     private readonly object _gate = new();
     private nint _engine;
@@ -176,6 +210,17 @@ public sealed class WfpKillSwitch : IKillSwitch
             using (var app = Conditions.AppId(allowedExePath))
                 if (app.Ok)
                     AddFilter(layer, "permit-singbox", weight: 10, block: false, app.Items);
+
+            // 5) Permit the local network so LAN stays reachable while the internet is blocked.
+            //    LAN ranges are non-routable, so this never opens an internet leak.
+            if (layer == Native.FWPM_LAYER_ALE_AUTH_CONNECT_V4)
+                foreach (var (tag, addr, mask) in LanV4)
+                    using (var lan = Conditions.RemoteV4Subnet(addr, mask))
+                        AddFilter(layer, tag, weight: 8, block: false, lan.Items);
+            else
+                foreach (var (tag, addr, prefix) in LanV6)
+                    using (var lan = Conditions.RemoteV6Subnet(addr, prefix))
+                        AddFilter(layer, tag, weight: 8, block: false, lan.Items);
         }
     }
 

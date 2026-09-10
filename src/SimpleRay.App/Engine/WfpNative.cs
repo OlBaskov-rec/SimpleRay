@@ -27,6 +27,7 @@ internal static class Native
     public static readonly Guid FWPM_CONDITION_FLAGS = new("632ce23b-5167-435c-86d7-e903684aa80c");
     public static readonly Guid FWPM_CONDITION_IP_LOCAL_INTERFACE = new("4cd62a49-59c3-4969-b7f3-bda5d32890a4");
     public static readonly Guid FWPM_CONDITION_ALE_APP_ID = new("d78e1e87-8644-4ea5-9437-d809ecefc971");
+    public static readonly Guid FWPM_CONDITION_IP_REMOTE_ADDRESS = new("b235ae9a-1d64-49b8-a44c-5ff3d9095045");
 
     // FWP_DATA_TYPE values (fwptypes.h enum order). Wrong values here made WFP treat a
     // uint32 flag as a pointer type and dereference it -> AccessViolation in FwpmFilterAdd0.
@@ -34,6 +35,11 @@ internal static class Native
     public const uint FWP_UINT32 = 3;
     public const uint FWP_UINT64 = 4;
     public const uint FWP_BYTE_BLOB_TYPE = 12;
+    // Subnet match values (fwptypes.h): the condition value is a pointer to a
+    // FWP_V4_ADDR_AND_MASK {UINT32 addr; UINT32 mask;} / FWP_V6_ADDR_AND_MASK {UINT8 addr[16];
+    // UINT8 prefixLength;}. IPv4 addr/mask are host byte order; IPv6 addr is network order.
+    public const uint FWP_V4_ADDR_MASK = 0x100;
+    public const uint FWP_V6_ADDR_MASK = 0x101;
 
     // FWP_MATCH_TYPE values (fwptypes.h enum order).
     public const uint FWP_MATCH_EQUAL = 0;
@@ -251,6 +257,48 @@ internal sealed class Conditions : IDisposable
                 fieldKey = Native.FWPM_CONDITION_ALE_APP_ID,
                 matchType = Native.FWP_MATCH_EQUAL,
                 conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_BYTE_BLOB_TYPE, value = (long)c._appId },
+            },
+        };
+        return c;
+    }
+
+    /// <summary>Matches when the remote (destination) address is in the given IPv4 subnet.
+    /// <paramref name="addr"/>/<paramref name="mask"/> are host byte order (e.g. 172.16.0.0 = 0xAC100000).</summary>
+    public static Conditions RemoteV4Subnet(uint addr, uint mask)
+    {
+        var c = new Conditions();
+        var p = Marshal.AllocHGlobal(8); // FWP_V4_ADDR_AND_MASK { UINT32 addr; UINT32 mask; }
+        Marshal.WriteInt32(p, 0, (int)addr);
+        Marshal.WriteInt32(p, 4, (int)mask);
+        c._allocs.Add(p);
+        c.Items = new[]
+        {
+            new Native.FWPM_FILTER_CONDITION0
+            {
+                fieldKey = Native.FWPM_CONDITION_IP_REMOTE_ADDRESS,
+                matchType = Native.FWP_MATCH_EQUAL,
+                conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_V4_ADDR_MASK, value = (long)p },
+            },
+        };
+        return c;
+    }
+
+    /// <summary>Matches when the remote address is in the given IPv6 prefix. <paramref name="addr16"/> is
+    /// the 16 address bytes in network order; <paramref name="prefixLength"/> is the prefix length.</summary>
+    public static Conditions RemoteV6Subnet(byte[] addr16, byte prefixLength)
+    {
+        var c = new Conditions();
+        var p = Marshal.AllocHGlobal(17); // FWP_V6_ADDR_AND_MASK { UINT8 addr[16]; UINT8 prefixLength; }
+        Marshal.Copy(addr16, 0, p, 16);
+        Marshal.WriteByte(p, 16, prefixLength);
+        c._allocs.Add(p);
+        c.Items = new[]
+        {
+            new Native.FWPM_FILTER_CONDITION0
+            {
+                fieldKey = Native.FWPM_CONDITION_IP_REMOTE_ADDRESS,
+                matchType = Native.FWP_MATCH_EQUAL,
+                conditionValue = new Native.FWP_CONDITION_VALUE0 { type = Native.FWP_V6_ADDR_MASK, value = (long)p },
             },
         };
         return c;
