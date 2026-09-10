@@ -3,7 +3,7 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
-## Unreleased
+## 0.3.0 — 2026-09-10
 
 ### English
 - **Fix — LAN unreachable while connected.** `strict_route` + `auto_route` forced local
