@@ -114,3 +114,12 @@ foreach ($pattern in @(
 }
 if (Test-Path $changelog) { Copy-Item $changelog $releases -Force }
 Write-Host "Staged release artifacts in: $releases" -ForegroundColor Green
+
+# --- 8. drop the intermediate scratch folders ----------------------------
+# The deliverables now live in build/ (pickup) and releases/ (publishable); dist/ and
+# publish/ were only intermediate, so remove them to keep the repo tidy. Both are
+# recreated on demand by publish-portable.ps1 / the next build.
+foreach ($scratch in @($dist, (Join-Path $repo "publish"))) {
+    if (Test-Path $scratch) { Remove-Item -Recurse -Force $scratch }
+}
+Write-Host "Cleaned scratch folders (dist\, publish\)." -ForegroundColor DarkGray
