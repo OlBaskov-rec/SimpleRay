@@ -3,6 +3,26 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## 0.3.2 — 2026-09-10
+
+### English
+- **Reliability — stale engine cleaned at startup.** A previous run that crashed while connected
+  left the sing-box engine orphaned, still holding the TUN adapter, until the next Connect. The
+  app now kills a stale engine at startup (right after the single-instance guard), before it
+  clears the kill-switch filters.
+- **Safety — kill-switch engage hardened.** The WFP transaction start is now checked, and if the
+  TUN adapter never appears the kill-switch fails open (stays off, connection continues) instead
+  of installing a block-all that would cut ALL traffic on the machine.
+
+### Русский
+- **Надёжность — осиротевший движок чистится на старте.** Краш предыдущего запуска во время
+  подключения оставлял sing-box сиротой, держащим TUN-адаптер, до следующего «Подключить».
+  Теперь приложение убивает осиротевший движок на старте (сразу после single-instance-гарда),
+  до очистки фильтров kill-switch.
+- **Безопасность — упрочнён engage kill-switch.** Проверяется старт WFP-транзакции, и если
+  TUN-адаптер не появился, kill-switch делает fail-open (не включается, соединение продолжается)
+  вместо установки block-all, который отрубил бы весь трафик на машине.
+
 ## 0.3.1 — 2026-09-10
 
 ### English
