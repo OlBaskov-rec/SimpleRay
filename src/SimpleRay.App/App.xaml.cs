@@ -91,6 +91,12 @@ public partial class App : Application
             return;
         }
 
+        // Recovery: kill any stale engine process (sing-box) from a previous run that crashed
+        // during connection. The single-instance guard above already verified that no legitimate
+        // SimpleRay is running, so any engine process here is orphaned and must be cleaned up
+        // before CleanupLeftovers removes our WFP filters (the engine still holds its TUN adapter).
+        try { Engine.EngineOrphans.KillStale(Infrastructure.AppPaths.CoreExe); } catch { /* best-effort */ }
+
         // Recovery: remove any kill-switch filters left over from a previous run that
         // crashed while engaged (fail-closed filters survive the crash). Best-effort and
         // no-op when not elevated or when nothing is present.
