@@ -14,6 +14,9 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   staged files at apply time (a per-file manifest passed to the updater), closing the window
   where a local process could tamper the extracted payload after download verification but
   before the (possibly elevated) apply.
+- **Security — update authenticity enabled.** Releases are signed (ECDSA P-256) and the
+  updater now requires a valid signature, so a compromised GitHub release can't push a forged
+  update (previously the updater fell back to a forgeable SHA-256 sidecar).
 - **Reliability — engine lifecycle serialized.** `SingBoxEngine` start/stop are now mutually
   exclusive with an atomic state check, so a watchdog reconnect can no longer race a manual
   connect into two processes or a TUN conflict.
@@ -29,6 +32,9 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   перепроверяет распакованные файлы перед применением (пофайловый манифест передаётся апдейтеру),
   закрывая окно, в котором локальный процесс мог подменить содержимое после проверки загрузки, но
   до (возможно, привилегированного) применения.
+- **Безопасность — включена подлинность обновлений.** Релизы подписываются (ECDSA P-256),
+  апдейтер требует валидную подпись — скомпрометированный релиз на GitHub не подсунет поддельное
+  обновление (раньше был откат на подделываемый SHA-256).
 - **Надёжность — сериализован жизненный цикл движка.** start/stop у `SingBoxEngine` теперь
   взаимоисключены с атомарной проверкой состояния — реконнект watchdog больше не может столкнуться
   с ручным подключением в два процесса или конфликт TUN.

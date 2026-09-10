@@ -17,7 +17,7 @@ public static class UpdateSignature
     /// Empty means "not configured" — the updater then falls back to the SHA-256 sidecar;
     /// once this is set, a valid signature becomes mandatory.
     /// </summary>
-    public const string PublicKeyBase64 = "";
+    public const string PublicKeyBase64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVBm421acYg0PHPYXcPCM+VUVQugjwuaicOe5WsXgA2AhK+1qE6DLvWmiWHfwjP0tMvKJU1sSHdHxdFOrAgb26A==";
 
     /// <summary>True once a signing public key has been embedded.</summary>
     public static bool IsConfigured => !string.IsNullOrWhiteSpace(PublicKeyBase64);
