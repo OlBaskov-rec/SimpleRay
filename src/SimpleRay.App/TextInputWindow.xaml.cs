@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 
 namespace SimpleRay.App;
 
@@ -14,6 +15,15 @@ public partial class TextInputWindow : Window
         PromptText.Text = prompt;
         Input.Text = initial;
         Loaded += (_, _) => { Input.Focus(); Input.SelectAll(); };
+    }
+
+    /// <summary>Shows a short help line under the prompt whose tooltip carries <paramref name="details"/>.</summary>
+    public TextInputWindow WithHint(string line, string details)
+    {
+        HintText.Text = line;
+        HintText.ToolTip = new TextBlock { Text = details, TextWrapping = TextWrapping.Wrap, MaxWidth = 460 };
+        HintText.Visibility = Visibility.Visible;
+        return this;
     }
 
     private void Ok_Click(object sender, RoutedEventArgs e)

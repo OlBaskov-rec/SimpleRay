@@ -114,8 +114,63 @@ public class StoreTests : IDisposable
     public void SubscriptionStore_RoundTrips_AndDedups()
     {
         var store = new SubscriptionStore();
-        store.Save(new[] { "https://a/sub", "https://b/sub", "https://a/sub" });
-        var urls = store.Load();
-        Assert.Equal(new[] { "https://a/sub", "https://b/sub" }, urls.ToArray());
+        var updated = new DateTimeOffset(2026, 11, 1, 12, 0, 0, TimeSpan.Zero);
+        store.Save(new[]
+        {
+            new SubscriptionEntry
+            {
+                Url = "https://a/sub",
+                UserAgent = "SomeClient/1.0",
+                LastUpdated = updated,
+                Info = new SubscriptionMetadata { Title = "Провайдер", Total = 100, Download = 40, UpdateIntervalHours = 6 },
+            },
+            new SubscriptionEntry { Url = "https://b/sub" },
+            new SubscriptionEntry { Url = "https://a/sub" },
+        });
+
+        var loaded = store.Load();
+
+        Assert.Equal(new[] { "https://a/sub", "https://b/sub" }, loaded.Select(e => e.Url).ToArray());
+        Assert.Equal("Провайдер", loaded[0].Info.Title);
+        Assert.Equal(100, loaded[0].Info.Total);
+        Assert.Equal(40, loaded[0].Info.Used);
+        Assert.Equal(6, loaded[0].Info.UpdateIntervalHours);
+        Assert.Equal(updated, loaded[0].LastUpdated);
+        Assert.Equal("SomeClient/1.0", loaded[0].UserAgent);
+        Assert.Null(loaded[1].LastUpdated);
+        Assert.Null(loaded[1].UserAgent);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("   ", null)]
+    [InlineData("  Client/1.2 (Android)  ", "Client/1.2 (Android)")]
+    [InlineData("Bad\r\nX-Injected: 1", null)]
+    public void SubscriptionService_NormalizesUserAgent(string? input, string? expected)
+    {
+        Assert.Equal(expected, SubscriptionService.NormalizeUserAgent(input));
+    }
+
+    [Fact]
+    public void SubscriptionService_TruncatesLongUserAgent()
+    {
+        Assert.Equal(512, SubscriptionService.NormalizeUserAgent(new string('a', 600))!.Length);
+    }
+
+    [Fact]
+    public void SubscriptionStore_ReadsSchema1UrlList()
+    {
+        // Files written before metadata existed hold a bare URL list.
+        File.WriteAllText(AppPaths.SubscriptionsFile,
+            "{\"SchemaVersion\":1,\"Urls\":[\"https://a/sub\",\"https://b/sub\"]}");
+
+        var loaded = new SubscriptionStore().Load();
+
+        Assert.Equal(new[] { "https://a/sub", "https://b/sub" }, loaded.Select(e => e.Url).ToArray());
+        Assert.All(loaded, e =>
+        {
+            Assert.NotNull(e.Info);
+            Assert.Null(e.LastUpdated); // never fetched by this build → due on launch
+        });
     }
 }

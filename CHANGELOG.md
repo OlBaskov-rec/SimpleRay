@@ -3,6 +3,57 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Subscriptions — Happ format.** Reads provider metadata from response headers or `#key: value`
+  lines at the top of the body: `profile-title` (incl. `base64:`), `subscription-userinfo`
+  (traffic used / quota, expiry), `profile-update-interval`, `support-url`,
+  `profile-web-page-url`, `announce`. Title, traffic, expiry and announcement are shown under the
+  status for the selected server.
+- **Subscriptions — Xray JSON bodies.** A JSON array of full Xray configs (what Remnawave-style
+  panels serve to Happ) is imported: vless/vmess/trojan/shadowsocks over tcp/ws/grpc/http with
+  TLS or REALITY. Servers on transports sing-box can't run (xhttp, kcp…) are skipped and counted.
+- **Subscriptions — import links of other clients** are accepted in the Add dialog:
+  `happ://add/<url>`, `throne://subscribe?url=…`, `sing-box://import-remote-profile?url=…`,
+  `clash://install-config?url=…`, `hiddify://import/…` and similar. Encrypted
+  `happ://crypt…` links and AES-encrypted content are recognised and reported as unsupported.
+- **Subscriptions — auto-update.** Each subscription refreshes on the provider's
+  `profile-update-interval` (default 24 h); an update missed while the app was closed runs on
+  launch. A refresh keeps the selected and connected server, and an empty answer no longer wipes
+  the list.
+- **Subscriptions — custom User-Agent.** Each subscription can carry its own User-Agent (asked
+  after the URL in the Add dialog; re-add the URL to change it), for providers that serve servers
+  only to the client the link was issued for.
+- **Subscriptions — "what is supported" hint.** The Add → Subscription menu item and the URL
+  dialog list the apps whose subscriptions are accepted, the link formats and what isn't
+  supported. The input dialog now grows to fit long prompts.
+
+### Русский
+- **Подписки — формат Happ.** Метаданные провайдера читаются из заголовков ответа или строк
+  `#ключ: значение` в начале тела: `profile-title` (в т.ч. `base64:`), `subscription-userinfo`
+  (израсходованный трафик / лимит, срок), `profile-update-interval`, `support-url`,
+  `profile-web-page-url`, `announce`. Название, трафик, срок и объявление показываются под
+  статусом для выбранного сервера.
+- **Подписки — тело в виде Xray JSON.** Импортируется JSON-массив полных конфигов Xray (так
+  панели вроде Remnawave отдают подписку для Happ): vless/vmess/trojan/shadowsocks поверх
+  tcp/ws/grpc/http с TLS или REALITY. Серверы на транспортах, которых нет в sing-box (xhttp,
+  kcp…), пропускаются с подсчётом.
+- **Подписки — ссылки импорта других клиентов** принимаются в диалоге добавления:
+  `happ://add/<url>`, `throne://subscribe?url=…`, `sing-box://import-remote-profile?url=…`,
+  `clash://install-config?url=…`, `hiddify://import/…` и подобные. Зашифрованные
+  `happ://crypt…` и AES-зашифрованное содержимое распознаются и сообщаются как неподдерживаемые.
+- **Подписки — автообновление.** Каждая подписка обновляется с интервалом провайдера
+  `profile-update-interval` (по умолчанию 24 ч); пропущенное при закрытой программе обновление
+  выполняется при запуске. Обновление сохраняет выбранный и подключённый сервер, а пустой ответ
+  больше не стирает список.
+- **Подписки — свой User-Agent.** У каждой подписки может быть свой User-Agent (спрашивается
+  после URL в диалоге добавления; чтобы изменить — добавьте тот же URL ещё раз) — для провайдеров,
+  которые отдают серверы только клиенту, для которого выдана ссылка.
+- **Подписки — подсказка «что поддерживается».** Пункт «Добавить → Подписка» и окно ввода URL
+  показывают, подписки каких приложений принимаются, форматы ссылок и что не поддерживается.
+  Окно ввода теперь растягивается под длинный текст.
+
 ## 0.3.2 — 2026-09-10
 
 ### English

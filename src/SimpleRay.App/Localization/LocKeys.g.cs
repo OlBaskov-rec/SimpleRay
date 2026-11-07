@@ -222,6 +222,26 @@ public static class LocKeys
     public const string SubPromptTitle = "sub.promptTitle";
     /// <summary>sub.promptText</summary>
     public const string SubPromptText = "sub.promptText";
+    /// <summary>sub.uaPrompt</summary>
+    public const string SubUaPrompt = "sub.uaPrompt";
+    /// <summary>sub.supportedTitle</summary>
+    public const string SubSupportedTitle = "sub.supportedTitle";
+    /// <summary>sub.happEncrypted</summary>
+    public const string SubHappEncrypted = "sub.happEncrypted";
+    /// <summary>sub.encrypted</summary>
+    public const string SubEncrypted = "sub.encrypted";
+    /// <summary>sub.allSkipped</summary>
+    public const string SubAllSkipped = "sub.allSkipped";
+    /// <summary>sub.updatedSkipped</summary>
+    public const string SubUpdatedSkipped = "sub.updatedSkipped";
+    /// <summary>sub.info.traffic</summary>
+    public const string SubInfoTraffic = "sub.info.traffic";
+    /// <summary>sub.info.trafficUnlimited</summary>
+    public const string SubInfoTrafficUnlimited = "sub.info.trafficUnlimited";
+    /// <summary>sub.info.expires</summary>
+    public const string SubInfoExpires = "sub.info.expires";
+    /// <summary>sub.info.expired</summary>
+    public const string SubInfoExpired = "sub.info.expired";
     /// <summary>tray.show</summary>
     public const string TrayShow = "tray.show";
     /// <summary>tray.toggle</summary>

@@ -27,7 +27,9 @@ public sealed class MainViewModel : ObservableObject
     private readonly UpdateService _updateService = new();
     private readonly SubscriptionService _subscriptionService = new();
     private readonly SubscriptionStore _subscriptionStore = new();
-    private readonly List<string> _subscriptions;
+    private readonly List<SubscriptionEntry> _subscriptions;
+    private readonly DispatcherTimer _subscriptionTimer;
+    private bool _subscriptionsBusy;
     private readonly ConnectionController _connection;
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
@@ -110,6 +112,17 @@ public sealed class MainViewModel : ObservableObject
         RefreshSubscriptionsCommand = new RelayCommand(RefreshSubscriptionsAsync,
             () => _subscriptions.Count > 0);
 
+        // Auto-update: check every few minutes which subscriptions are due (provider's
+        // profile-update-interval, else daily); the first check runs once the window is up, so
+        // an update missed while the app was closed happens on launch.
+        _subscriptionTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+        {
+            Interval = TimeSpan.FromMinutes(15),
+        };
+        _subscriptionTimer.Tick += async (_, _) => await AutoUpdateSubscriptionsAsync();
+        _subscriptionTimer.Start();
+        _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, async () => await AutoUpdateSubscriptionsAsync());
+
         L.CultureChanged += OnCultureChanged;
         Profiles.CollectionChanged += (_, _) =>
         {
@@ -143,6 +156,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(FailoverModes));
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SelectedLanguage));
+        OnPropertyChanged(nameof(SubscriptionInfo));
         // Probe results carry localized text ("unavailable", units); drop them rather
         // than leave the picker mixing two languages.
         foreach (var item in DnsProviders)
@@ -180,6 +194,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 RemoveCommand.RaiseCanExecuteChanged();
                 RenameCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(SubscriptionInfo));
             }
         }
     }
@@ -229,17 +244,34 @@ public sealed class MainViewModel : ObservableObject
     private async Task AddSubscriptionAsync()
     {
         var dlg = new TextInputWindow(L["sub.promptTitle"], L["sub.promptText"],
-            _subscriptions.LastOrDefault() ?? "")
+            _subscriptions.LastOrDefault()?.Url ?? "")
         { Owner = Application.Current?.MainWindow };
+        dlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
         if (dlg.ShowDialog() != true) return;
 
-        var url = dlg.Value;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+        switch (SubscriptionLink.Normalize(dlg.Value, out var url))
         {
-            StatusText = L["sub.badUrl"];
-            return;
+            case SubscriptionLinkStatus.HappEncrypted:
+                StatusText = L["sub.happEncrypted"];
+                return;
+            case SubscriptionLinkStatus.Invalid:
+                StatusText = L["sub.badUrl"];
+                return;
         }
-        await ImportSubscriptionAsync(url);
+
+        // Optional per-subscription User-Agent, for providers that serve servers only to the
+        // client they issued the link for. Re-adding a saved URL edits its value.
+        var existing = _subscriptions.FirstOrDefault(s => s.Url == url);
+        var uaDlg = new TextInputWindow(L["sub.promptTitle"],
+            L.Format("sub.uaPrompt", SubscriptionService.DefaultUserAgent), existing?.UserAgent ?? "")
+        { Owner = Application.Current?.MainWindow };
+        uaDlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
+        if (uaDlg.ShowDialog() != true) return;
+        var userAgent = SubscriptionService.NormalizeUserAgent(uaDlg.Value);
+        if (existing is not null)
+            existing.UserAgent = userAgent;
+
+        await RunSubscriptionUpdateAsync(new[] { (url, userAgent) }, quiet: false);
     }
 
     private async Task RefreshSubscriptionsAsync()
@@ -249,34 +281,76 @@ public sealed class MainViewModel : ObservableObject
             StatusText = L["sub.none"];
             return;
         }
-        foreach (var url in _subscriptions.ToList())
-            await ImportSubscriptionAsync(url);
+        await RunSubscriptionUpdateAsync(_subscriptions.Select(s => (s.Url, s.UserAgent)).ToList(), quiet: false);
     }
 
-    /// <summary>Fetches a subscription and replaces the profiles that came from it (group membership preserved).</summary>
-    private async Task ImportSubscriptionAsync(string url)
+    /// <summary>Timer tick: refreshes only the subscriptions whose update interval has elapsed.</summary>
+    private async Task AutoUpdateSubscriptionsAsync()
     {
-        StatusText = L["sub.loading"];
-        IReadOnlyList<ProfileConfig> fetched;
+        var now = DateTimeOffset.Now;
+        var due = _subscriptions.Where(s => s.Info.IsUpdateDue(s.LastUpdated, now))
+            .Select(s => (s.Url, s.UserAgent)).ToList();
+        if (due.Count > 0)
+            await RunSubscriptionUpdateAsync(due, quiet: true);
+    }
+
+    /// <summary>
+    /// Single-flight wrapper: a manual refresh and the timer never fetch at the same time.
+    /// <paramref name="quiet"/> (auto-update) keeps progress and failures out of the status line.
+    /// </summary>
+    private async Task RunSubscriptionUpdateAsync(IReadOnlyList<(string Url, string? UserAgent)> subs, bool quiet)
+    {
+        if (_subscriptionsBusy)
+            return;
+        _subscriptionsBusy = true;
         try
         {
-            fetched = await _subscriptionService.FetchAsync(url);
+            foreach (var (url, userAgent) in subs)
+                await ImportSubscriptionAsync(url, userAgent, quiet);
+        }
+        finally
+        {
+            _subscriptionsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Fetches a subscription and replaces the profiles that came from it (group membership,
+    /// selection and the connected highlight preserved), then stores the provider's metadata.
+    /// </summary>
+    private async Task ImportSubscriptionAsync(string url, string? userAgent, bool quiet)
+    {
+        if (!quiet)
+            StatusText = L["sub.loading"];
+        SubscriptionContent content;
+        try
+        {
+            content = await _subscriptionService.FetchAsync(url, userAgent);
         }
         catch (Exception ex)
         {
-            StatusText = L.Format("sub.loadFail", ex.Message);
+            if (!quiet)
+                StatusText = L.Format("sub.loadFail", ex.Message);
             return;
         }
 
-        if (fetched.Count == 0)
+        if (content.Encrypted || content.Profiles.Count == 0)
         {
-            StatusText = L["sub.empty"];
+            // Keep the existing servers: an empty or unreadable answer is more likely a
+            // provider hiccup than a deliberate wipe.
+            if (!quiet)
+                StatusText = content.Encrypted ? L["sub.encrypted"]
+                    : content.Skipped > 0 ? L.Format("sub.allSkipped", content.Skipped)
+                    : L["sub.empty"];
             return;
         }
 
+        var fetched = content.Profiles;
         // Preserve group membership across a refresh (match by Raw).
         var inGroup = Profiles.Where(p => p.InGroup && p.Raw is not null)
             .Select(p => p.Raw!).ToHashSet();
+        var selectedRaw = SelectedProfile?.Raw;
+        var activeRaw = Profiles.FirstOrDefault(p => p.IsActive)?.Raw;
 
         foreach (var stale in Profiles.Where(p => p.Subscription == url).ToList())
             Profiles.Remove(stale);
@@ -285,21 +359,80 @@ public sealed class MainViewModel : ObservableObject
         {
             if (p.Raw is not null && inGroup.Contains(p.Raw))
                 p.InGroup = true;
+            if (p.Raw is not null && p.Raw == activeRaw)
+                p.IsActive = true;
             Profiles.Add(p);
         }
 
-        SelectedProfile ??= Profiles.FirstOrDefault();
+        if (SelectedProfile is null || !Profiles.Contains(SelectedProfile))
+            SelectedProfile = Profiles.FirstOrDefault(p => p.Raw is not null && p.Raw == selectedRaw)
+                              ?? Profiles.FirstOrDefault();
         SaveProfiles();
 
-        if (!_subscriptions.Contains(url))
+        var entry = _subscriptions.FirstOrDefault(s => s.Url == url);
+        if (entry is null)
         {
-            _subscriptions.Add(url);
-            _subscriptionStore.Save(_subscriptions);
+            entry = new SubscriptionEntry { Url = url, UserAgent = userAgent };
+            _subscriptions.Add(entry);
             RefreshSubscriptionsCommand.RaiseCanExecuteChanged();
         }
+        entry.Info = content.Metadata;
+        entry.LastUpdated = DateTimeOffset.Now;
+        try { _subscriptionStore.Save(_subscriptions); }
+        catch (Exception ex) { StatusText = L.Format("status.saveSettingsFail", ex.Message); }
 
         OnPropertyChanged(nameof(GroupHint));
-        StatusText = L.Format("sub.updated", fetched.Count);
+        OnPropertyChanged(nameof(SubscriptionInfo));
+        if (!quiet)
+        {
+            var name = content.Metadata.Title is { } t ? t + ": " : "";
+            StatusText = name + (content.Skipped > 0
+                ? L.Format("sub.updatedSkipped", fetched.Count, content.Skipped)
+                : L.Format("sub.updated", fetched.Count));
+        }
+    }
+
+    /// <summary>
+    /// Provider info for the selected server's subscription: title, traffic used/quota, expiry
+    /// and announcement, one per line; null when the server isn't from a subscription.
+    /// </summary>
+    public string? SubscriptionInfo
+    {
+        get
+        {
+            var url = SelectedProfile?.Subscription;
+            var entry = url is null ? null : _subscriptions.FirstOrDefault(s => s.Url == url);
+            if (entry is null)
+                return null;
+            var info = entry.Info;
+            var lines = new List<string>();
+            if (info.Title is not null)
+                lines.Add(info.Title);
+            if (info.Used is long used)
+                lines.Add(info.Total is long total
+                    ? L.Format("sub.info.traffic", FormatBytes(used), FormatBytes(total))
+                    : L.Format("sub.info.trafficUnlimited", FormatBytes(used)));
+            if (info.Expire is DateTimeOffset expire)
+                lines.Add(expire <= DateTimeOffset.Now
+                    ? L["sub.info.expired"]
+                    : L.Format("sub.info.expires", expire.ToLocalTime().ToString("d"))); // UI culture: SetCulture sets CurrentCulture
+            if (info.Announce is not null)
+                lines.Add(info.Announce);
+            return lines.Count > 0 ? string.Join("\n", lines) : null;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double v = bytes;
+        int u = 0;
+        while (v >= 1024 && u < units.Length - 1)
+        {
+            v /= 1024;
+            u++;
+        }
+        return u == 0 ? $"{bytes} B" : $"{v:0.##} {units[u]}";
     }
 
     private async Task CheckForUpdatesAsync()

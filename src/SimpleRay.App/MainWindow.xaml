@@ -127,8 +127,13 @@
                         <MenuItem Header="{loc:Loc import.qrWebcam}" Command="{Binding ImportQrWebcamCommand}"
                                   ToolTip="{loc:Loc tip.qrWebcam}" />
                         <Separator />
+                        <!-- Long multi-line tooltip (supported apps/links): keep it up long enough to read -->
                         <MenuItem Header="{loc:Loc subscription.add}" Command="{Binding AddSubscriptionCommand}"
-                                  ToolTip="{loc:Loc tip.subscriptionAdd}" />
+                                  ToolTipService.ShowDuration="60000">
+                            <MenuItem.ToolTip>
+                                <TextBlock Text="{loc:Loc tip.subscriptionAdd}" TextWrapping="Wrap" MaxWidth="460" />
+                            </MenuItem.ToolTip>
+                        </MenuItem>
                         <MenuItem Header="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
                                   ToolTip="{loc:Loc tip.subscriptionRefresh}" />
                     </MenuItem>
@@ -156,8 +161,22 @@
                     Command="{Binding ConnectCommand}"
                     Height="44" FontSize="15" FontWeight="SemiBold" />
 
-            <TextBlock Grid.Row="1" Text="{Binding StatusText}" Margin="2,10"
-                       TextWrapping="Wrap" Foreground="#333" />
+            <StackPanel Grid.Row="1" Margin="2,10">
+                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="#333" />
+                <!-- Provider info for the selected server's subscription (title, traffic, expiry, announce) -->
+                <TextBlock Text="{Binding SubscriptionInfo}" TextWrapping="Wrap" Foreground="#666"
+                           FontSize="11" Margin="0,6,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SubscriptionInfo}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
 
             <!-- Routing settings -->
             <GroupBox Grid.Row="2" Header="{loc:Loc routing.title}" Padding="8,4" Margin="0,0,0,8">
