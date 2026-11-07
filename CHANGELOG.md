@@ -3,7 +3,7 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
-## Unreleased
+## 0.3.3 — 2026-11-07
 
 ### English
 - **Subscriptions — Happ format.** Reads provider metadata from response headers or `#key: value`
