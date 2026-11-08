@@ -125,6 +125,37 @@ public class SubscriptionsViewModelTests
     }
 
     [Fact]
+    public void ProviderLinkCommands_FollowWhatTheProviderSent()
+    {
+        var host = new FakeHost();
+        host.List.Add(new SubscriptionEntry
+        {
+            Url = "https://a.example.com/x",
+            Info = new SubscriptionMetadata { SupportUrl = "https://t.me/support" },
+        });
+        host.List.Add(new SubscriptionEntry { Url = "https://b.example.com/y" });
+        var vm = new SubscriptionsViewModel(host);
+
+        Assert.True(vm.OpenSupportCommand.CanExecute(null));
+        Assert.False(vm.OpenWebPageCommand.CanExecute(null)); // no profile-web-page-url sent
+
+        vm.Selected = vm.Items[1];
+        Assert.False(vm.OpenSupportCommand.CanExecute(null));
+        Assert.False(vm.OpenWebPageCommand.CanExecute(null));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("file:///C:/Windows/System32/calc.exe")]
+    [InlineData("C:\\Windows\\System32\\calc.exe")]
+    public void UrlLauncher_RefusesNonHttp(string? url)
+    {
+        Assert.False(SimpleRay.App.Infrastructure.UrlLauncher.TryOpen(url));
+    }
+
+    [Fact]
     public void Detach_StopsReloading()
     {
         var host = new FakeHost();

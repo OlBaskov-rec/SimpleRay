@@ -192,5 +192,7 @@
   "subs.removeTitle": "Supprimer l'abonnement",
   "subs.removed": "Abonnement supprimé : {0}",
   "sub.onlyNotice": "{0} : le fournisseur n'a envoyé aucun serveur, seulement un message : « {1} ». S'il indique que l'application n'est pas prise en charge, définissez le User-Agent de l'application voulue (Ajouter → Gérer les abonnements… → Modifier…).",
-  "sub.info.notice": "Message du fournisseur : {0}"
+  "sub.info.notice": "Message du fournisseur : {0}",
+  "sub.support": "Assistance",
+  "sub.website": "Site web"
 }

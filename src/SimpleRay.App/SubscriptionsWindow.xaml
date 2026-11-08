@@ -57,6 +57,9 @@
             <Button Content="{loc:Loc subs.refresh}" Command="{Binding RefreshCommand}" Padding="10,4" Margin="0,0,0,6" />
             <Button Content="{loc:Loc subs.refreshAll}" Command="{Binding RefreshAllCommand}" Padding="10,4" Margin="0,0,0,6" />
             <Button Content="{loc:Loc subs.edit}" Command="{Binding EditCommand}" Padding="10,4" Margin="0,0,0,6" />
+            <!-- Provider links (support-url / profile-web-page-url); disabled when not sent -->
+            <Button Content="{loc:Loc sub.support}" Command="{Binding OpenSupportCommand}" Padding="10,4" Margin="0,12,0,6" />
+            <Button Content="{loc:Loc sub.website}" Command="{Binding OpenWebPageCommand}" Padding="10,4" Margin="0,0,0,6" />
             <Button Content="{loc:Loc subs.remove}" Command="{Binding RemoveCommand}" Padding="10,4" Margin="0,12,0,0" />
         </StackPanel>
 

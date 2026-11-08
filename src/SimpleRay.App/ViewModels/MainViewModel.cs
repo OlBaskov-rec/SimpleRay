@@ -112,6 +112,8 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         RefreshSubscriptionsCommand = new RelayCommand(RefreshAllSubscriptionsAsync,
             () => _subscriptions.Count > 0);
         ManageSubscriptionsCommand = new RelayCommand(OpenSubscriptions);
+        OpenSupportCommand = new RelayCommand(() => UrlLauncher.TryOpen(SubscriptionSupportUrl));
+        OpenWebPageCommand = new RelayCommand(() => UrlLauncher.TryOpen(SubscriptionWebPageUrl));
 
         // Auto-update: check every few minutes which subscriptions are due (provider's
         // profile-update-interval, else daily); the first check runs once the window is up, so
@@ -157,7 +159,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         OnPropertyChanged(nameof(FailoverModes));
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SelectedLanguage));
-        OnPropertyChanged(nameof(SubscriptionInfo));
+        RaiseSubscriptionInfoChanged();
         // Probe results carry localized text ("unavailable", units); drop them rather
         // than leave the picker mixing two languages.
         foreach (var item in DnsProviders)
@@ -195,7 +197,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
             {
                 RemoveCommand.RaiseCanExecuteChanged();
                 RenameCommand.RaiseCanExecuteChanged();
-                OnPropertyChanged(nameof(SubscriptionInfo));
+                RaiseSubscriptionInfoChanged();
             }
         }
     }
@@ -315,7 +317,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         bool uaChanged = userAgent != entry.UserAgent;
         entry.UserAgent = userAgent;
         SaveSubscriptions();
-        OnPropertyChanged(nameof(SubscriptionInfo));
+        RaiseSubscriptionInfoChanged();
         SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
 
         if (uaChanged)
@@ -339,7 +341,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         SaveSubscriptions();
         RefreshSubscriptionsCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(GroupHint));
-        OnPropertyChanged(nameof(SubscriptionInfo));
+        RaiseSubscriptionInfoChanged();
         SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
         StatusText = L.Format("subs.removed", entry.DisplayName);
     }
@@ -486,7 +488,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         entry.Info = metadata;
         entry.LastUpdated = DateTimeOffset.Now;
         SaveSubscriptions();
-        OnPropertyChanged(nameof(SubscriptionInfo));
+        RaiseSubscriptionInfoChanged();
         SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
         return entry;
     }
@@ -499,13 +501,30 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
     {
         get
         {
-            var url = SelectedProfile?.Subscription;
-            var entry = url is null ? null : _subscriptions.FirstOrDefault(s => s.Url == url);
+            var entry = SelectedSubscription;
             if (entry is null)
                 return null;
             var lines = SubscriptionText.InfoLines(entry.Info, includeTitle: false, includeAnnounce: true).Prepend(entry.DisplayName);
             return string.Join("\n", lines);
         }
+    }
+
+    /// <summary>The subscription the selected server came from, if any.</summary>
+    private SubscriptionEntry? SelectedSubscription =>
+        SelectedProfile?.Subscription is { } url ? _subscriptions.FirstOrDefault(s => s.Url == url) : null;
+
+    /// <summary>The provider's support / web page links for the selected server (null hides the link).</summary>
+    public string? SubscriptionSupportUrl => SelectedSubscription?.Info.SupportUrl;
+    public string? SubscriptionWebPageUrl => SelectedSubscription?.Info.WebPageUrl;
+
+    public RelayCommand OpenSupportCommand { get; }
+    public RelayCommand OpenWebPageCommand { get; }
+
+    private void RaiseSubscriptionInfoChanged()
+    {
+        OnPropertyChanged(nameof(SubscriptionInfo));
+        OnPropertyChanged(nameof(SubscriptionSupportUrl));
+        OnPropertyChanged(nameof(SubscriptionWebPageUrl));
     }
 
     private async Task CheckForUpdatesAsync()

@@ -192,5 +192,7 @@
   "subs.removeTitle": "Abo entfernen",
   "subs.removed": "Abo entfernt: {0}",
   "sub.onlyNotice": "{0}: Der Anbieter hat keine Server gesendet, nur eine Nachricht: „{1}“. Wenn dort steht, dass die App nicht unterstützt wird, geben Sie den User-Agent der passenden App an (Hinzufügen → Abos verwalten… → Bearbeiten…).",
-  "sub.info.notice": "Nachricht des Anbieters: {0}"
+  "sub.info.notice": "Nachricht des Anbieters: {0}",
+  "sub.support": "Support-Kontakt",
+  "sub.website": "Webseite"
 }

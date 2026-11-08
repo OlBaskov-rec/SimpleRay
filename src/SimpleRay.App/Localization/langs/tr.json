@@ -192,5 +192,7 @@
   "subs.removeTitle": "Aboneliği kaldır",
   "subs.removed": "Abonelik kaldırıldı: {0}",
   "sub.onlyNotice": "{0}: sağlayıcı sunucu göndermedi, yalnızca bir mesaj: \"{1}\". Uygulamanın desteklenmediğini söylüyorsa ilgili uygulamanın User-Agent'ını girin (Ekle → Abonelikleri yönet… → Düzenle…).",
-  "sub.info.notice": "Sağlayıcı mesajı: {0}"
+  "sub.info.notice": "Sağlayıcı mesajı: {0}",
+  "sub.support": "Destek",
+  "sub.website": "Web sitesi"
 }

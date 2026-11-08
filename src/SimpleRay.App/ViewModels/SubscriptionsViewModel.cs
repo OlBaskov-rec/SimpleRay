@@ -45,6 +45,10 @@ public sealed class SubscriptionsViewModel : ObservableObject
             () => host.RefreshSubscriptionsAsync(host.Subscriptions.ToList()), () => Items.Count > 0);
         EditCommand = new RelayCommand(() => host.EditSubscriptionAsync(Selected!.Entry), () => Selected is not null);
         RemoveCommand = new RelayCommand(() => host.RemoveSubscription(Selected!.Entry), () => Selected is not null);
+        OpenSupportCommand = new RelayCommand(
+            () => UrlLauncher.TryOpen(Selected?.Entry.Info.SupportUrl), () => Selected?.Entry.Info.SupportUrl is not null);
+        OpenWebPageCommand = new RelayCommand(
+            () => UrlLauncher.TryOpen(Selected?.Entry.Info.WebPageUrl), () => Selected?.Entry.Info.WebPageUrl is not null);
 
         host.SubscriptionsChanged += OnHostChanged;
         Reload();
@@ -67,6 +71,8 @@ public sealed class SubscriptionsViewModel : ObservableObject
                 RefreshCommand.RaiseCanExecuteChanged();
                 EditCommand.RaiseCanExecuteChanged();
                 RemoveCommand.RaiseCanExecuteChanged();
+                OpenSupportCommand.RaiseCanExecuteChanged();
+                OpenWebPageCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -76,6 +82,10 @@ public sealed class SubscriptionsViewModel : ObservableObject
     public RelayCommand RefreshAllCommand { get; }
     public RelayCommand EditCommand { get; }
     public RelayCommand RemoveCommand { get; }
+
+    /// <summary>Open the provider's support link / web page (support-url, profile-web-page-url).</summary>
+    public RelayCommand OpenSupportCommand { get; }
+    public RelayCommand OpenWebPageCommand { get; }
 
     /// <summary>Unsubscribes from the host; call when the window closes.</summary>
     public void Detach() => Host.SubscriptionsChanged -= OnHostChanged;

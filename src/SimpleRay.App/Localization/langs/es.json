@@ -192,5 +192,7 @@
   "subs.removeTitle": "Eliminar suscripción",
   "subs.removed": "Suscripción eliminada: {0}",
   "sub.onlyNotice": "{0}: el proveedor no envió servidores, solo un mensaje: «{1}». Si dice que la app no es compatible, indique el User-Agent de la app correspondiente (Añadir → Gestionar suscripciones… → Editar…).",
-  "sub.info.notice": "Mensaje del proveedor: {0}"
+  "sub.info.notice": "Mensaje del proveedor: {0}",
+  "sub.support": "Soporte",
+  "sub.website": "Sitio web"
 }

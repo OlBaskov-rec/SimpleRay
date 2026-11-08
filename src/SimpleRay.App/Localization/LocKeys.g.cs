@@ -360,4 +360,8 @@ public static class LocKeys
     public const string SubOnlyNotice = "sub.onlyNotice";
     /// <summary>sub.info.notice</summary>
     public const string SubInfoNotice = "sub.info.notice";
+    /// <summary>sub.support</summary>
+    public const string SubSupport = "sub.support";
+    /// <summary>sub.website</summary>
+    public const string SubWebsite = "sub.website";
 }

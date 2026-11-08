@@ -192,5 +192,7 @@
   "subs.removeTitle": "Remove subscription",
   "subs.removed": "Subscription removed: {0}",
   "sub.onlyNotice": "{0}: the provider sent no servers, only a message: “{1}”. If it says the app isn't supported, set that app's User-Agent (Add → Manage subscriptions… → Edit…).",
-  "sub.info.notice": "Provider message: {0}"
+  "sub.info.notice": "Provider message: {0}",
+  "sub.support": "Support",
+  "sub.website": "Website"
 }

@@ -22,6 +22,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   is now DPAPI-encrypted like the profiles; an existing plaintext file is read and encrypted on
   the next save. Older versions can't read the encrypted file, so going back would lose the
   subscription list (servers are kept).
+- **Subscriptions — provider links.** When the provider sends `support-url` /
+  `profile-web-page-url`, "Support" and "Website" links appear under the selected server's
+  subscription info and as buttons in the subscriptions window. Links open in the default browser
+  without admin rights.
 
 ### Русский
 - **Подписки — окно управления** («Добавить → Управление подписками…»). Показывает все
@@ -42,6 +46,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   теперь шифруется DPAPI, как и профили; существующий открытый файл читается и шифруется при
   следующем сохранении. Старые версии не прочитают зашифрованный файл, поэтому при откате список
   подписок потеряется (серверы останутся).
+- **Подписки — ссылки провайдера.** Если провайдер присылает `support-url` /
+  `profile-web-page-url`, под информацией о подписке выбранного сервера появляются ссылки
+  «Поддержка» и «Сайт», а в окне подписок — такие же кнопки. Ссылки открываются в браузере по
+  умолчанию без прав администратора.
 
 ## 0.3.3 — 2026-11-07
 

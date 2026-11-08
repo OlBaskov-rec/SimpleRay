@@ -178,6 +178,37 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
+                <!-- Provider links for that subscription; each collapses when the provider didn't send it -->
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Margin="0,0,14,0" FontSize="11">
+                        <Hyperlink Command="{Binding OpenSupportCommand}" ToolTip="{Binding SubscriptionSupportUrl}">
+                            <Run Text="{loc:Loc sub.support}" />
+                        </Hyperlink>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SubscriptionSupportUrl}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Margin="0,0,14,0" FontSize="11">
+                        <Hyperlink Command="{Binding OpenWebPageCommand}" ToolTip="{Binding SubscriptionWebPageUrl}">
+                            <Run Text="{loc:Loc sub.website}" />
+                        </Hyperlink>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SubscriptionWebPageUrl}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
             </StackPanel>
 
             <!-- Routing settings -->
