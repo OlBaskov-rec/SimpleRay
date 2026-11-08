@@ -190,5 +190,7 @@
   "subs.renamePrompt": "Nom de l'abonnement (laissez vide pour utiliser le titre du fournisseur) :",
   "subs.removeConfirm": "Supprimer l'abonnement « {0} » et ses {1} serveurs ?",
   "subs.removeTitle": "Supprimer l'abonnement",
-  "subs.removed": "Abonnement supprimé : {0}"
+  "subs.removed": "Abonnement supprimé : {0}",
+  "sub.onlyNotice": "{0} : le fournisseur n'a envoyé aucun serveur, seulement un message : « {1} ». S'il indique que l'application n'est pas prise en charge, définissez le User-Agent de l'application voulue (Ajouter → Gérer les abonnements… → Modifier…).",
+  "sub.info.notice": "Message du fournisseur : {0}"
 }

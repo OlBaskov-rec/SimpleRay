@@ -10,12 +10,21 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   subscription with its host, server count, last update, traffic, expiry and User-Agent, and lets
   you add, refresh one or all, rename, change the User-Agent (refetches) or remove a subscription
   together with its servers (asks first).
+- **Subscriptions — provider stubs.** Placeholder "servers" that providers send as messages (port
+  1, 0.0.0.0/127.0.0.1, all-zero UUID — e.g. "App not supported", "Subscription expired") are no
+  longer imported as servers; their text is shown as a provider message. A subscription that
+  returns only such a stub is still saved, so its User-Agent can be fixed in the window.
 
 ### Русский
 - **Подписки — окно управления** («Добавить → Управление подписками…»). Показывает все
   сохранённые подписки: сервер, число серверов, время обновления, трафик, срок и User-Agent; можно
   добавить, обновить одну или все, переименовать, сменить User-Agent (с повторной загрузкой) или
   удалить подписку вместе с её серверами (после подтверждения).
+- **Подписки — заглушки провайдера.** Фиктивные «серверы», которыми провайдеры передают
+  сообщения (порт 1, 0.0.0.0/127.0.0.1, нулевой UUID — например «App not supported», «Подписка
+  истекла»), больше не импортируются как серверы; их текст показывается как сообщение провайдера.
+  Подписка, вернувшая только заглушку, всё равно сохраняется, чтобы в окне можно было сменить ей
+  User-Agent.
 
 ## 0.3.3 — 2026-11-07
 

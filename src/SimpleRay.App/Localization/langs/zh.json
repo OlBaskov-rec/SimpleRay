@@ -190,5 +190,7 @@
   "subs.renamePrompt": "订阅名称（留空则使用服务商提供的标题）：",
   "subs.removeConfirm": "删除订阅“{0}”及其 {1} 个服务器？",
   "subs.removeTitle": "删除订阅",
-  "subs.removed": "已删除订阅：{0}"
+  "subs.removed": "已删除订阅：{0}",
+  "sub.onlyNotice": "{0}：服务商没有发送服务器，只有一条消息：“{1}”。如果提示不支持该应用，请填写对应应用的 User-Agent（添加 → 管理订阅… → 编辑…）。",
+  "sub.info.notice": "服务商消息：{0}"
 }

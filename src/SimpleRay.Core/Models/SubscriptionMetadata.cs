@@ -30,6 +30,12 @@ public sealed class SubscriptionMetadata
     public string? WebPageUrl { get; set; }
     public string? Announce { get; set; }
 
+    /// <summary>
+    /// Names of placeholder "servers" (port 1, 0.0.0.0, zero UUID…) that providers send instead
+    /// of real ones to show a message such as "App not supported" or "Subscription expired".
+    /// </summary>
+    public List<string>? Notices { get; set; }
+
     /// <summary>Upload + download, or null when the provider reported neither.</summary>
     public long? Used => Upload is null && Download is null ? null : (Upload ?? 0) + (Download ?? 0);
 

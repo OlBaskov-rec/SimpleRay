@@ -422,6 +422,16 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         {
             // Keep the existing servers: an empty or unreadable answer is more likely a
             // provider hiccup than a deliberate wipe.
+            if (content.Metadata.Notices is { Count: > 0 } notices)
+            {
+                // Only placeholder "servers" (e.g. "App not supported"): still save the
+                // subscription and its message, so the user can fix its User-Agent in the
+                // subscriptions window — but leave the server list alone.
+                var noticeEntry = UpsertSubscription(url, userAgent, content.Metadata);
+                if (!quiet)
+                    StatusText = L.Format("sub.onlyNotice", noticeEntry.DisplayName, string.Join(" · ", notices));
+                return;
+            }
             if (!quiet)
                 StatusText = content.Encrypted ? L["sub.encrypted"]
                     : content.Skipped > 0 ? L.Format("sub.allSkipped", content.Skipped)
@@ -453,6 +463,19 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
                               ?? Profiles.FirstOrDefault();
         SaveProfiles();
 
+        var entry = UpsertSubscription(url, userAgent, content.Metadata);
+        OnPropertyChanged(nameof(GroupHint));
+        if (!quiet)
+        {
+            StatusText = entry.DisplayName + ": " + (content.Skipped > 0
+                ? L.Format("sub.updatedSkipped", fetched.Count, content.Skipped)
+                : L.Format("sub.updated", fetched.Count));
+        }
+    }
+
+    /// <summary>Saves the fetched metadata on the subscription (adding it when new) and notifies.</summary>
+    private SubscriptionEntry UpsertSubscription(string url, string? userAgent, SubscriptionMetadata metadata)
+    {
         var entry = _subscriptions.FirstOrDefault(s => s.Url == url);
         if (entry is null)
         {
@@ -460,19 +483,12 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
             _subscriptions.Add(entry);
             RefreshSubscriptionsCommand.RaiseCanExecuteChanged();
         }
-        entry.Info = content.Metadata;
+        entry.Info = metadata;
         entry.LastUpdated = DateTimeOffset.Now;
         SaveSubscriptions();
-
-        OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SubscriptionInfo));
         SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
-        if (!quiet)
-        {
-            StatusText = entry.DisplayName + ": " + (content.Skipped > 0
-                ? L.Format("sub.updatedSkipped", fetched.Count, content.Skipped)
-                : L.Format("sub.updated", fetched.Count));
-        }
+        return entry;
     }
 
     /// <summary>

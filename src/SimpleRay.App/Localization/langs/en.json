@@ -190,5 +190,7 @@
   "subs.renamePrompt": "Subscription name (leave empty to use the provider's title):",
   "subs.removeConfirm": "Remove subscription “{0}” and its {1} servers?",
   "subs.removeTitle": "Remove subscription",
-  "subs.removed": "Subscription removed: {0}"
+  "subs.removed": "Subscription removed: {0}",
+  "sub.onlyNotice": "{0}: the provider sent no servers, only a message: “{1}”. If it says the app isn't supported, set that app's User-Agent (Add → Manage subscriptions… → Edit…).",
+  "sub.info.notice": "Provider message: {0}"
 }

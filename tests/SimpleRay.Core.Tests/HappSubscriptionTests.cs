@@ -122,6 +122,49 @@ public class HappSubscriptionTests
         Assert.True(dflt.IsUpdateDue(now.AddHours(-24), now));
     }
 
+    // ---- placeholder "servers" ------------------------------------------------------
+
+    [Fact]
+    public void ProviderStub_IsNotAProfile_ButANotice()
+    {
+        // What a provider sends to a client it doesn't serve.
+        var c = SubscriptionParser.ParseContent(B64("vless://00000000-0000-0000-0000-000000000000@0.0.0.0:1#App%20not%20supported"));
+        Assert.Empty(c.Profiles);
+        Assert.Equal(new[] { "App not supported" }, c.Metadata.Notices);
+    }
+
+    [Theory]
+    [InlineData("trojan://pw@real.example.com:1#Port one")]
+    [InlineData("trojan://pw@127.0.0.1:443#Loopback")]
+    [InlineData("trojan://pw@localhost:443#Localhost")]
+    [InlineData("vless://00000000-0000-0000-0000-000000000000@real.example.com:443#Zero uuid")]
+    public void PlaceholderShapes_AreDetected(string link)
+    {
+        var p = ShareLinkParser.Parse(link);
+        Assert.True(SubscriptionParser.IsPlaceholder(p));
+    }
+
+    [Fact]
+    public void Stubs_AreSplitFromRealServers_AndDeduped()
+    {
+        var body = string.Join("\n",
+            "trojan://pw@0.0.0.0:1#Subscription%20expires%20soon",
+            Link,
+            "trojan://pw@0.0.0.0:1#Subscription%20expires%20soon");
+        var c = SubscriptionParser.ParseContent(body);
+
+        var real = Assert.Single(c.Profiles);
+        Assert.Equal("b.example.com", real.Server);
+        Assert.Equal(new[] { "Subscription expires soon" }, c.Metadata.Notices);
+    }
+
+    [Fact]
+    public void RealServers_HaveNoNotices()
+    {
+        Assert.Null(SubscriptionParser.ParseContent(Link).Metadata.Notices);
+        Assert.False(SubscriptionParser.IsPlaceholder(ShareLinkParser.Parse(Link)));
+    }
+
     // ---- Xray JSON body -----------------------------------------------------------
 
     private const string JsonBody = """

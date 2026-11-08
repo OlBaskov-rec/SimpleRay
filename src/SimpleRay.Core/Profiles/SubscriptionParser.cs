@@ -8,6 +8,8 @@ namespace SimpleRay.Core.Profiles;
 /// Parsed subscription: the profiles plus the provider's metadata. <see cref="Skipped"/> counts
 /// servers that were recognised but can't be used (e.g. an Xray transport sing-box lacks);
 /// <see cref="Encrypted"/> is set when the body is Happ AES-encrypted content we can't read.
+/// Placeholder "servers" a provider sends as messages are left out of <see cref="Profiles"/>;
+/// their names land in <see cref="SubscriptionMetadata.Notices"/>.
 /// </summary>
 public sealed record SubscriptionContent(
     IReadOnlyList<ProfileConfig> Profiles,
@@ -60,7 +62,7 @@ public static class SubscriptionParser
         if (XrayJsonParser.LooksLikeJson(text))
         {
             var json = XrayJsonParser.Parse(text);
-            return new SubscriptionContent(json.Profiles, meta, json.Skipped);
+            return SplitPlaceholders(json.Profiles, meta, json.Skipped);
         }
 
         var links = new StringBuilder();
@@ -69,8 +71,36 @@ public static class SubscriptionParser
             if (!TryApplyBodyField(meta, rawLine.Trim()))
                 links.Append(rawLine).Append('\n');
         }
-        return new SubscriptionContent(ShareLinkParser.ParseMany(links.ToString()), meta);
+        return SplitPlaceholders(ShareLinkParser.ParseMany(links.ToString()), meta, 0);
     }
+
+    private static SubscriptionContent SplitPlaceholders(
+        IReadOnlyList<ProfileConfig> parsed, SubscriptionMetadata meta, int skipped)
+    {
+        var real = new List<ProfileConfig>(parsed.Count);
+        var notices = new List<string>();
+        foreach (var p in parsed)
+        {
+            if (!IsPlaceholder(p))
+                real.Add(p);
+            else if (!string.IsNullOrWhiteSpace(p.Tag) && !notices.Contains(p.Tag.Trim()))
+                notices.Add(p.Tag.Trim());
+        }
+        meta.Notices = notices.Count > 0 ? notices : null;
+        return new SubscriptionContent(real, meta, skipped);
+    }
+
+    private static readonly string[] PlaceholderHosts =
+        { "0.0.0.0", "127.0.0.1", "localhost", "::", "::1", "[::]", "[::1]" };
+
+    /// <summary>
+    /// A "server" that can't carry traffic and exists only to show its name as a message: port
+    /// 0/1, a loopback/unspecified address, or an all-zero UUID.
+    /// </summary>
+    public static bool IsPlaceholder(ProfileConfig p) =>
+        p.Port <= 1 ||
+        PlaceholderHosts.Contains(p.Server.Trim().ToLowerInvariant()) ||
+        (p.Uuid is { } id && Guid.TryParse(id, out var g) && g == Guid.Empty);
 
     // "#profile-title: Name" (or "#providerid 123"). Only known keys are consumed, so the
     // comments of an embedded WireGuard .conf stay intact. Body values never overwrite headers.

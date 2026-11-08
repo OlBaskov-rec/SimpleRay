@@ -356,4 +356,8 @@ public static class LocKeys
     public const string SubsRemoveTitle = "subs.removeTitle";
     /// <summary>subs.removed</summary>
     public const string SubsRemoved = "subs.removed";
+    /// <summary>sub.onlyNotice</summary>
+    public const string SubOnlyNotice = "sub.onlyNotice";
+    /// <summary>sub.info.notice</summary>
+    public const string SubInfoNotice = "sub.info.notice";
 }

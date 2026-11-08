@@ -128,6 +128,8 @@ public static class SubscriptionText
             yield return expire <= DateTimeOffset.Now
                 ? L["sub.info.expired"]
                 : L.Format("sub.info.expires", expire.ToLocalTime().ToString("d")); // UI culture: SetCulture sets CurrentCulture
+        if (info.Notices is { Count: > 0 } notices)
+            yield return L.Format("sub.info.notice", string.Join(" · ", notices));
         if (includeAnnounce && info.Announce is not null)
             yield return info.Announce;
     }

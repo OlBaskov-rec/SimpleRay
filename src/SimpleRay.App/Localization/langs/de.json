@@ -190,5 +190,7 @@
   "subs.renamePrompt": "Abo-Name (leer lassen, um den Titel des Anbieters zu verwenden):",
   "subs.removeConfirm": "Abo „{0}“ und seine {1} Server entfernen?",
   "subs.removeTitle": "Abo entfernen",
-  "subs.removed": "Abo entfernt: {0}"
+  "subs.removed": "Abo entfernt: {0}",
+  "sub.onlyNotice": "{0}: Der Anbieter hat keine Server gesendet, nur eine Nachricht: „{1}“. Wenn dort steht, dass die App nicht unterstützt wird, geben Sie den User-Agent der passenden App an (Hinzufügen → Abos verwalten… → Bearbeiten…).",
+  "sub.info.notice": "Nachricht des Anbieters: {0}"
 }

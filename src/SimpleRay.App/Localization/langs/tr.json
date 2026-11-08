@@ -190,5 +190,7 @@
   "subs.renamePrompt": "Abonelik adı (sağlayıcının başlığını kullanmak için boş bırakın):",
   "subs.removeConfirm": "\"{0}\" aboneliği ve {1} sunucusu kaldırılsın mı?",
   "subs.removeTitle": "Aboneliği kaldır",
-  "subs.removed": "Abonelik kaldırıldı: {0}"
+  "subs.removed": "Abonelik kaldırıldı: {0}",
+  "sub.onlyNotice": "{0}: sağlayıcı sunucu göndermedi, yalnızca bir mesaj: \"{1}\". Uygulamanın desteklenmediğini söylüyorsa ilgili uygulamanın User-Agent'ını girin (Ekle → Abonelikleri yönet… → Düzenle…).",
+  "sub.info.notice": "Sağlayıcı mesajı: {0}"
 }
