@@ -26,7 +26,11 @@ public sealed class SubscriptionEntry
         Name ?? Info.Title ?? (Uri.TryCreate(Url, UriKind.Absolute, out var u) ? u.Host : Url);
 }
 
-/// <summary>Persists the user's subscriptions under %AppData%\SimpleRay.</summary>
+/// <summary>
+/// Persists the user's subscriptions under %AppData%\SimpleRay. Subscription URLs carry access
+/// tokens, so the file is DPAPI-encrypted like the profiles; a plaintext file from an older
+/// build is still read and gets encrypted on the next save.
+/// </summary>
 public sealed class SubscriptionStore
 {
     /// <summary>2: entries with metadata (1 was a bare URL list, still read).</summary>
@@ -50,7 +54,7 @@ public sealed class SubscriptionStore
             return new List<SubscriptionEntry>();
         try
         {
-            var doc = JsonSerializer.Deserialize<Document>(File.ReadAllText(path), Options);
+            var doc = JsonSerializer.Deserialize<Document>(EncryptedFile.ReadAllText(path), Options);
             var items = doc?.Items
                         ?? doc?.Urls?.Select(u => new SubscriptionEntry { Url = u }).ToList()
                         ?? new List<SubscriptionEntry>();
@@ -67,7 +71,7 @@ public sealed class SubscriptionStore
     public void Save(IEnumerable<SubscriptionEntry> entries)
     {
         var doc = new Document { Items = Dedup(entries) };
-        AtomicFile.WriteAllText(AppPaths.SubscriptionsFile, JsonSerializer.Serialize(doc, Options));
+        EncryptedFile.WriteAllText(AppPaths.SubscriptionsFile, JsonSerializer.Serialize(doc, Options));
     }
 
     private static List<SubscriptionEntry> Dedup(IEnumerable<SubscriptionEntry> entries) =>

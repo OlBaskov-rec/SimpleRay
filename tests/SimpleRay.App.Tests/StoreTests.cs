@@ -161,6 +161,36 @@ public class StoreTests : IDisposable
     }
 
     [Fact]
+    public void SubscriptionStore_EncryptsOnDisk()
+    {
+        // Subscription URLs carry access tokens: nothing of them may appear in cleartext.
+        new SubscriptionStore().Save(new[]
+        {
+            new SubscriptionEntry { Url = "https://sub.example.com/SecretToken123", UserAgent = "Client/1.0" },
+        });
+
+        var raw = File.ReadAllText(AppPaths.SubscriptionsFile);
+        Assert.DoesNotContain("SecretToken123", raw);
+        Assert.DoesNotContain("sub.example.com", raw);
+        Assert.Equal("https://sub.example.com/SecretToken123", new SubscriptionStore().Load().Single().Url);
+    }
+
+    [Fact]
+    public void SubscriptionStore_ReadsLegacyPlaintext_AndEncryptsOnNextSave()
+    {
+        File.WriteAllText(AppPaths.SubscriptionsFile,
+            "{\"SchemaVersion\":2,\"Items\":[{\"Url\":\"https://sub.example.com/PlainToken\"}]}");
+        var store = new SubscriptionStore();
+
+        var loaded = store.Load();
+        Assert.Equal("https://sub.example.com/PlainToken", loaded.Single().Url);
+
+        store.Save(loaded);
+        Assert.DoesNotContain("PlainToken", File.ReadAllText(AppPaths.SubscriptionsFile));
+        Assert.Equal("https://sub.example.com/PlainToken", store.Load().Single().Url);
+    }
+
+    [Fact]
     public void SubscriptionStore_ReadsSchema1UrlList()
     {
         // Files written before metadata existed hold a bare URL list.

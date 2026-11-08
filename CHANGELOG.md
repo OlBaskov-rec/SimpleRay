@@ -18,6 +18,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   SNI, insecure, ALPN, bandwidth hints) and `socks://` / `socks5://` links (v2rayN base64 or
   plain `user:pass`), plus SOCKS outbounds in Xray JSON subscriptions. Port-hopping Hysteria2
   links are not supported yet. Ping shows "UDP" for WireGuard/Hysteria2 instead of a false dash.
+- **Security — subscriptions encrypted at rest.** `subscriptions.json` (URLs with access tokens)
+  is now DPAPI-encrypted like the profiles; an existing plaintext file is read and encrypted on
+  the next save. Older versions can't read the encrypted file, so going back would lose the
+  subscription list (servers are kept).
 
 ### Русский
 - **Подписки — окно управления** («Добавить → Управление подписками…»). Показывает все
@@ -34,6 +38,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   v2rayN или обычный `user:pass`), а также SOCKS в подписках Xray JSON. Ссылки Hysteria2 с
   диапазоном портов пока не поддерживаются. Пинг для WireGuard/Hysteria2 показывает «UDP» вместо
   ложного прочерка.
+- **Безопасность — подписки шифруются на диске.** `subscriptions.json` (URL с токенами доступа)
+  теперь шифруется DPAPI, как и профили; существующий открытый файл читается и шифруется при
+  следующем сохранении. Старые версии не прочитают зашифрованный файл, поэтому при откате список
+  подписок потеряется (серверы останутся).
 
 ## 0.3.3 — 2026-11-07
 

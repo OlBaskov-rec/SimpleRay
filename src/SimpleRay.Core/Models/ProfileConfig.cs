@@ -10,7 +10,7 @@ public enum ProxyProtocol
     Trojan,
     Shadowsocks,
     WireGuard,
-    // Appended: profiles store the enum as a number.
+    // Appended so existing numeric values stay stable.
     Hysteria2,
     Socks
 }
