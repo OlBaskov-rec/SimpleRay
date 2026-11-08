@@ -3,7 +3,7 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
-## Unreleased
+## 0.3.4 — 2026-11-08
 
 ### English
 - **Subscriptions — management window** (Add → Manage subscriptions…). Lists every saved
