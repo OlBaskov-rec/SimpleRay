@@ -50,6 +50,12 @@ public sealed class ProfileConfig : INotifyPropertyChanged
     public int? UpMbps { get; set; }
     public int? DownMbps { get; set; }
 
+    /// <summary>Port hopping: ports/ranges the client hops across ("443", "20000-30000"); null = just <see cref="Port"/>.</summary>
+    public List<string>? PortRanges { get; set; }
+
+    /// <summary>How often to hop ports, e.g. "30s"; null = sing-box default.</summary>
+    public string? HopInterval { get; set; }
+
     /// <summary>True for protocols that run over UDP (a TCP ping can't measure them).</summary>
     [JsonIgnore]
     public bool IsUdpBased => Protocol is ProxyProtocol.WireGuard or ProxyProtocol.Hysteria2;

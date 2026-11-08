@@ -224,18 +224,34 @@ public static class ShareLinkParser
     }
 
     // hysteria2://auth@host:port/?sni=…&insecure=1&obfs=salamander&obfs-password=…#remark
-    // (hy2:// is an alias). Always TLS (QUIC); the port defaults to 443. Port-hopping ranges
-    // ("host:443,20000-30000") aren't representable and are rejected as malformed.
+    // (hy2:// is an alias). Always TLS (QUIC); the port defaults to 443. Port hopping comes
+    // either in the authority ("host:443,20000-30000") or as "mport=20000-30000", with an
+    // optional "hop_interval=30s".
     private static ProfileConfig ParseHysteria2(string link)
     {
-        var uri = ToUri(link);
+        var (uriLink, ports) = SplitHysteriaPorts(link);
+        var uri = ToUri(uriLink);
         var q = HttpUtility.ParseQueryString(uri.Query);
         var host = Host(uri);
+        int port = uri.Port is > 0 and <= 65535 ? uri.Port : 443;
+
+        if (NullIfEmpty(q["mport"]) is { } mport)
+        {
+            if (ports.Count == 0)
+                ports.Add(port.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var range in ParsePortSpec(mport))
+                if (!ports.Contains(range))
+                    ports.Add(range);
+        }
+
         var p = new ProfileConfig
         {
             Protocol = ProxyProtocol.Hysteria2,
             Server = host,
-            Port = uri.Port is > 0 and <= 65535 ? uri.Port : 443,
+            Port = port,
+            // A lone port isn't hopping; keep the list only when there's more to hop over.
+            PortRanges = ports.Count > 1 || ports.Any(r => r.Contains('-')) ? ports : null,
+            HopInterval = NormalizeHopInterval(q["hop_interval"] ?? q["hopInterval"]),
             Password = Uri.UnescapeDataString(uri.UserInfo),
             ObfsType = NullIfEmpty(q["obfs"]),
             ObfsPassword = NullIfEmpty(q["obfs-password"]),
@@ -252,6 +268,67 @@ public static class ShareLinkParser
             },
         };
         return p;
+    }
+
+    /// <summary>
+    /// Pulls a port-hopping spec out of the authority ("host:443,20000-30000"), which
+    /// <see cref="Uri"/> can't parse, and returns the link with just the first port plus the
+    /// normalized ranges ("443", "20000-30000"); an ordinary link comes back unchanged.
+    /// </summary>
+    private static (string Link, List<string> Ports) SplitHysteriaPorts(string link)
+    {
+        int start = link.IndexOf("://", StringComparison.Ordinal) + 3;
+        int end = link.IndexOfAny(new[] { '/', '?', '#' }, start);
+        if (end < 0) end = link.Length;
+        var authority = link[start..end];
+        int at = authority.LastIndexOf('@');
+        var hostPort = authority[(at + 1)..];
+        int portSep = hostPort.StartsWith('[')
+            ? hostPort.IndexOf("]:", StringComparison.Ordinal) + 1 // IPv6: the colon after ']'
+            : hostPort.LastIndexOf(':');
+        if (portSep <= 0)
+            return (link, new List<string>());
+        var spec = hostPort[(portSep + 1)..];
+        if (!spec.Contains(',') && !spec.Contains('-'))
+            return (link, new List<string>());
+
+        var ports = ParsePortSpec(spec);
+        var firstPort = ports[0].Split('-')[0];
+        var rebuilt = authority[..(at + 1)] + hostPort[..portSep] + ":" + firstPort;
+        return (link[..start] + rebuilt + link[end..], ports);
+    }
+
+    /// <summary>"443,20000-30000" → ["443", "20000-30000"]; throws on anything out of 1..65535.</summary>
+    private static List<string> ParsePortSpec(string spec)
+    {
+        var result = new List<string>();
+        foreach (var part in spec.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var bounds = part.Split('-', StringSplitOptions.TrimEntries);
+            if (bounds.Length is < 1 or > 2 ||
+                !bounds.All(b => int.TryParse(b, out var n) && n is > 0 and <= 65535))
+                throw new FormatException($"Invalid port range '{part}'.");
+            int lo = int.Parse(bounds[0]), hi = int.Parse(bounds[^1]);
+            if (lo > hi)
+                throw new FormatException($"Invalid port range '{part}'.");
+            var normalized = lo == hi ? lo.ToString() : $"{lo}-{hi}";
+            if (!result.Contains(normalized))
+                result.Add(normalized);
+        }
+        if (result.Count == 0)
+            throw new FormatException("Empty port list.");
+        return result;
+    }
+
+    // "30s" / "30" / "1m" → "30s" / "30s" / "1m"; anything else is ignored (sing-box default).
+    private static string? NormalizeHopInterval(string? value)
+    {
+        value = value?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(value))
+            return null;
+        if (value.All(char.IsAsciiDigit))
+            return value == "0" ? null : value + "s";
+        return System.Text.RegularExpressions.Regex.IsMatch(value, @"^[1-9]\d*(s|m)$") ? value : null;
     }
 
     // socks://base64(user:pass)@host:port#remark (v2rayN) or socks5://user:pass@host:port.

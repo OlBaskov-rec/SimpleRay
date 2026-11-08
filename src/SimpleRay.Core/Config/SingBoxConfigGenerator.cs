@@ -324,6 +324,16 @@ public static class SingBoxConfigGenerator
             case ProxyProtocol.Hysteria2:
                 o["type"] = "hysteria2";
                 o["password"] = p.Password ?? "";
+                if (p.PortRanges is { Count: > 0 } ranges)
+                {
+                    // Port hopping: server_ports replaces server_port (they conflict). sing-box
+                    // accepts only "from:to" ranges there, so a lone port becomes "443:443".
+                    o.Remove("server_port");
+                    o["server_ports"] = new JsonArray(ranges
+                        .Select(r => (JsonNode)(r.Contains('-') ? r.Replace('-', ':') : $"{r}:{r}")!)
+                        .ToArray());
+                    if (!string.IsNullOrEmpty(p.HopInterval)) o["hop_interval"] = p.HopInterval;
+                }
                 if (p.UpMbps is int up) o["up_mbps"] = up;
                 if (p.DownMbps is int down) o["down_mbps"] = down;
                 if (!string.IsNullOrEmpty(p.ObfsType))

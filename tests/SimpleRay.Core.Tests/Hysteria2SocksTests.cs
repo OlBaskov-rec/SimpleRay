@@ -47,10 +47,66 @@ public class Hysteria2SocksTests
         Assert.Null(p.ObfsType);
     }
 
-    [Fact]
-    public void Hysteria2PortHopping_IsRejected()
+    [Theory]
+    [InlineData("hysteria2://pw@hy.example.com:443,20000-30000/?sni=hy.example.com#n")]
+    [InlineData("hysteria2://pw@hy.example.com:443,20000-30000#n")]
+    [InlineData("hysteria2://pw@hy.example.com:443/?mport=20000-30000#n")]
+    [InlineData("hy2://pw@hy.example.com/?mport=20000-30000#n")] // port defaults to 443
+    public void Hysteria2PortHopping_ParsesRanges(string link)
     {
-        Assert.False(ShareLinkParser.TryParse("hysteria2://pw@hy.example.com:443,20000-30000/#n", out _));
+        var p = ShareLinkParser.Parse(link);
+        Assert.Equal("hy.example.com", p.Server);
+        Assert.Equal(443, p.Port);
+        Assert.Equal(new[] { "443", "20000-30000" }, p.PortRanges);
+        Assert.Equal("pw", p.Password);
+        Assert.Equal("n", p.Tag);
+        Assert.Equal(link, p.Raw);
+    }
+
+    [Fact]
+    public void Hysteria2PortHopping_StartsWithARange_AndReadsHopInterval()
+    {
+        var p = ShareLinkParser.Parse("hysteria2://pw@hy.example.com:20000-30000,40000/?hop_interval=45#n");
+        Assert.Equal(20000, p.Port);
+        Assert.Equal(new[] { "20000-30000", "40000" }, p.PortRanges);
+        Assert.Equal("45s", p.HopInterval);
+    }
+
+    [Fact]
+    public void Hysteria2PortHopping_Ipv6Host()
+    {
+        var p = ShareLinkParser.Parse("hysteria2://pw@[2001:db8::1]:443,20000-30000/#n");
+        Assert.Equal("[2001:db8::1]", p.Server);
+        Assert.Equal(new[] { "443", "20000-30000" }, p.PortRanges);
+    }
+
+    [Fact]
+    public void Hysteria2SinglePort_HasNoRanges()
+    {
+        Assert.Null(ShareLinkParser.Parse("hysteria2://pw@hy.example.com:8443#n").PortRanges);
+    }
+
+    [Theory]
+    [InlineData("hysteria2://pw@hy.example.com:443,30000-20000/#n")] // reversed
+    [InlineData("hysteria2://pw@hy.example.com:443,70000/#n")]       // out of range
+    [InlineData("hysteria2://pw@hy.example.com:443,1-2-3/#n")]
+    [InlineData("hysteria2://pw@hy.example.com:443/?mport=abc#n")]
+    public void Hysteria2BadPortSpec_IsRejected(string link)
+    {
+        Assert.False(ShareLinkParser.TryParse(link, out _));
+    }
+
+    [Fact]
+    public void Hysteria2PortHopping_Outbound_UsesServerPorts()
+    {
+        var o = ProxyOutbound(ShareLinkParser.Parse(
+            "hysteria2://pw@hy.example.com:443,20000-30000/?hop_interval=30s#n"));
+
+        Assert.Null(o["server_port"]); // conflicts with server_ports in sing-box
+        // sing-box rejects a bare "443" here ("bad port range"): every entry must be from:to.
+        Assert.Equal(new[] { "443:443", "20000:30000" },
+            o["server_ports"]!.AsArray().Select(n => (string?)n).ToArray());
+        Assert.Equal("30s", (string?)o["hop_interval"]);
     }
 
     [Fact]

@@ -3,6 +3,18 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Hysteria2 — port hopping.** Links with a port list in the address
+  (`hysteria2://…@host:443,20000-30000`) or an `mport=` parameter are now imported instead of
+  skipped, with an optional `hop_interval`; they become sing-box `server_ports`.
+
+### Русский
+- **Hysteria2 — смена портов (port hopping).** Ссылки со списком портов в адресе
+  (`hysteria2://…@host:443,20000-30000`) или параметром `mport=` теперь импортируются, а не
+  пропускаются, вместе с необязательным `hop_interval`; в sing-box они становятся `server_ports`.
+
 ## 0.3.4 — 2026-11-08
 
 ### English
