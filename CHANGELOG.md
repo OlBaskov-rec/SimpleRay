@@ -14,6 +14,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   1, 0.0.0.0/127.0.0.1, all-zero UUID — e.g. "App not supported", "Subscription expired") are no
   longer imported as servers; their text is shown as a provider message. A subscription that
   returns only such a stub is still saved, so its User-Agent can be fixed in the window.
+- **Protocols — Hysteria2 and SOCKS5.** `hysteria2://` / `hy2://` links (auth, salamander obfs,
+  SNI, insecure, ALPN, bandwidth hints) and `socks://` / `socks5://` links (v2rayN base64 or
+  plain `user:pass`), plus SOCKS outbounds in Xray JSON subscriptions. Port-hopping Hysteria2
+  links are not supported yet. Ping shows "UDP" for WireGuard/Hysteria2 instead of a false dash.
 
 ### Русский
 - **Подписки — окно управления** («Добавить → Управление подписками…»). Показывает все
@@ -25,6 +29,11 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   истекла»), больше не импортируются как серверы; их текст показывается как сообщение провайдера.
   Подписка, вернувшая только заглушку, всё равно сохраняется, чтобы в окне можно было сменить ей
   User-Agent.
+- **Протоколы — Hysteria2 и SOCKS5.** Ссылки `hysteria2://` / `hy2://` (пароль, обфускация
+  salamander, SNI, insecure, ALPN, подсказки скорости) и `socks://` / `socks5://` (base64 как в
+  v2rayN или обычный `user:pass`), а также SOCKS в подписках Xray JSON. Ссылки Hysteria2 с
+  диапазоном портов пока не поддерживаются. Пинг для WireGuard/Hysteria2 показывает «UDP» вместо
+  ложного прочерка.
 
 ## 0.3.3 — 2026-11-07
 

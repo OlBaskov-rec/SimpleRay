@@ -321,6 +321,20 @@ public static class SingBoxConfigGenerator
                 o["method"] = p.Method;
                 o["password"] = p.Password;
                 break;
+            case ProxyProtocol.Hysteria2:
+                o["type"] = "hysteria2";
+                o["password"] = p.Password ?? "";
+                if (p.UpMbps is int up) o["up_mbps"] = up;
+                if (p.DownMbps is int down) o["down_mbps"] = down;
+                if (!string.IsNullOrEmpty(p.ObfsType))
+                    o["obfs"] = new JsonObject { ["type"] = p.ObfsType, ["password"] = p.ObfsPassword ?? "" };
+                break;
+            case ProxyProtocol.Socks:
+                o["type"] = "socks";
+                o["version"] = "5";
+                if (!string.IsNullOrEmpty(p.Username)) o["username"] = p.Username;
+                if (!string.IsNullOrEmpty(p.Password)) o["password"] = p.Password;
+                break;
         }
 
         // Reorder so "type" is first for readability.
@@ -331,7 +345,19 @@ public static class SingBoxConfigGenerator
             ordered[kv.Key] = kv.Value?.DeepClone();
         }
 
+        if (p.Protocol == ProxyProtocol.Socks)
+            return ordered; // plain SOCKS5: no TLS, no transport
+
         var tls = BuildTls(p);
+        if (p.Protocol == ProxyProtocol.Hysteria2)
+        {
+            // QUIC: TLS is mandatory, and uTLS / REALITY don't apply to it (sing-box rejects them).
+            tls ??= new JsonObject { ["enabled"] = true, ["server_name"] = p.Server };
+            tls.Remove("utls");
+            tls.Remove("reality");
+            ordered["tls"] = tls;
+            return ordered; // no V2Ray transport either
+        }
         if (tls is not null) ordered["tls"] = tls;
 
         var transport = BuildTransport(p);

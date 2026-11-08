@@ -9,7 +9,10 @@ public enum ProxyProtocol
     VMess,
     Trojan,
     Shadowsocks,
-    WireGuard
+    WireGuard,
+    // Appended: profiles store the enum as a number.
+    Hysteria2,
+    Socks
 }
 
 /// <summary>
@@ -27,7 +30,8 @@ public sealed class ProfileConfig : INotifyPropertyChanged
 
     // Credentials (which one is used depends on Protocol).
     public string? Uuid { get; set; }       // VLESS / VMess
-    public string? Password { get; set; }   // Trojan / Shadowsocks
+    public string? Password { get; set; }   // Trojan / Shadowsocks / Hysteria2 auth / SOCKS
+    public string? Username { get; set; }   // SOCKS
     public string? Method { get; set; }     // Shadowsocks cipher / VMess security
     public int AlterId { get; set; }        // VMess legacy
     public string? Flow { get; set; }       // VLESS flow (e.g. xtls-rprx-vision)
@@ -39,6 +43,16 @@ public sealed class ProfileConfig : INotifyPropertyChanged
     public string? ServiceName { get; set; }       // grpc service name
 
     public TlsSettings? Tls { get; set; }
+
+    // Hysteria2.
+    public string? ObfsType { get; set; }          // "salamander"
+    public string? ObfsPassword { get; set; }
+    public int? UpMbps { get; set; }
+    public int? DownMbps { get; set; }
+
+    /// <summary>True for protocols that run over UDP (a TCP ping can't measure them).</summary>
+    [JsonIgnore]
+    public bool IsUdpBased => Protocol is ProxyProtocol.WireGuard or ProxyProtocol.Hysteria2;
 
     /// <summary>WireGuard-specific settings (only when <see cref="Protocol"/> is WireGuard).</summary>
     public WireGuardSettings? Wg { get; set; }

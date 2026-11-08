@@ -15,7 +15,7 @@ public sealed record XrayJsonResult(IReadOnlyList<ProfileConfig> Profiles, int S
 /// </summary>
 public static class XrayJsonParser
 {
-    private static readonly string[] Supported = { "vless", "vmess", "trojan", "shadowsocks" };
+    private static readonly string[] Supported = { "vless", "vmess", "trojan", "shadowsocks", "socks" };
 
     public static bool LooksLikeJson(string text)
     {
@@ -129,6 +129,18 @@ public static class XrayJsonParser
                 ApplyAddress(p, server);
                 p.Password = Required(Str(server, "password"), "password");
                 break;
+            }
+            case "socks":
+            {
+                // settings.servers[0] { address, port, users[0] { user, pass } }
+                var server = FirstServer(settings);
+                p.Protocol = ProxyProtocol.Socks;
+                ApplyAddress(p, server);
+                var users = Obj(server, "users");
+                var user = users.ValueKind == JsonValueKind.Array && users.GetArrayLength() > 0 ? users[0] : default;
+                p.Username = NullIfEmpty(Str(user, "user"));
+                p.Password = NullIfEmpty(Str(user, "pass"));
+                return p; // plain SOCKS5: streamSettings don't apply
             }
             default: // shadowsocks
             {

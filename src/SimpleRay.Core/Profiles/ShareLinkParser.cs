@@ -6,7 +6,8 @@ using SimpleRay.Core.Models;
 namespace SimpleRay.Core.Profiles;
 
 /// <summary>
-/// Parses proxy share links (vless://, vmess://, trojan://, ss://) into
+/// Parses proxy share links (vless://, vmess://, trojan://, ss://, hysteria2:// / hy2://,
+/// socks:// / socks5://) into
 /// <see cref="ProfileConfig"/>. Throws <see cref="FormatException"/> on links
 /// that are syntactically recognizable but malformed; returns false from
 /// <see cref="TryParse"/> for anything unrecognized.
@@ -43,6 +44,8 @@ public static class ShareLinkParser
             "vmess" => ParseVmess(link),
             "trojan" => ParseTrojan(link),
             "ss" => ParseShadowsocks(link),
+            "hysteria2" or "hy2" => ParseHysteria2(link),
+            "socks" or "socks5" => ParseSocks(link),
             _ => throw new FormatException($"Unsupported scheme '{proto}'.")
         };
     }
@@ -217,6 +220,73 @@ public static class ShareLinkParser
             Password = password,
             Raw = link,
             Tag = remark ?? host,
+        };
+    }
+
+    // hysteria2://auth@host:port/?sni=…&insecure=1&obfs=salamander&obfs-password=…#remark
+    // (hy2:// is an alias). Always TLS (QUIC); the port defaults to 443. Port-hopping ranges
+    // ("host:443,20000-30000") aren't representable and are rejected as malformed.
+    private static ProfileConfig ParseHysteria2(string link)
+    {
+        var uri = ToUri(link);
+        var q = HttpUtility.ParseQueryString(uri.Query);
+        var host = Host(uri);
+        var p = new ProfileConfig
+        {
+            Protocol = ProxyProtocol.Hysteria2,
+            Server = host,
+            Port = uri.Port is > 0 and <= 65535 ? uri.Port : 443,
+            Password = Uri.UnescapeDataString(uri.UserInfo),
+            ObfsType = NullIfEmpty(q["obfs"]),
+            ObfsPassword = NullIfEmpty(q["obfs-password"]),
+            UpMbps = int.TryParse(q["upmbps"], out var up) && up > 0 ? up : null,
+            DownMbps = int.TryParse(q["downmbps"], out var down) && down > 0 ? down : null,
+            Raw = link,
+            Tag = Remark(link, host),
+            Tls = new TlsSettings
+            {
+                Enabled = true,
+                ServerName = NullIfEmpty(q["sni"]) ?? host,
+                AllowInsecure = q["insecure"] is "1" or "true",
+                Alpn = SplitCsv(q["alpn"]),
+            },
+        };
+        return p;
+    }
+
+    // socks://base64(user:pass)@host:port#remark (v2rayN) or socks5://user:pass@host:port.
+    private static ProfileConfig ParseSocks(string link)
+    {
+        var uri = ToUri(link);
+        var host = Host(uri);
+        string? user = null, pass = null;
+        if (!string.IsNullOrEmpty(uri.UserInfo))
+        {
+            var info = Uri.UnescapeDataString(uri.UserInfo);
+            if (!info.Contains(':'))
+            {
+                // v2rayN packs "user:pass" as base64; anything that doesn't decode to that
+                // shape is a bare username.
+                try
+                {
+                    var decoded = Encoding.UTF8.GetString(DecodeBase64(info));
+                    if (decoded.Contains(':') && !decoded.Any(char.IsControl))
+                        info = decoded;
+                }
+                catch (FormatException) { }
+            }
+            int colon = info.IndexOf(':');
+            (user, pass) = colon >= 0 ? (info[..colon], info[(colon + 1)..]) : (info, null);
+        }
+        return new ProfileConfig
+        {
+            Protocol = ProxyProtocol.Socks,
+            Server = host,
+            Port = Port(uri),
+            Username = NullIfEmpty(user),
+            Password = NullIfEmpty(pass),
+            Raw = link,
+            Tag = Remark(link, host),
         };
     }
 

@@ -964,6 +964,13 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         var list = Profiles.ToList();
         await Task.WhenAll(list.Select(async p =>
         {
+            if (p.IsUdpBased)
+            {
+                // WireGuard / Hysteria2 listen on UDP: a TCP connect would always "fail".
+                p.LatencyMs = null;
+                p.LatencyText = "UDP";
+                return;
+            }
             p.LatencyMs = await LatencyProbe.MeasureAsync(p.Server, p.Port);
             // Always leave a visible result so a ping renders even when disconnected:
             // "<n> ms" when reachable, a dash when the direct probe couldn't connect.

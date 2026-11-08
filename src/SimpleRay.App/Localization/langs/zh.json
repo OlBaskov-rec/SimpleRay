@@ -47,7 +47,7 @@
   "tip.qrFile": "从含二维码的图片导入",
   "tip.qrClipboard": "从剪贴板中的图片解码二维码",
   "tip.qrWebcam": "用摄像头扫描二维码",
-  "tip.subscriptionAdd": "从订阅 URL 导入配置。\n\n支持以下应用的订阅：\n• Happ、Incy —— 包括 Xray JSON、标题、流量、到期时间、自动更新\n• v2rayN / v2rayNG、Hiddify、Streisand、v2RayTun、Throne（Nekoray）—— base64 或纯文本链接列表\n\n链接：https://…、happ://add/…、throne://subscribe?url=…、sing-box://import-remote-profile?url=…、clash://install-config?url=…、hiddify://import/…\n协议：VLESS、VMess、Trojan、Shadowsocks\n\n不支持：happ://crypt…（加密）、Clash YAML 和 sing-box JSON 配置、Hysteria2 / TUIC / AmneziaWG 服务器。\n如果列表中出现 “App not supported” 占位项，说明服务商只向自家应用提供服务器——请在下一步填写该应用的 User-Agent。",
+  "tip.subscriptionAdd": "从订阅 URL 导入配置。\n\n支持以下应用的订阅：\n• Happ、Incy —— 包括 Xray JSON、标题、流量、到期时间、自动更新\n• v2rayN / v2rayNG、Hiddify、Streisand、v2RayTun、Throne（Nekoray）—— base64 或纯文本链接列表\n\n链接：https://…、happ://add/…、throne://subscribe?url=…、sing-box://import-remote-profile?url=…、clash://install-config?url=…、hiddify://import/…\n协议：VLESS、VMess、Trojan、Shadowsocks、Hysteria2、SOCKS\n\n不支持：happ://crypt…（加密）、Clash YAML 和 sing-box JSON 配置、TUIC / AmneziaWG 服务器。\n如果列表中出现 “App not supported” 占位项，说明服务商只向自家应用提供服务器——请在下一步填写该应用的 User-Agent。",
   "tip.subscriptionRefresh": "从已保存的订阅刷新配置",
   "tip.inGroup": "将此服务器加入自动切换分组",
   "tip.apps": "选择应用：走 VPN 或直连",
