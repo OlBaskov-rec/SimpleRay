@@ -324,4 +324,36 @@ public static class LocKeys
     public const string CrashTitle = "crash.title";
     /// <summary>crash.message</summary>
     public const string CrashMessage = "crash.message";
+    /// <summary>subscription.manage</summary>
+    public const string SubscriptionManage = "subscription.manage";
+    /// <summary>tip.subscriptionManage</summary>
+    public const string TipSubscriptionManage = "tip.subscriptionManage";
+    /// <summary>subs.title</summary>
+    public const string SubsTitle = "subs.title";
+    /// <summary>subs.add</summary>
+    public const string SubsAdd = "subs.add";
+    /// <summary>subs.refresh</summary>
+    public const string SubsRefresh = "subs.refresh";
+    /// <summary>subs.refreshAll</summary>
+    public const string SubsRefreshAll = "subs.refreshAll";
+    /// <summary>subs.edit</summary>
+    public const string SubsEdit = "subs.edit";
+    /// <summary>subs.remove</summary>
+    public const string SubsRemove = "subs.remove";
+    /// <summary>subs.empty</summary>
+    public const string SubsEmpty = "subs.empty";
+    /// <summary>subs.servers</summary>
+    public const string SubsServers = "subs.servers";
+    /// <summary>subs.updated</summary>
+    public const string SubsUpdated = "subs.updated";
+    /// <summary>subs.neverUpdated</summary>
+    public const string SubsNeverUpdated = "subs.neverUpdated";
+    /// <summary>subs.renamePrompt</summary>
+    public const string SubsRenamePrompt = "subs.renamePrompt";
+    /// <summary>subs.removeConfirm</summary>
+    public const string SubsRemoveConfirm = "subs.removeConfirm";
+    /// <summary>subs.removeTitle</summary>
+    public const string SubsRemoveTitle = "subs.removeTitle";
+    /// <summary>subs.removed</summary>
+    public const string SubsRemoved = "subs.removed";
 }

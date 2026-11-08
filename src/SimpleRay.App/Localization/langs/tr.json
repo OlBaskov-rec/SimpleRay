@@ -174,5 +174,21 @@
   "tip.enableIpv6": "Varsayılan kapalı: yerel IPv6 olmayan ağlarda doğrudan IPv6 bağlantıları başarısız olur (sıfırlanır). Yalnızca ağınızda çalışan IPv6 varsa açın.",
 
   "crash.title": "SimpleRay",
-  "crash.message": "Beklenmeyen hata: {0}\n\nDetaylar last-error.txt'ye kaydedildi (uygulama veri klasörü)."
+  "crash.message": "Beklenmeyen hata: {0}\n\nDetaylar last-error.txt'ye kaydedildi (uygulama veri klasörü).",
+  "subscription.manage": "Abonelikleri yönet…",
+  "tip.subscriptionManage": "Kayıtlı abonelikler: yenile, yeniden adlandır, User-Agent değiştir, kaldır",
+  "subs.title": "Abonelikler",
+  "subs.add": "Ekle…",
+  "subs.refresh": "Yenile",
+  "subs.refreshAll": "Tümünü yenile",
+  "subs.edit": "Düzenle…",
+  "subs.remove": "Kaldır",
+  "subs.empty": "Henüz abonelik yok. \"Ekle…\" düğmesine tıklayıp bir abonelik URL'si yapıştırın.",
+  "subs.servers": "sunucu: {0}",
+  "subs.updated": "güncellendi {0}",
+  "subs.neverUpdated": "henüz güncellenmedi",
+  "subs.renamePrompt": "Abonelik adı (sağlayıcının başlığını kullanmak için boş bırakın):",
+  "subs.removeConfirm": "\"{0}\" aboneliği ve {1} sunucusu kaldırılsın mı?",
+  "subs.removeTitle": "Aboneliği kaldır",
+  "subs.removed": "Abonelik kaldırıldı: {0}"
 }

@@ -174,5 +174,21 @@
   "tip.enableIpv6": "默认关闭：在没有原生 IPv6 的网络中，直连的 IPv6 连接会失败（被重置）。仅在你的网络有可用 IPv6 时开启。",
 
   "crash.title": "SimpleRay",
-  "crash.message": "意外错误：{0}\n\n详情已保存到 last-error.txt（应用数据文件夹）。"
+  "crash.message": "意外错误：{0}\n\n详情已保存到 last-error.txt（应用数据文件夹）。",
+  "subscription.manage": "管理订阅…",
+  "tip.subscriptionManage": "已保存的订阅：刷新、重命名、更改 User-Agent、删除",
+  "subs.title": "订阅",
+  "subs.add": "添加…",
+  "subs.refresh": "刷新",
+  "subs.refreshAll": "全部刷新",
+  "subs.edit": "编辑…",
+  "subs.remove": "删除",
+  "subs.empty": "还没有订阅。点击“添加…”并粘贴订阅 URL。",
+  "subs.servers": "服务器：{0}",
+  "subs.updated": "更新于 {0}",
+  "subs.neverUpdated": "尚未更新",
+  "subs.renamePrompt": "订阅名称（留空则使用服务商提供的标题）：",
+  "subs.removeConfirm": "删除订阅“{0}”及其 {1} 个服务器？",
+  "subs.removeTitle": "删除订阅",
+  "subs.removed": "已删除订阅：{0}"
 }

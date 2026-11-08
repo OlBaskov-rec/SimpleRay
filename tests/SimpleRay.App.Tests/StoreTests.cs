@@ -121,6 +121,7 @@ public class StoreTests : IDisposable
             {
                 Url = "https://a/sub",
                 UserAgent = "SomeClient/1.0",
+                Name = "Домашняя",
                 LastUpdated = updated,
                 Info = new SubscriptionMetadata { Title = "Провайдер", Total = 100, Download = 40, UpdateIntervalHours = 6 },
             },
@@ -137,6 +138,8 @@ public class StoreTests : IDisposable
         Assert.Equal(6, loaded[0].Info.UpdateIntervalHours);
         Assert.Equal(updated, loaded[0].LastUpdated);
         Assert.Equal("SomeClient/1.0", loaded[0].UserAgent);
+        Assert.Equal("Домашняя", loaded[0].Name);
+        Assert.Null(loaded[1].Name);
         Assert.Null(loaded[1].LastUpdated);
         Assert.Null(loaded[1].UserAgent);
     }

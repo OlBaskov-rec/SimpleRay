@@ -16,7 +16,7 @@ using SimpleRay.Core.Update;
 
 namespace SimpleRay.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject
+public sealed class MainViewModel : ObservableObject, ISubscriptionHost
 {
     private const int MaxLogChars = 20_000;
 
@@ -109,8 +109,9 @@ public sealed class MainViewModel : ObservableObject
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
         CheckDnsCommand = new RelayCommand(CheckDnsAsync);
         AddSubscriptionCommand = new RelayCommand(AddSubscriptionAsync);
-        RefreshSubscriptionsCommand = new RelayCommand(RefreshSubscriptionsAsync,
+        RefreshSubscriptionsCommand = new RelayCommand(RefreshAllSubscriptionsAsync,
             () => _subscriptions.Count > 0);
+        ManageSubscriptionsCommand = new RelayCommand(OpenSubscriptions);
 
         // Auto-update: check every few minutes which subscriptions are due (provider's
         // profile-update-interval, else daily); the first check runs once the window is up, so
@@ -241,11 +242,27 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand AddSubscriptionCommand { get; }
     public RelayCommand RefreshSubscriptionsCommand { get; }
 
-    private async Task AddSubscriptionAsync()
+    public RelayCommand ManageSubscriptionsCommand { get; }
+
+    // --- Subscriptions (ISubscriptionHost: also driven by the subscriptions window) ----
+
+    public IReadOnlyList<SubscriptionEntry> Subscriptions => _subscriptions;
+
+    public event EventHandler? SubscriptionsChanged;
+
+    public int ProfileCount(string url) => Profiles.Count(p => p.Subscription == url);
+
+    private void OpenSubscriptions()
+    {
+        var dlg = new SubscriptionsWindow(this) { Owner = Application.Current?.MainWindow };
+        dlg.ShowDialog();
+    }
+
+    public async Task AddSubscriptionAsync()
     {
         var dlg = new TextInputWindow(L["sub.promptTitle"], L["sub.promptText"],
             _subscriptions.LastOrDefault()?.Url ?? "")
-        { Owner = Application.Current?.MainWindow };
+        { Owner = ActiveWindow };
         dlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
         if (dlg.ShowDialog() != true) return;
 
@@ -259,29 +276,96 @@ public sealed class MainViewModel : ObservableObject
                 return;
         }
 
-        // Optional per-subscription User-Agent, for providers that serve servers only to the
-        // client they issued the link for. Re-adding a saved URL edits its value.
+        // Re-adding a saved URL edits its User-Agent.
         var existing = _subscriptions.FirstOrDefault(s => s.Url == url);
-        var uaDlg = new TextInputWindow(L["sub.promptTitle"],
-            L.Format("sub.uaPrompt", SubscriptionService.DefaultUserAgent), existing?.UserAgent ?? "")
-        { Owner = Application.Current?.MainWindow };
-        uaDlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
-        if (uaDlg.ShowDialog() != true) return;
-        var userAgent = SubscriptionService.NormalizeUserAgent(uaDlg.Value);
+        if (!TryPromptUserAgent(existing?.UserAgent, out var userAgent)) return;
         if (existing is not null)
             existing.UserAgent = userAgent;
 
         await RunSubscriptionUpdateAsync(new[] { (url, userAgent) }, quiet: false);
     }
 
-    private async Task RefreshSubscriptionsAsync()
+    /// <summary>
+    /// Asks for the optional per-subscription User-Agent, for providers that serve servers only
+    /// to the client they issued the link for. False when the user cancelled.
+    /// </summary>
+    private bool TryPromptUserAgent(string? current, out string? userAgent)
+    {
+        userAgent = current;
+        var dlg = new TextInputWindow(L["sub.promptTitle"],
+            L.Format("sub.uaPrompt", SubscriptionService.DefaultUserAgent), current ?? "")
+        { Owner = ActiveWindow };
+        dlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
+        if (dlg.ShowDialog() != true) return false;
+        userAgent = SubscriptionService.NormalizeUserAgent(dlg.Value);
+        return true;
+    }
+
+    /// <summary>Renames a subscription and/or changes its User-Agent (refetching when that changed).</summary>
+    public async Task EditSubscriptionAsync(SubscriptionEntry entry)
+    {
+        var nameDlg = new TextInputWindow(L["subs.title"], L["subs.renamePrompt"], entry.DisplayName)
+        { Owner = ActiveWindow };
+        if (nameDlg.ShowDialog() != true) return;
+        if (!TryPromptUserAgent(entry.UserAgent, out var userAgent)) return;
+
+        var name = nameDlg.Value;
+        // Typing the provider's own title back (or nothing) means "follow the provider".
+        entry.Name = name.Length == 0 || name == entry.Info.Title ? null : name;
+        bool uaChanged = userAgent != entry.UserAgent;
+        entry.UserAgent = userAgent;
+        SaveSubscriptions();
+        OnPropertyChanged(nameof(SubscriptionInfo));
+        SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
+
+        if (uaChanged)
+            await RunSubscriptionUpdateAsync(new[] { (entry.Url, entry.UserAgent) }, quiet: false);
+    }
+
+    /// <summary>Removes a subscription together with the servers it provided, after confirmation.</summary>
+    public void RemoveSubscription(SubscriptionEntry entry)
+    {
+        var servers = Profiles.Where(p => p.Subscription == entry.Url).ToList();
+        if (!_dialogs.Confirm(L.Format("subs.removeConfirm", entry.DisplayName, servers.Count), L["subs.removeTitle"]))
+            return;
+
+        foreach (var p in servers)
+            Profiles.Remove(p);
+        if (SelectedProfile is null || !Profiles.Contains(SelectedProfile))
+            SelectedProfile = Profiles.FirstOrDefault();
+        SaveProfiles();
+
+        _subscriptions.Remove(entry);
+        SaveSubscriptions();
+        RefreshSubscriptionsCommand.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(GroupHint));
+        OnPropertyChanged(nameof(SubscriptionInfo));
+        SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
+        StatusText = L.Format("subs.removed", entry.DisplayName);
+    }
+
+    public Task RefreshSubscriptionsAsync(IReadOnlyList<SubscriptionEntry> entries) =>
+        RunSubscriptionUpdateAsync(entries.Select(s => (s.Url, s.UserAgent)).ToList(), quiet: false);
+
+    private async Task RefreshAllSubscriptionsAsync()
     {
         if (_subscriptions.Count == 0)
         {
             StatusText = L["sub.none"];
             return;
         }
-        await RunSubscriptionUpdateAsync(_subscriptions.Select(s => (s.Url, s.UserAgent)).ToList(), quiet: false);
+        await RefreshSubscriptionsAsync(_subscriptions.ToList());
+    }
+
+    /// <summary>Owner for prompts: the subscriptions window when it's open, else the main window.</summary>
+    private static Window? ActiveWindow =>
+        Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+        ?? Application.Current?.MainWindow;
+
+    private void SaveSubscriptions()
+    {
+        try { _subscriptionStore.Save(_subscriptions); }
+        catch (Exception ex) { StatusText = L.Format("status.saveSettingsFail", ex.Message); }
     }
 
     /// <summary>Timer tick: refreshes only the subscriptions whose update interval has elapsed.</summary>
@@ -378,22 +462,21 @@ public sealed class MainViewModel : ObservableObject
         }
         entry.Info = content.Metadata;
         entry.LastUpdated = DateTimeOffset.Now;
-        try { _subscriptionStore.Save(_subscriptions); }
-        catch (Exception ex) { StatusText = L.Format("status.saveSettingsFail", ex.Message); }
+        SaveSubscriptions();
 
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SubscriptionInfo));
+        SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
         if (!quiet)
         {
-            var name = content.Metadata.Title is { } t ? t + ": " : "";
-            StatusText = name + (content.Skipped > 0
+            StatusText = entry.DisplayName + ": " + (content.Skipped > 0
                 ? L.Format("sub.updatedSkipped", fetched.Count, content.Skipped)
                 : L.Format("sub.updated", fetched.Count));
         }
     }
 
     /// <summary>
-    /// Provider info for the selected server's subscription: title, traffic used/quota, expiry
+    /// Provider info for the selected server's subscription: name, traffic used/quota, expiry
     /// and announcement, one per line; null when the server isn't from a subscription.
     /// </summary>
     public string? SubscriptionInfo
@@ -404,35 +487,9 @@ public sealed class MainViewModel : ObservableObject
             var entry = url is null ? null : _subscriptions.FirstOrDefault(s => s.Url == url);
             if (entry is null)
                 return null;
-            var info = entry.Info;
-            var lines = new List<string>();
-            if (info.Title is not null)
-                lines.Add(info.Title);
-            if (info.Used is long used)
-                lines.Add(info.Total is long total
-                    ? L.Format("sub.info.traffic", FormatBytes(used), FormatBytes(total))
-                    : L.Format("sub.info.trafficUnlimited", FormatBytes(used)));
-            if (info.Expire is DateTimeOffset expire)
-                lines.Add(expire <= DateTimeOffset.Now
-                    ? L["sub.info.expired"]
-                    : L.Format("sub.info.expires", expire.ToLocalTime().ToString("d"))); // UI culture: SetCulture sets CurrentCulture
-            if (info.Announce is not null)
-                lines.Add(info.Announce);
-            return lines.Count > 0 ? string.Join("\n", lines) : null;
+            var lines = SubscriptionText.InfoLines(entry.Info, includeTitle: false, includeAnnounce: true).Prepend(entry.DisplayName);
+            return string.Join("\n", lines);
         }
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        string[] units = { "B", "KB", "MB", "GB", "TB" };
-        double v = bytes;
-        int u = 0;
-        while (v >= 1024 && u < units.Length - 1)
-        {
-            v /= 1024;
-            u++;
-        }
-        return u == 0 ? $"{bytes} B" : $"{v:0.##} {units[u]}";
     }
 
     private async Task CheckForUpdatesAsync()

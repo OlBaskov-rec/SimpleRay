@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SimpleRay.App.Infrastructure;
 using SimpleRay.Core.Models;
 
@@ -10,11 +11,19 @@ public sealed class SubscriptionEntry
 {
     public string Url { get; set; } = "";
 
+    /// <summary>User-chosen name; null = the provider's title (or the host).</summary>
+    public string? Name { get; set; }
+
     /// <summary>User-chosen User-Agent for fetching this subscription; null = the default.</summary>
     public string? UserAgent { get; set; }
 
     public SubscriptionMetadata Info { get; set; } = new();
     public DateTimeOffset? LastUpdated { get; set; }
+
+    /// <summary>What the UI calls it: the user's name, else the provider's title, else the host.</summary>
+    [JsonIgnore]
+    public string DisplayName =>
+        Name ?? Info.Title ?? (Uri.TryCreate(Url, UriKind.Absolute, out var u) ? u.Host : Url);
 }
 
 /// <summary>Persists the user's subscriptions under %AppData%\SimpleRay.</summary>

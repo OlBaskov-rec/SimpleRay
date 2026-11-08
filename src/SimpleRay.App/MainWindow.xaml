@@ -136,6 +136,8 @@
                         </MenuItem>
                         <MenuItem Header="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
                                   ToolTip="{loc:Loc tip.subscriptionRefresh}" />
+                        <MenuItem Header="{loc:Loc subscription.manage}" Command="{Binding ManageSubscriptionsCommand}"
+                                  ToolTip="{loc:Loc tip.subscriptionManage}" />
                     </MenuItem>
                 </Menu>
             </Border>

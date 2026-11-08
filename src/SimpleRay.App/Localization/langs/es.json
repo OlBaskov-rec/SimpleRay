@@ -174,5 +174,21 @@
   "tip.enableIpv6": "Desactivado por defecto: en redes sin IPv6 nativo, las conexiones directas por IPv6 fallan (se reinician). Actívelo solo si su red tiene IPv6 funcional.",
 
   "crash.title": "SimpleRay",
-  "crash.message": "Error inesperado: {0}\n\nDetalles guardados en last-error.txt (carpeta de datos de la app)."
+  "crash.message": "Error inesperado: {0}\n\nDetalles guardados en last-error.txt (carpeta de datos de la app).",
+  "subscription.manage": "Gestionar suscripciones…",
+  "tip.subscriptionManage": "Suscripciones guardadas: actualizar, renombrar, cambiar User-Agent, eliminar",
+  "subs.title": "Suscripciones",
+  "subs.add": "Añadir…",
+  "subs.refresh": "Actualizar",
+  "subs.refreshAll": "Actualizar todas",
+  "subs.edit": "Editar…",
+  "subs.remove": "Eliminar",
+  "subs.empty": "Aún no hay suscripciones. Pulse «Añadir…» y pegue una URL de suscripción.",
+  "subs.servers": "servidores: {0}",
+  "subs.updated": "actualizada {0}",
+  "subs.neverUpdated": "aún sin actualizar",
+  "subs.renamePrompt": "Nombre de la suscripción (déjelo vacío para usar el título del proveedor):",
+  "subs.removeConfirm": "¿Eliminar la suscripción «{0}» y sus {1} servidores?",
+  "subs.removeTitle": "Eliminar suscripción",
+  "subs.removed": "Suscripción eliminada: {0}"
 }

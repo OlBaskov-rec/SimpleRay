@@ -174,5 +174,21 @@
   "tip.enableIpv6": "Standardmäßig aus: In Netzwerken ohne natives IPv6 schlagen direkte IPv6-Verbindungen fehl (sie werden zurückgesetzt). Nur bei funktionierendem IPv6 einschalten.",
 
   "crash.title": "SimpleRay",
-  "crash.message": "Unerwarteter Fehler: {0}\n\nDetails in last-error.txt gespeichert (App-Datenordner)."
+  "crash.message": "Unerwarteter Fehler: {0}\n\nDetails in last-error.txt gespeichert (App-Datenordner).",
+  "subscription.manage": "Abos verwalten…",
+  "tip.subscriptionManage": "Gespeicherte Abos: aktualisieren, umbenennen, User-Agent ändern, entfernen",
+  "subs.title": "Abos",
+  "subs.add": "Hinzufügen…",
+  "subs.refresh": "Aktualisieren",
+  "subs.refreshAll": "Alle aktualisieren",
+  "subs.edit": "Bearbeiten…",
+  "subs.remove": "Entfernen",
+  "subs.empty": "Noch keine Abos. Klicken Sie auf „Hinzufügen…“ und fügen Sie eine Abo-URL ein.",
+  "subs.servers": "Server: {0}",
+  "subs.updated": "aktualisiert {0}",
+  "subs.neverUpdated": "noch nicht aktualisiert",
+  "subs.renamePrompt": "Abo-Name (leer lassen, um den Titel des Anbieters zu verwenden):",
+  "subs.removeConfirm": "Abo „{0}“ und seine {1} Server entfernen?",
+  "subs.removeTitle": "Abo entfernen",
+  "subs.removed": "Abo entfernt: {0}"
 }

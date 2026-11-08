@@ -174,5 +174,21 @@
   "tip.enableIpv6": "Off by default: on networks without native IPv6, direct connections over IPv6 fail (they get reset). Turn on only if your network has working IPv6.",
 
   "crash.title": "SimpleRay",
-  "crash.message": "Unexpected error: {0}\n\nDetails saved to last-error.txt (app data folder)."
+  "crash.message": "Unexpected error: {0}\n\nDetails saved to last-error.txt (app data folder).",
+  "subscription.manage": "Manage subscriptions…",
+  "tip.subscriptionManage": "Saved subscriptions: refresh, rename, change User-Agent, remove",
+  "subs.title": "Subscriptions",
+  "subs.add": "Add…",
+  "subs.refresh": "Refresh",
+  "subs.refreshAll": "Refresh all",
+  "subs.edit": "Edit…",
+  "subs.remove": "Remove",
+  "subs.empty": "No subscriptions yet. Click “Add…” and paste a subscription URL.",
+  "subs.servers": "servers: {0}",
+  "subs.updated": "updated {0}",
+  "subs.neverUpdated": "not updated yet",
+  "subs.renamePrompt": "Subscription name (leave empty to use the provider's title):",
+  "subs.removeConfirm": "Remove subscription “{0}” and its {1} servers?",
+  "subs.removeTitle": "Remove subscription",
+  "subs.removed": "Subscription removed: {0}"
 }

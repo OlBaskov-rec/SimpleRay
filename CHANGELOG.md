@@ -3,6 +3,20 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Subscriptions — management window** (Add → Manage subscriptions…). Lists every saved
+  subscription with its host, server count, last update, traffic, expiry and User-Agent, and lets
+  you add, refresh one or all, rename, change the User-Agent (refetches) or remove a subscription
+  together with its servers (asks first).
+
+### Русский
+- **Подписки — окно управления** («Добавить → Управление подписками…»). Показывает все
+  сохранённые подписки: сервер, число серверов, время обновления, трафик, срок и User-Agent; можно
+  добавить, обновить одну или все, переименовать, сменить User-Agent (с повторной загрузкой) или
+  удалить подписку вместе с её серверами (после подтверждения).
+
 ## 0.3.3 — 2026-11-07
 
 ### English
