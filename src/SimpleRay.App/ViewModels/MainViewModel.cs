@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
 using SimpleRay.App.Engine;
 using SimpleRay.App.Infrastructure;
@@ -16,7 +18,7 @@ using SimpleRay.Core.Update;
 
 namespace SimpleRay.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject, ISubscriptionHost
+public sealed class MainViewModel : ObservableObject
 {
     private const int MaxLogChars = 20_000;
 
@@ -94,13 +96,14 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
             _routing.Dns.LocalProviderId = DnsCatalog.InitialIdForLanguage(L.CurrentCulture);
 
         ConnectCommand = new RelayCommand(ToggleConnectionAsync);
-        ImportClipboardCommand = new RelayCommand(ImportFromClipboard);
-        ImportFileCommand = new RelayCommand(ImportFromFile);
-        ImportQrFileCommand = new RelayCommand(ImportQrFromFile);
-        ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboard);
-        ImportQrWebcamCommand = new RelayCommand(ImportQrFromWebcam);
-        RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedProfile is not null);
-        RenameCommand = new RelayCommand(RenameSelected, () => SelectedProfile is not null);
+        ImportClipboardCommand = new RelayCommand(ImportFromClipboardAsync);
+        ImportFileCommand = new RelayCommand(ImportFromFileAsync);
+        ImportQrFileCommand = new RelayCommand(ImportQrFromFileAsync);
+        ImportQrClipboardCommand = new RelayCommand(ImportQrFromClipboardAsync);
+        ImportQrWebcamCommand = new RelayCommand(ImportQrFromWebcamAsync);
+        ImportManualCommand = new RelayCommand(ImportManualAsync);
+        RemoveCommand = new RelayCommand(RemoveSelected, CanRenameOrRemove);
+        RenameCommand = new RelayCommand(RenameSelectedAsync, CanRenameOrRemove);
         PingCommand = new RelayCommand(PingAllAsync, () => Profiles.Count > 0);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         DirectDomainsCommand = new RelayCommand(EditDirectDomains);
@@ -108,10 +111,15 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         GroupChangedCommand = new RelayCommand(OnGroupChanged);
         CheckUpdatesCommand = new RelayCommand(CheckForUpdatesAsync);
         CheckDnsCommand = new RelayCommand(CheckDnsAsync);
-        AddSubscriptionCommand = new RelayCommand(AddSubscriptionAsync);
-        RefreshSubscriptionsCommand = new RelayCommand(RefreshAllSubscriptionsAsync,
+        RefreshSubscriptionsCommand = new RelayCommand(RefreshSubscriptionsAsync,
             () => _subscriptions.Count > 0);
-        ManageSubscriptionsCommand = new RelayCommand(OpenSubscriptions);
+        ToggleSubscriptionsPanelCommand = new RelayCommand(() => IsSubscriptionsPanelOpen = !IsSubscriptionsPanelOpen);
+
+        ServersView = new ListCollectionView(Profiles)
+        {
+            Filter = o => SelectedSource is not { } source || (o is ProfileConfig p && source.Matches(p)),
+        };
+        RebuildSources();
         OpenSupportCommand = new RelayCommand(() => UrlLauncher.TryOpen(SubscriptionSupportUrl));
         OpenWebPageCommand = new RelayCommand(() => UrlLauncher.TryOpen(SubscriptionWebPageUrl));
 
@@ -133,6 +141,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
             // Adding/removing a server can change the in-group count, so the hint that
             // reports it must refresh too (e.g. removing a grouped server).
             OnPropertyChanged(nameof(GroupHint));
+            RebuildSources(); // per-source counts
         };
     }
 
@@ -241,50 +250,105 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
     public RelayCommand GroupChangedCommand { get; }
     public RelayCommand CheckUpdatesCommand { get; }
     public RelayCommand CheckDnsCommand { get; }
-    public RelayCommand AddSubscriptionCommand { get; }
+    public RelayCommand ImportManualCommand { get; }
     public RelayCommand RefreshSubscriptionsCommand { get; }
+    public RelayCommand ToggleSubscriptionsPanelCommand { get; }
 
-    public RelayCommand ManageSubscriptionsCommand { get; }
+    // --- Subscriptions panel and the server list it filters --------------------------
 
-    // --- Subscriptions (ISubscriptionHost: also driven by the subscriptions window) ----
+    /// <summary>Rows of the subscriptions panel: all servers, manual ones, each subscription.</summary>
+    public ObservableCollection<ServerSource> Sources { get; } = new();
 
-    public IReadOnlyList<SubscriptionEntry> Subscriptions => _subscriptions;
+    /// <summary>The server list as shown: <see cref="Profiles"/> filtered by <see cref="SelectedSource"/>.</summary>
+    public ICollectionView ServersView { get; }
 
-    public event EventHandler? SubscriptionsChanged;
+    private ServerSource? _selectedSource;
+    private bool _rebuildingSources;
+    private bool _sourcesListActive; // which list Rename/Remove act on: the panel or the servers
 
-    public int ProfileCount(string url) => Profiles.Count(p => p.Subscription == url);
-
-    private void OpenSubscriptions()
+    public ServerSource? SelectedSource
     {
-        var dlg = new SubscriptionsWindow(this) { Owner = Application.Current?.MainWindow };
-        dlg.ShowDialog();
+        get => _selectedSource;
+        set
+        {
+            if (!SetField(ref _selectedSource, value) || _rebuildingSources)
+                return;
+            ApplySourceFilter();
+        }
     }
 
-    public async Task AddSubscriptionAsync()
+    /// <summary>"Servers — &lt;source&gt; (n)" above the server list.</summary>
+    public string ServersHeader =>
+        L.Format("servers.header", SelectedSource?.Title ?? L["sources.all"], ServersView.Cast<object>().Count());
+
+    public bool IsSubscriptionsPanelOpen
     {
-        var dlg = new TextInputWindow(L["sub.promptTitle"], L["sub.promptText"],
-            _subscriptions.LastOrDefault()?.Url ?? "")
-        { Owner = ActiveWindow };
-        dlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
-        if (dlg.ShowDialog() != true) return;
-
-        switch (SubscriptionLink.Normalize(dlg.Value, out var url))
+        get => _routing.SubscriptionsPanelOpen;
+        set
         {
-            case SubscriptionLinkStatus.HappEncrypted:
-                StatusText = L["sub.happEncrypted"];
-                return;
-            case SubscriptionLinkStatus.Invalid:
-                StatusText = L["sub.badUrl"];
-                return;
+            if (_routing.SubscriptionsPanelOpen == value) return;
+            _routing.SubscriptionsPanelOpen = value;
+            SaveRouting();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SubscriptionsToggleArrow));
         }
+    }
 
-        // Re-adding a saved URL edits its User-Agent.
-        var existing = _subscriptions.FirstOrDefault(s => s.Url == url);
-        if (!TryPromptUserAgent(existing?.UserAgent, out var userAgent)) return;
-        if (existing is not null)
-            existing.UserAgent = userAgent;
+    /// <summary>Arrow on the panel's toggle, pointing where the panel will move (◀ collapse, ▶ expand).</summary>
+    public string SubscriptionsToggleArrow => IsSubscriptionsPanelOpen ? "◀" : "▶";
 
-        await RunSubscriptionUpdateAsync(new[] { (url, userAgent) }, quiet: false);
+    /// <summary>The window tells which list was clicked last, so Rename/Remove act on that one.</summary>
+    public void SetActiveList(bool sources)
+    {
+        _sourcesListActive = sources;
+        RenameCommand.RaiseCanExecuteChanged();
+        RemoveCommand.RaiseCanExecuteChanged();
+    }
+
+    private SubscriptionEntry? ActiveSubscription =>
+        _sourcesListActive && SelectedSource is { Kind: ServerSourceKind.Subscription, Entry: { } e } ? e : null;
+
+    private bool CanRenameOrRemove() =>
+        _sourcesListActive ? ActiveSubscription is not null : SelectedProfile is not null;
+
+    private void ApplySourceFilter()
+    {
+        ServersView.Refresh();
+        // Keep the selection on a visible server, so what you see is what Connect uses.
+        if (SelectedProfile is null || !ServersView.Contains(SelectedProfile))
+            SelectedProfile = ServersView.Cast<ProfileConfig>().FirstOrDefault() ?? SelectedProfile;
+        OnPropertyChanged(nameof(ServersHeader));
+        RenameCommand.RaiseCanExecuteChanged();
+        RemoveCommand.RaiseCanExecuteChanged();
+    }
+
+    /// <summary>Rebuilds the panel rows (counts, names, metadata), keeping the selected row.</summary>
+    private void RebuildSources()
+    {
+        var key = SelectedSource?.Key;
+        _rebuildingSources = true;
+        try
+        {
+            Sources.Clear();
+            foreach (var s in ServerSource.Build(_subscriptions, Profiles))
+                Sources.Add(s);
+            SelectedSource = Sources.FirstOrDefault(s => s.Key == key) ?? Sources.FirstOrDefault();
+        }
+        finally
+        {
+            _rebuildingSources = false;
+        }
+        ServersView.Refresh();
+        OnPropertyChanged(nameof(ServersHeader));
+        RenameCommand.RaiseCanExecuteChanged();
+        RemoveCommand.RaiseCanExecuteChanged();
+    }
+
+    private void ShowSubscription(string url)
+    {
+        IsSubscriptionsPanelOpen = true;
+        if (Sources.FirstOrDefault(s => s.Entry?.Url == url) is { } source)
+            SelectedSource = source;
     }
 
     /// <summary>
@@ -296,7 +360,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         userAgent = current;
         var dlg = new TextInputWindow(L["sub.promptTitle"],
             L.Format("sub.uaPrompt", SubscriptionService.DefaultUserAgent), current ?? "")
-        { Owner = ActiveWindow };
+        { Owner = Application.Current?.MainWindow };
         dlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
         if (dlg.ShowDialog() != true) return false;
         userAgent = SubscriptionService.NormalizeUserAgent(dlg.Value);
@@ -304,10 +368,10 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
     }
 
     /// <summary>Renames a subscription and/or changes its User-Agent (refetching when that changed).</summary>
-    public async Task EditSubscriptionAsync(SubscriptionEntry entry)
+    private async Task EditSubscriptionAsync(SubscriptionEntry entry)
     {
         var nameDlg = new TextInputWindow(L["subs.title"], L["subs.renamePrompt"], entry.DisplayName)
-        { Owner = ActiveWindow };
+        { Owner = Application.Current?.MainWindow };
         if (nameDlg.ShowDialog() != true) return;
         if (!TryPromptUserAgent(entry.UserAgent, out var userAgent)) return;
 
@@ -318,14 +382,14 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         entry.UserAgent = userAgent;
         SaveSubscriptions();
         RaiseSubscriptionInfoChanged();
-        SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
+        RebuildSources();
 
         if (uaChanged)
             await RunSubscriptionUpdateAsync(new[] { (entry.Url, entry.UserAgent) }, quiet: false);
     }
 
     /// <summary>Removes a subscription together with the servers it provided, after confirmation.</summary>
-    public void RemoveSubscription(SubscriptionEntry entry)
+    private void RemoveSubscription(SubscriptionEntry entry)
     {
         var servers = Profiles.Where(p => p.Subscription == entry.Url).ToList();
         if (!_dialogs.Confirm(L.Format("subs.removeConfirm", entry.DisplayName, servers.Count), L["subs.removeTitle"]))
@@ -342,27 +406,23 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         RefreshSubscriptionsCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(GroupHint));
         RaiseSubscriptionInfoChanged();
-        SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
+        RebuildSources();
         StatusText = L.Format("subs.removed", entry.DisplayName);
     }
 
-    public Task RefreshSubscriptionsAsync(IReadOnlyList<SubscriptionEntry> entries) =>
-        RunSubscriptionUpdateAsync(entries.Select(s => (s.Url, s.UserAgent)).ToList(), quiet: false);
-
-    private async Task RefreshAllSubscriptionsAsync()
+    /// <summary>Refreshes the subscription selected in the panel, or all of them.</summary>
+    private async Task RefreshSubscriptionsAsync()
     {
         if (_subscriptions.Count == 0)
         {
             StatusText = L["sub.none"];
             return;
         }
-        await RefreshSubscriptionsAsync(_subscriptions.ToList());
+        var entries = SelectedSource is { Kind: ServerSourceKind.Subscription, Entry: { } e }
+            ? new List<SubscriptionEntry> { e }
+            : _subscriptions.ToList();
+        await RunSubscriptionUpdateAsync(entries.Select(s => (s.Url, s.UserAgent)).ToList(), quiet: false);
     }
-
-    /// <summary>Owner for prompts: the subscriptions window when it's open, else the main window.</summary>
-    private static Window? ActiveWindow =>
-        Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
-        ?? Application.Current?.MainWindow;
 
     private void SaveSubscriptions()
     {
@@ -489,7 +549,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         entry.LastUpdated = DateTimeOffset.Now;
         SaveSubscriptions();
         RaiseSubscriptionInfoChanged();
-        SubscriptionsChanged?.Invoke(this, EventArgs.Empty);
+        RebuildSources();
         return entry;
     }
 
@@ -905,16 +965,25 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
         return new List<ProfileConfig>();
     }
 
-    // Acquisition lives in ImportCoordinator; the view-model only maps the outcome to a status
-    // and, on success, parses/dedups (ProfileImporter) and merges into the list.
-    private void ImportFromClipboard() => ApplyImport(_import.FromClipboard(), "status.noLinksClip");
-    private void ImportFromFile() => ApplyImport(_import.FromFile(), "status.noLinksFile");
-    private void ImportQrFromFile() => ApplyImport(_import.FromQrFile(), "status.noLinksQr");
-    private void ImportQrFromClipboard() => ApplyImport(_import.FromQrClipboard(), "status.noLinksQr");
-    private void ImportQrFromWebcam() => ApplyImport(_import.FromWebcam(), "status.noLinksQr");
+    // Acquisition lives in ImportCoordinator; the view-model maps the outcome to a status and,
+    // on success, sorts the text (ImportClassifier) into subscriptions and servers.
+    private Task ImportFromClipboardAsync() => SmartImportAsync(_import.FromClipboard(), "status.noLinksClip");
+    private Task ImportFromFileAsync() => SmartImportAsync(_import.FromFile(), "status.noLinksFile");
+    private Task ImportQrFromFileAsync() => SmartImportAsync(_import.FromQrFile(), "status.noLinksQr");
+    private Task ImportQrFromClipboardAsync() => SmartImportAsync(_import.FromQrClipboard(), "status.noLinksQr");
+    private Task ImportQrFromWebcamAsync() => SmartImportAsync(_import.FromWebcam(), "status.noLinksQr");
 
-    /// <summary>Maps an acquisition outcome to a status; on Ok, parses and adds the profiles.</summary>
-    private void ApplyImport(ImportOutcome outcome, string noneFoundKey)
+    private async Task ImportManualAsync()
+    {
+        var dlg = new TextInputWindow(L["import.manualTitle"], L["import.manualPrompt"])
+        { Owner = Application.Current?.MainWindow };
+        dlg.WithHint(L["sub.supportedTitle"], L["tip.subscriptionAdd"]);
+        if (dlg.ShowDialog() != true) return;
+        await ImportTextAsync(dlg.Value, "status.noLinksText");
+    }
+
+    /// <summary>Maps an acquisition outcome to a status; on Ok, imports whatever the text holds.</summary>
+    private async Task SmartImportAsync(ImportOutcome outcome, string noneFoundKey)
     {
         switch (outcome.Status)
         {
@@ -926,41 +995,82 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
             case ImportStatus.NoImage: StatusText = L["status.noImgClip"]; return;
             case ImportStatus.QrError: StatusText = L.Format("status.qrError", outcome.Detail ?? ""); return;
             case ImportStatus.QrNotRecognized: StatusText = L["status.qrNotRecognized"]; return;
-            case ImportStatus.Ok: AddParsedProfiles(outcome.Text ?? "", noneFoundKey); return;
+            case ImportStatus.Ok: await ImportTextAsync(outcome.Text ?? "", noneFoundKey); return;
             default: throw new ArgumentOutOfRangeException(nameof(outcome), outcome.Status, "Unhandled import status");
         }
     }
 
-    /// <summary>Parses share-links from <paramref name="text"/>, adds new (deduped) ones, persists.</summary>
-    private void AddParsedProfiles(string text, string noneFoundKey)
+    /// <summary>
+    /// One "Add" for every kind of input: server links / .conf / JSON are added (deduped),
+    /// subscription URLs and other clients' import links are fetched as subscriptions (the
+    /// panel opens on the new one). The status line sums up every part.
+    /// </summary>
+    private async Task ImportTextAsync(string text, string noneFoundKey)
     {
-        var result = ProfileImporter.Import(text, Profiles);
-        if (!result.AnyParsed)
+        var plan = ImportClassifier.Classify(text);
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(plan.ServerText))
         {
-            StatusText = L[noneFoundKey];
-            return;
+            var result = ProfileImporter.Import(plan.ServerText, Profiles);
+            if (result.AnyParsed)
+            {
+                foreach (var p in result.New)
+                    Profiles.Add(p);
+                if (result.New.Count > 0)
+                {
+                    // Show the newcomers: they're manual servers, not part of the selected subscription.
+                    if (SelectedSource is { Kind: ServerSourceKind.Subscription })
+                        SelectedSource = Sources.FirstOrDefault(s => s.Kind == ServerSourceKind.Manual) ?? SelectedSource;
+                    SelectedProfile = result.New[0];
+                    SaveProfiles();
+                }
+                parts.Add(result.New.Count > 0
+                    ? L.Format("status.profilesAdded", result.New.Count)
+                    : L["status.profilesExist"]);
+            }
         }
 
-        foreach (var p in result.New)
-            Profiles.Add(p);
+        foreach (var url in plan.SubscriptionUrls)
+        {
+            var existing = _subscriptions.FirstOrDefault(s => s.Url == url);
+            await RunSubscriptionUpdateAsync(new[] { (url, existing?.UserAgent) }, quiet: false);
+            parts.Add(StatusText);
+            if (_subscriptions.Any(s => s.Url == url))
+                ShowSubscription(url);
+        }
 
-        SelectedProfile ??= Profiles.FirstOrDefault();
-        SaveProfiles();
-        StatusText = result.New.Count > 0
-            ? L.Format("status.profilesAdded", result.New.Count)
-            : L["status.profilesExist"];
+        if (plan.HappEncrypted)
+            parts.Add(L["sub.happEncrypted"]);
+
+        StatusText = parts.Count > 0 ? string.Join(" · ", parts) : L[noneFoundKey];
     }
 
     private void RemoveSelected()
     {
+        if (ActiveSubscription is { } entry)
+        {
+            RemoveSubscription(entry);
+            return;
+        }
         if (SelectedProfile is null)
             return;
         Profiles.Remove(SelectedProfile);
-        SelectedProfile = Profiles.FirstOrDefault();
+        SelectedProfile = ServersView.Cast<ProfileConfig>().FirstOrDefault() ?? Profiles.FirstOrDefault();
         SaveProfiles();
     }
 
-    private void RenameSelected()
+    private async Task RenameSelectedAsync()
+    {
+        if (ActiveSubscription is { } entry)
+        {
+            await EditSubscriptionAsync(entry);
+            return;
+        }
+        RenameSelectedServer();
+    }
+
+    private void RenameSelectedServer()
     {
         if (SelectedProfile is null)
             return;
@@ -980,7 +1090,7 @@ public sealed class MainViewModel : ObservableObject, ISubscriptionHost
             return;
 
         StatusText = L["status.pinging"];
-        var list = Profiles.ToList();
+        var list = ServersView.Cast<ProfileConfig>().ToList(); // what's on screen
         await Task.WhenAll(list.Select(async p =>
         {
             if (p.IsUdpBased)

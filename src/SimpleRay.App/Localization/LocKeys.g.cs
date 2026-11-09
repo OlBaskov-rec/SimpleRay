@@ -78,8 +78,6 @@ public static class LocKeys
     public const string ImportQrClipboard = "import.qrClipboard";
     /// <summary>import.qrWebcam</summary>
     public const string ImportQrWebcam = "import.qrWebcam";
-    /// <summary>subscription.add</summary>
-    public const string SubscriptionAdd = "subscription.add";
     /// <summary>subscription.refresh</summary>
     public const string SubscriptionRefresh = "subscription.refresh";
     /// <summary>profile.remove</summary>
@@ -100,8 +98,6 @@ public static class LocKeys
     public const string TipQrWebcam = "tip.qrWebcam";
     /// <summary>tip.subscriptionAdd</summary>
     public const string TipSubscriptionAdd = "tip.subscriptionAdd";
-    /// <summary>tip.subscriptionRefresh</summary>
-    public const string TipSubscriptionRefresh = "tip.subscriptionRefresh";
     /// <summary>tip.inGroup</summary>
     public const string TipInGroup = "tip.inGroup";
     /// <summary>tip.apps</summary>
@@ -206,8 +202,6 @@ public static class LocKeys
     public const string StatusUpdateApplying = "status.updateApplying";
     /// <summary>status.updateError</summary>
     public const string StatusUpdateError = "status.updateError";
-    /// <summary>sub.badUrl</summary>
-    public const string SubBadUrl = "sub.badUrl";
     /// <summary>sub.loading</summary>
     public const string SubLoading = "sub.loading";
     /// <summary>sub.loadFail</summary>
@@ -220,8 +214,6 @@ public static class LocKeys
     public const string SubNone = "sub.none";
     /// <summary>sub.promptTitle</summary>
     public const string SubPromptTitle = "sub.promptTitle";
-    /// <summary>sub.promptText</summary>
-    public const string SubPromptText = "sub.promptText";
     /// <summary>sub.uaPrompt</summary>
     public const string SubUaPrompt = "sub.uaPrompt";
     /// <summary>sub.supportedTitle</summary>
@@ -296,8 +288,6 @@ public static class LocKeys
     public const string ProfileRename = "profile.rename";
     /// <summary>tip.ping</summary>
     public const string TipPing = "tip.ping";
-    /// <summary>tip.rename</summary>
-    public const string TipRename = "tip.rename";
     /// <summary>status.pinging</summary>
     public const string StatusPinging = "status.pinging";
     /// <summary>status.pingDone</summary>
@@ -324,24 +314,8 @@ public static class LocKeys
     public const string CrashTitle = "crash.title";
     /// <summary>crash.message</summary>
     public const string CrashMessage = "crash.message";
-    /// <summary>subscription.manage</summary>
-    public const string SubscriptionManage = "subscription.manage";
-    /// <summary>tip.subscriptionManage</summary>
-    public const string TipSubscriptionManage = "tip.subscriptionManage";
     /// <summary>subs.title</summary>
     public const string SubsTitle = "subs.title";
-    /// <summary>subs.add</summary>
-    public const string SubsAdd = "subs.add";
-    /// <summary>subs.refresh</summary>
-    public const string SubsRefresh = "subs.refresh";
-    /// <summary>subs.refreshAll</summary>
-    public const string SubsRefreshAll = "subs.refreshAll";
-    /// <summary>subs.edit</summary>
-    public const string SubsEdit = "subs.edit";
-    /// <summary>subs.remove</summary>
-    public const string SubsRemove = "subs.remove";
-    /// <summary>subs.empty</summary>
-    public const string SubsEmpty = "subs.empty";
     /// <summary>subs.servers</summary>
     public const string SubsServers = "subs.servers";
     /// <summary>subs.updated</summary>
@@ -364,4 +338,26 @@ public static class LocKeys
     public const string SubSupport = "sub.support";
     /// <summary>sub.website</summary>
     public const string SubWebsite = "sub.website";
+    /// <summary>sources.all</summary>
+    public const string SourcesAll = "sources.all";
+    /// <summary>sources.manual</summary>
+    public const string SourcesManual = "sources.manual";
+    /// <summary>sources.toggleTip</summary>
+    public const string SourcesToggleTip = "sources.toggleTip";
+    /// <summary>servers.header</summary>
+    public const string ServersHeader = "servers.header";
+    /// <summary>import.manual</summary>
+    public const string ImportManual = "import.manual";
+    /// <summary>import.manualTitle</summary>
+    public const string ImportManualTitle = "import.manualTitle";
+    /// <summary>import.manualPrompt</summary>
+    public const string ImportManualPrompt = "import.manualPrompt";
+    /// <summary>status.noLinksText</summary>
+    public const string StatusNoLinksText = "status.noLinksText";
+    /// <summary>tip.renameAny</summary>
+    public const string TipRenameAny = "tip.renameAny";
+    /// <summary>tip.removeAny</summary>
+    public const string TipRemoveAny = "tip.removeAny";
+    /// <summary>tip.refreshSelected</summary>
+    public const string TipRefreshSelected = "tip.refreshSelected";
 }

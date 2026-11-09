@@ -24,6 +24,13 @@ public partial class MainWindow : Window
         };
     }
 
+    // Rename / Remove act on whichever list was used last: a subscription or a server.
+    private void Sources_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e) =>
+        _viewModel.SetActiveList(sources: true);
+
+    private void Servers_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e) =>
+        _viewModel.SetActiveList(sources: false);
+
     // Minimize hides the window to the tray instead of the taskbar.
     private void Window_StateChanged(object sender, System.EventArgs e)
     {

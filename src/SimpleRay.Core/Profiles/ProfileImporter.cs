@@ -14,7 +14,9 @@ public static class ProfileImporter
 {
     public static ProfileImportResult Import(string text, IEnumerable<ProfileConfig> existing)
     {
-        var parsed = ShareLinkParser.ParseMany(text);
+        // The subscription parser is a superset of plain share links: it also takes a base64
+        // body, Xray JSON and #metadata lines, and drops provider placeholder "servers".
+        var parsed = SubscriptionParser.Parse(text);
         if (parsed.Count == 0)
             return new ProfileImportResult(Array.Empty<ProfileConfig>(), AnyParsed: false);
 

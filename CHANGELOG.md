@@ -3,6 +3,38 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Main window — subscriptions panel.** A collapsible panel on the left lists "All servers",
+  "Added manually" and every subscription (server count, traffic, expiry, provider message, last
+  update); picking one filters the server list, whose header says what is shown. A vertical
+  toggle hides/shows the panel (remembered); adding a subscription opens it on the new one. The
+  separate subscriptions window is gone.
+- **One smart "Add".** Clipboard, file, QR (file / clipboard / webcam) and a new "Enter
+  manually…" all sort the input themselves: subscription URLs and other apps' import links
+  become subscriptions; server links, WireGuard .conf, Xray JSON and base64 bodies become
+  servers; mixed input is split.
+- **Buttons in groups**, one row each: Add · Rename / Remove (act on the list you clicked last: a
+  subscription — name and User-Agent / with its servers — or a server) · Ping / Refresh (the
+  selected subscription, or all). Ping measures only the servers on screen. The window is larger
+  by default so everything fits.
+
+### Русский
+- **Главное окно — панель подписок.** Слева сворачиваемая панель: «Все серверы», «Добавленные
+  вручную» и каждая подписка (число серверов, трафик, срок, сообщение провайдера, время
+  обновления); выбор пункта фильтрует список серверов, в заголовке которого видно, что показано.
+  Вертикальная кнопка скрывает и показывает панель (запоминается); при добавлении подписки панель
+  открывается на ней. Отдельного окна подписок больше нет.
+- **Одна умная кнопка «Добавить».** Буфер, файл, QR (файл / буфер / камера) и новый пункт «Ввести
+  вручную…» сами разбирают ввод: URL подписок и ссылки импорта других приложений становятся
+  подписками; ссылки серверов, WireGuard .conf, Xray JSON и base64-содержимое — серверами;
+  смешанный ввод разделяется.
+- **Кнопки по группам**, каждая на своей строке: «Добавить» · «Переименовать» / «Удалить»
+  (действуют на список, где вы кликнули последним: подписку — название и User-Agent / вместе с
+  серверами — или сервер) · «Пинг» / «Обновить» (выбранную подписку или все). Пинг меряет только
+  серверы на экране. Окно по умолчанию больше, чтобы всё помещалось.
+
 ## 0.3.5 — 2026-11-08
 
 ### English

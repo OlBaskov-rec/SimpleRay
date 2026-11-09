@@ -69,4 +69,7 @@ public sealed class RoutingSettings
     /// the first in the list. Ignored when a failover group is active.
     /// </summary>
     public string? LastProfileTag { get; set; }
+
+    /// <summary>Whether the subscriptions panel in the main window is expanded (UI state, persisted).</summary>
+    public bool SubscriptionsPanelOpen { get; set; } = true;
 }
