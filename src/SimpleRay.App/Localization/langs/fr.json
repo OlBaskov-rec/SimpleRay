@@ -200,5 +200,12 @@
   "status.proxyPinging": "Vérification de {0} serveurs à travers chacun d'eux…",
   "status.proxyPingDone": "Test via les serveurs : {0} sur {1} fonctionnent",
   "status.proxyPingFail": "Échec du test via les serveurs : {0}",
-  "status.proxyPingNoCore": "sing-box introuvable : le test via les serveurs nécessite le dossier core à côté de SimpleRay.exe"
+  "status.proxyPingNoCore": "sing-box introuvable : le test via les serveurs nécessite le dossier core à côté de SimpleRay.exe",
+  "profile.speedTest": "Débit",
+  "tip.speedTest": "Débit de téléchargement via le serveur sélectionné : jusqu'à 10 Mo (10 s maximum) depuis speed.cloudflare.com. Ne se lance que sur demande, car il consomme le trafic de l'abonnement. Utilise le même sing-box local séparé que « Ping via le serveur » ; la connexion en cours n'est pas touchée.",
+  "speed.value": "↓ {0} Mbit/s",
+  "speed.fail": "↓ échec",
+  "status.speedTesting": "Mesure du débit via « {0} » (jusqu'à 10 Mo / 10 s)…",
+  "status.speedDone": "Débit via « {0} » : {1}",
+  "status.speedFail": "Impossible de mesurer le débit via « {0} » : le serveur n'a pas laissé passer le téléchargement"
 }

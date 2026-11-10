@@ -3,6 +3,25 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Speed test.** A new "Speed" button measures the download speed through the selected server:
+  up to 10 MB, no longer than 10 s, from speed.cloudflare.com, through the same throwaway local
+  sing-box as "Ping via server" (the current connection is not touched). The result stays next
+  to the server as a third figure, "↓ N Mbit/s". It runs only on demand, since it spends
+  subscription traffic.
+- **Fix — layout.** The button rows no longer stretch the server column and push the right
+  column off the window.
+
+### Русский
+- **Замер скорости.** Новая кнопка «Скорость» меряет скорость скачивания через выбранный сервер:
+  до 10 МБ, не дольше 10 с, с speed.cloudflare.com, через тот же временный локальный sing-box,
+  что и «Пинг через сервер» (текущее подключение не затрагивается). Результат остаётся у сервера
+  третьей цифрой «↓ N Мбит/с». Запускается только по кнопке, потому что тратит трафик подписки.
+- **Исправление — компоновка.** Строки кнопок больше не растягивают колонку серверов и не
+  выталкивают правую колонку за край окна.
+
 ## 0.3.7 — 2026-11-10
 
 ### English

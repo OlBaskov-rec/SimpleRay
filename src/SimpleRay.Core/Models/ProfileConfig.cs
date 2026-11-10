@@ -109,6 +109,20 @@ public sealed class ProfileConfig : INotifyPropertyChanged
         set { if (_proxyLatencyText != value) { _proxyLatencyText = value; OnPropertyChanged(nameof(ProxyLatencyText)); } }
     }
 
+    private string? _speedText;
+
+    /// <summary>Last speed-test result for display, e.g. "↓ 54.2 Mbit/s" (transient); null = never run.</summary>
+    [JsonIgnore]
+    public string? SpeedText
+    {
+        get => _speedText;
+        set { if (_speedText != value) { _speedText = value; OnPropertyChanged(nameof(SpeedText)); } }
+    }
+
+    /// <summary>Last speed-test result in Mbit/s (transient); null = untested or failed.</summary>
+    [JsonIgnore]
+    public double? SpeedMbps { get; set; }
+
     private bool _isActive;
 
     /// <summary>True while this server is the currently connected one (transient, drives list highlight).</summary>

@@ -66,6 +66,8 @@ public class LocalizationTests
         "fr:routing.mode", "fr:active.auto", "fr:apps.toDirect", "fr:profile.ping", "fr:dns.latency",
         "es:status.error", "es:active.auto", "es:active.manual", "es:profile.ping", "es:dns.latency",
         "tr:profile.ping", "tr:dns.latency",
+        // Unit: "Mbit/s" is written the same way in these languages.
+        "de:speed.value", "fr:speed.value", "es:speed.value",
     };
 
     /// <summary>

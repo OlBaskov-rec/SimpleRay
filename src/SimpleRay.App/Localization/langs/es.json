@@ -200,5 +200,12 @@
   "status.proxyPinging": "Comprobando {0} servidores a través de cada uno…",
   "status.proxyPingDone": "Comprobación por servidor: funcionan {0} de {1}",
   "status.proxyPingFail": "Falló la comprobación por servidor: {0}",
-  "status.proxyPingNoCore": "No se encontró sing-box: la comprobación por servidor necesita la carpeta core junto a SimpleRay.exe"
+  "status.proxyPingNoCore": "No se encontró sing-box: la comprobación por servidor necesita la carpeta core junto a SimpleRay.exe",
+  "profile.speedTest": "Velocidad",
+  "tip.speedTest": "Velocidad de descarga a través del servidor seleccionado: hasta 10 MB (no más de 10 s) desde speed.cloudflare.com. Solo se ejecuta al pulsar, porque gasta tráfico de la suscripción. Usa el mismo sing-box local aparte que «Ping por el servidor»; la conexión actual no se ve afectada.",
+  "speed.value": "↓ {0} Mbit/s",
+  "speed.fail": "↓ falló",
+  "status.speedTesting": "Midiendo la velocidad por «{0}» (hasta 10 MB / 10 s)…",
+  "status.speedDone": "Velocidad por «{0}»: {1}",
+  "status.speedFail": "No se pudo medir la velocidad por «{0}»: el servidor no dejó pasar la descarga"
 }

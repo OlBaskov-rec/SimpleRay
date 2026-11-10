@@ -200,5 +200,12 @@
   "status.proxyPinging": "Prüfe {0} Server über den jeweiligen Server…",
   "status.proxyPingDone": "Test über Server: {0} von {1} funktionieren",
   "status.proxyPingFail": "Test über Server fehlgeschlagen: {0}",
-  "status.proxyPingNoCore": "sing-box nicht gefunden: Für den Test über Server wird der Ordner core neben SimpleRay.exe benötigt"
+  "status.proxyPingNoCore": "sing-box nicht gefunden: Für den Test über Server wird der Ordner core neben SimpleRay.exe benötigt",
+  "profile.speedTest": "Geschwindigkeit",
+  "tip.speedTest": "Download-Geschwindigkeit über den gewählten Server: bis zu 10 MB (höchstens 10 s) von speed.cloudflare.com. Läuft nur auf Knopfdruck, weil es Abo-Datenvolumen verbraucht. Nutzt dasselbe separate lokale sing-box wie „Ping über Server“; die aktuelle Verbindung bleibt unberührt.",
+  "speed.value": "↓ {0} Mbit/s",
+  "speed.fail": "↓ fehlgeschlagen",
+  "status.speedTesting": "Messe Geschwindigkeit über „{0}“ (bis 10 MB / 10 s)…",
+  "status.speedDone": "Geschwindigkeit über „{0}“: {1}",
+  "status.speedFail": "Geschwindigkeit über „{0}“ nicht messbar: Der Server hat den Download nicht durchgelassen"
 }

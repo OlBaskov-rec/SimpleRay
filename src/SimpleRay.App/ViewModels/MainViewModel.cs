@@ -107,6 +107,7 @@ public sealed class MainViewModel : ObservableObject
         RenameCommand = new RelayCommand(RenameSelectedAsync, CanRenameOrRemove);
         PingCommand = new RelayCommand(PingAllAsync, () => Profiles.Count > 0);
         PingProxyCommand = new RelayCommand(PingThroughServersAsync, () => Profiles.Count > 0);
+        SpeedTestCommand = new RelayCommand(SpeedTestAsync, () => SelectedProfile is not null);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         DirectDomainsCommand = new RelayCommand(EditDirectDomains);
         ProxyDomainsCommand = new RelayCommand(EditProxyDomains);
@@ -209,6 +210,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 RemoveCommand.RaiseCanExecuteChanged();
                 RenameCommand.RaiseCanExecuteChanged();
+                SpeedTestCommand.RaiseCanExecuteChanged();
                 RaiseSubscriptionInfoChanged();
             }
         }
@@ -248,6 +250,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RenameCommand { get; }
     public RelayCommand PingCommand { get; }
     public RelayCommand PingProxyCommand { get; }
+    public RelayCommand SpeedTestCommand { get; }
+
+    /// <summary>Speed test target and limits: a neutral download endpoint, capped in size and time.</summary>
+    private const string SpeedTestUrl = "https://speed.cloudflare.com/__down?bytes=10000000";
+    private const long SpeedTestMaxBytes = 10_000_000;
+    private static readonly TimeSpan SpeedTestMaxTime = TimeSpan.FromSeconds(10);
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand DirectDomainsCommand { get; }
     public RelayCommand ProxyDomainsCommand { get; }
@@ -1176,6 +1184,47 @@ public sealed class MainViewModel : ObservableObject
             .ToList());
         SaveProfiles();
         var done = L.Format("status.proxyPingDone", results.Count(r => r is not null), list.Count);
+        StatusText = done;
+        if (IsConnected)
+            _ = RestoreConnectedStatusAsync(done);
+    }
+
+    /// <summary>
+    /// Download speed through the selected server (on demand only — it spends subscription
+    /// traffic): up to 10 MB / 10 s from a neutral endpoint via the same throwaway sing-box as
+    /// "ping via server". The result stays next to the server as a third figure.
+    /// </summary>
+    private async Task SpeedTestAsync()
+    {
+        var p = SelectedProfile;
+        if (p is null)
+            return;
+        if (!File.Exists(AppPaths.CoreExe))
+        {
+            StatusText = L["status.proxyPingNoCore"];
+            return;
+        }
+
+        StatusText = L.Format("status.speedTesting", p.Tag);
+        p.SpeedText = "↓ …";
+        double? mbps;
+        try
+        {
+            mbps = await _proxyProbe.MeasureSpeedAsync(p, SpeedTestUrl, SpeedTestMaxBytes, SpeedTestMaxTime);
+        }
+        catch (Exception ex)
+        {
+            p.SpeedText = null;
+            StatusText = L.Format("status.proxyPingFail", ex.Message);
+            return;
+        }
+
+        p.SpeedMbps = mbps;
+        var figure = mbps is double v ? L.Format("speed.value", v.ToString(v < 10 ? "0.0" : "0")) : null;
+        p.SpeedText = figure ?? L["speed.fail"];
+        var done = figure is not null
+            ? L.Format("status.speedDone", p.Tag, figure)
+            : L.Format("status.speedFail", p.Tag);
         StatusText = done;
         if (IsConnected)
             _ = RestoreConnectedStatusAsync(done);

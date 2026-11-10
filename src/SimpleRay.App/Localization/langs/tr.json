@@ -200,5 +200,12 @@
   "status.proxyPinging": "{0} sunucu kendi üzerinden kontrol ediliyor…",
   "status.proxyPingDone": "Sunucu üzerinden kontrol: {1} sunucudan {0} tanesi çalışıyor",
   "status.proxyPingFail": "Sunucu üzerinden kontrol başarısız: {0}",
-  "status.proxyPingNoCore": "sing-box bulunamadı: sunucu üzerinden kontrol için SimpleRay.exe yanında core klasörü gerekir"
+  "status.proxyPingNoCore": "sing-box bulunamadı: sunucu üzerinden kontrol için SimpleRay.exe yanında core klasörü gerekir",
+  "profile.speedTest": "Hız",
+  "tip.speedTest": "Seçili sunucu üzerinden indirme hızı: speed.cloudflare.com'dan en fazla 10 MB (en çok 10 sn). Abonelik trafiğini harcadığı için yalnızca düğmeye basınca çalışır. \"Sunucu üzerinden ping\" ile aynı ayrı yerel sing-box'ı kullanır; mevcut bağlantıya dokunulmaz.",
+  "speed.value": "↓ {0} Mbit/sn",
+  "speed.fail": "↓ başarısız",
+  "status.speedTesting": "\"{0}\" üzerinden hız ölçülüyor (en fazla 10 MB / 10 sn)…",
+  "status.speedDone": "\"{0}\" üzerinden hız: {1}",
+  "status.speedFail": "\"{0}\" üzerinden hız ölçülemedi: sunucu indirmeye izin vermedi"
 }

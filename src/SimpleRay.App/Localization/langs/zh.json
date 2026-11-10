@@ -200,5 +200,12 @@
   "status.proxyPinging": "正在经各服务器检查 {0} 个服务器…",
   "status.proxyPingDone": "经服务器检查：{1} 个中有 {0} 个可用",
   "status.proxyPingFail": "经服务器检查失败：{0}",
-  "status.proxyPingNoCore": "未找到 sing-box：经服务器检查需要 SimpleRay.exe 旁的 core 文件夹"
+  "status.proxyPingNoCore": "未找到 sing-box：经服务器检查需要 SimpleRay.exe 旁的 core 文件夹",
+  "profile.speedTest": "测速",
+  "tip.speedTest": "经所选服务器的下载速度：从 speed.cloudflare.com 下载最多 10 MB（不超过 10 秒）。会消耗订阅流量，因此只在点击时运行。使用与“经服务器测速”相同的独立本地 sing-box，不影响当前连接。",
+  "speed.value": "↓ {0} Mbit/秒",
+  "speed.fail": "↓ 失败",
+  "status.speedTesting": "正在经“{0}”测速（最多 10 MB / 10 秒）…",
+  "status.speedDone": "经“{0}”的速度：{1}",
+  "status.speedFail": "无法经“{0}”测速：服务器未放行下载"
 }

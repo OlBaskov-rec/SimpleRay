@@ -376,4 +376,18 @@ public static class LocKeys
     public const string StatusProxyPingFail = "status.proxyPingFail";
     /// <summary>status.proxyPingNoCore</summary>
     public const string StatusProxyPingNoCore = "status.proxyPingNoCore";
+    /// <summary>profile.speedTest</summary>
+    public const string ProfileSpeedTest = "profile.speedTest";
+    /// <summary>tip.speedTest</summary>
+    public const string TipSpeedTest = "tip.speedTest";
+    /// <summary>speed.value</summary>
+    public const string SpeedValue = "speed.value";
+    /// <summary>speed.fail</summary>
+    public const string SpeedFail = "speed.fail";
+    /// <summary>status.speedTesting</summary>
+    public const string StatusSpeedTesting = "status.speedTesting";
+    /// <summary>status.speedDone</summary>
+    public const string StatusSpeedDone = "status.speedDone";
+    /// <summary>status.speedFail</summary>
+    public const string StatusSpeedFail = "status.speedFail";
 }

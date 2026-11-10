@@ -12,7 +12,7 @@ using SimpleRay.Core.Models;
 namespace SimpleRay.App.Services;
 
 /// <summary>
-/// "Ping through the server": measures how long a real request takes THROUGH each server — the
+/// "Ping through the server" and speed test: measures how long a real request takes THROUGH each server — the
 /// same check the auto-switch (urltest) uses — without connecting. Starts a throwaway sing-box
 /// with one local SOCKS inbound per server (127.0.0.1, random port, random username/password),
 /// requests the test URL through each inbound in parallel, then kills sing-box and deletes its
@@ -40,22 +40,44 @@ public sealed class ProxyProbe
         var results = new int?[profiles.Count];
         if (profiles.Count == 0)
             return results;
-        if (await TryRunAsync(profiles, testUrl, results, ct).ConfigureAwait(false) || profiles.Count == 1)
+
+        async Task Latency(int i, HttpClient http) =>
+            results[i] = await MeasureLatencyAsync(http, testUrl, ct).ConfigureAwait(false);
+
+        if (await TryRunAsync(profiles, Latency, RequestTimeout, ct).ConfigureAwait(false) || profiles.Count == 1)
             return results;
 
         // sing-box refuses to start when any one outbound is invalid; retry one by one so the
         // other servers still get a result and only the broken one shows a failure.
         for (int i = 0; i < profiles.Count; i++)
         {
-            var one = new int?[1];
-            if (await TryRunAsync(new[] { profiles[i] }, testUrl, one, ct).ConfigureAwait(false))
-                results[i] = one[0];
+            int index = i;
+            await TryRunAsync(new[] { profiles[i] }, (_, http) => Latency(index, http), RequestTimeout, ct)
+                .ConfigureAwait(false);
         }
         return results;
     }
 
-    /// <summary>One sing-box for all <paramref name="profiles"/>; false when it didn't come up.</summary>
-    private async Task<bool> TryRunAsync(IReadOnlyList<ProfileConfig> profiles, string testUrl, int?[] results, CancellationToken ct)
+    /// <summary>
+    /// Download speed through one server in Mbit/s: reads <paramref name="url"/> until
+    /// <paramref name="maxBytes"/> or <paramref name="maxTime"/>, whichever comes first, timing
+    /// only the transfer (not the connection setup). Null when it failed or moved too little.
+    /// </summary>
+    public async Task<double?> MeasureSpeedAsync(ProfileConfig profile, string url, long maxBytes, TimeSpan maxTime,
+        CancellationToken ct = default)
+    {
+        double? mbps = null;
+        await TryRunAsync(new[] { profile }, async (_, http) => mbps = await DownloadAsync(http, url, maxBytes, maxTime, ct).ConfigureAwait(false),
+            maxTime + RequestTimeout, ct).ConfigureAwait(false);
+        return mbps;
+    }
+
+    /// <summary>
+    /// One sing-box for all <paramref name="profiles"/>; runs <paramref name="work"/> for each with
+    /// an HttpClient going through that server. False when sing-box didn't come up.
+    /// </summary>
+    private async Task<bool> TryRunAsync(IReadOnlyList<ProfileConfig> profiles, Func<int, HttpClient, Task> work,
+        TimeSpan httpTimeout, CancellationToken ct)
     {
         Directory.CreateDirectory(_workDir);
         var ports = FreeLoopbackPorts(profiles.Count);
@@ -72,8 +94,17 @@ public sealed class ProxyProbe
                 return false;
 
             await Task.WhenAll(Enumerable.Range(0, profiles.Count).Select(async i =>
-                results[i] = await MeasureOneAsync(ports[i], user, pass, testUrl, ct).ConfigureAwait(false)))
-                .ConfigureAwait(false);
+            {
+                using var handler = new SocketsHttpHandler
+                {
+                    // SOCKS5 with username/password: no 407 challenge round-trip skewing the timing.
+                    Proxy = new WebProxy($"socks5://127.0.0.1:{ports[i]}") { Credentials = new NetworkCredential(user, pass) },
+                    UseProxy = true,
+                    AllowAutoRedirect = false,
+                };
+                using var http = new HttpClient(handler) { Timeout = httpTimeout };
+                await work(i, http).ConfigureAwait(false);
+            })).ConfigureAwait(false);
             return true;
         }
         finally
@@ -84,24 +115,55 @@ public sealed class ProxyProbe
         }
     }
 
-    /// <summary>One request through the local inbound; ms from connect to response headers.</summary>
-    private static async Task<int?> MeasureOneAsync(int port, string user, string pass, string testUrl, CancellationToken ct)
+    /// <summary>One request; ms from connect to response headers, or null on failure.</summary>
+    private static async Task<int?> MeasureLatencyAsync(HttpClient http, string testUrl, CancellationToken ct)
     {
         try
         {
-            using var handler = new SocketsHttpHandler
-            {
-                // SOCKS5 with username/password: no 407 challenge round-trip skewing the timing.
-                Proxy = new WebProxy($"socks5://127.0.0.1:{port}") { Credentials = new NetworkCredential(user, pass) },
-                UseProxy = true,
-                AllowAutoRedirect = false,
-            };
-            using var http = new HttpClient(handler) { Timeout = RequestTimeout };
             var sw = Stopwatch.StartNew();
             using var response = await http.GetAsync(testUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
             sw.Stop();
             // generate_204 answers 204; any non-error answer proves the path works.
             return (int)response.StatusCode is >= 200 and < 400 ? (int)sw.ElapsedMilliseconds : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            if (ct.IsCancellationRequested) throw;
+            return null;
+        }
+    }
+
+    /// <summary>Below this much data a speed figure would be noise.</summary>
+    private const long MinSpeedSampleBytes = 256 * 1024;
+
+    private static async Task<double?> DownloadAsync(HttpClient http, string url, long maxBytes, TimeSpan maxTime, CancellationToken ct)
+    {
+        try
+        {
+            using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                return null;
+            await using var body = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+
+            using var cap = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cap.CancelAfter(maxTime);
+            var buffer = new byte[81920];
+            long total = 0;
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                int n;
+                while (total < maxBytes && (n = await body.ReadAsync(buffer, cap.Token).ConfigureAwait(false)) > 0)
+                    total += n;
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Hit the time cap: measure what arrived so far.
+            }
+            sw.Stop();
+            return total >= MinSpeedSampleBytes && sw.Elapsed.TotalSeconds > 0
+                ? total * 8 / sw.Elapsed.TotalSeconds / 1_000_000
+                : null;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
         {

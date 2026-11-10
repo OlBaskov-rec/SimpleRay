@@ -200,5 +200,12 @@
   "status.proxyPinging": "Checking {0} servers through each server…",
   "status.proxyPingDone": "Check through servers: {0} of {1} work",
   "status.proxyPingFail": "Check through servers failed: {0}",
-  "status.proxyPingNoCore": "sing-box not found: the check through servers needs the core folder next to SimpleRay.exe"
+  "status.proxyPingNoCore": "sing-box not found: the check through servers needs the core folder next to SimpleRay.exe",
+  "profile.speedTest": "Speed",
+  "tip.speedTest": "Download speed through the selected server: up to 10 MB (no longer than 10 s) from speed.cloudflare.com. Runs only when you press it, because it spends subscription traffic. Uses the same separate local sing-box as “Ping via server”; the current connection is not touched.",
+  "speed.value": "↓ {0} Mbit/s",
+  "speed.fail": "↓ failed",
+  "status.speedTesting": "Measuring speed through “{0}” (up to 10 MB / 10 s)…",
+  "status.speedDone": "Speed through “{0}”: {1}",
+  "status.speedFail": "Couldn't measure speed through “{0}”: the server didn't pass the download"
 }
