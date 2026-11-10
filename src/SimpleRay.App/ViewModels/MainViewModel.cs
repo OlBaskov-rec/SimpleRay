@@ -37,6 +37,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly Dispatcher _dispatcher;
     private readonly IDialogService _dialogs;
     private readonly ImportCoordinator _import = new();
+    private readonly ProxyProbe _proxyProbe = new();
 
     // geosite/geoip tags backing the routing presets (must exist as *.srs in GeoDir).
     private const string TagRuSites = "geosite-category-ru";
@@ -105,6 +106,7 @@ public sealed class MainViewModel : ObservableObject
         RemoveCommand = new RelayCommand(RemoveSelected, CanRenameOrRemove);
         RenameCommand = new RelayCommand(RenameSelectedAsync, CanRenameOrRemove);
         PingCommand = new RelayCommand(PingAllAsync, () => Profiles.Count > 0);
+        PingProxyCommand = new RelayCommand(PingThroughServersAsync, () => Profiles.Count > 0);
         OpenAppsCommand = new RelayCommand(OpenAppRouting);
         DirectDomainsCommand = new RelayCommand(EditDirectDomains);
         ProxyDomainsCommand = new RelayCommand(EditProxyDomains);
@@ -138,6 +140,7 @@ public sealed class MainViewModel : ObservableObject
         Profiles.CollectionChanged += (_, _) =>
         {
             PingCommand.RaiseCanExecuteChanged();
+            PingProxyCommand.RaiseCanExecuteChanged();
             // Adding/removing a server can change the in-group count, so the hint that
             // reports it must refresh too (e.g. removing a grouped server).
             OnPropertyChanged(nameof(GroupHint));
@@ -244,6 +247,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RemoveCommand { get; }
     public RelayCommand RenameCommand { get; }
     public RelayCommand PingCommand { get; }
+    public RelayCommand PingProxyCommand { get; }
     public RelayCommand OpenAppsCommand { get; }
     public RelayCommand DirectDomainsCommand { get; }
     public RelayCommand ProxyDomainsCommand { get; }
@@ -1123,6 +1127,60 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>Restores the "connected to" label after a transient status, if still connected and unchanged.</summary>
+    /// <summary>
+    /// The real check: a request to the auto-switch test URL through each visible server
+    /// (ProxyProbe — a throwaway local sing-box, works while disconnected too). Shows a second
+    /// figure per server and sorts working servers first, fastest on top.
+    /// </summary>
+    private async Task PingThroughServersAsync()
+    {
+        var list = ServersView.Cast<ProfileConfig>().ToList(); // what's on screen
+        if (list.Count == 0)
+            return;
+        if (!File.Exists(AppPaths.CoreExe))
+        {
+            StatusText = L["status.proxyPingNoCore"];
+            return;
+        }
+
+        StatusText = L.Format("status.proxyPinging", list.Count);
+        foreach (var p in list)
+            p.ProxyLatencyText = "…";
+
+        IReadOnlyList<int?> results;
+        try
+        {
+            results = await _proxyProbe.MeasureAsync(list, _routing.Failover.TestUrl);
+        }
+        catch (Exception ex)
+        {
+            foreach (var p in list)
+                p.ProxyLatencyText = null;
+            StatusText = L.Format("status.proxyPingFail", ex.Message);
+            return;
+        }
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            list[i].ProxyLatencyMs = results[i];
+            list[i].ProxyLatencyText = results[i] is int ms
+                ? L.Format("ping.viaServer", ms)
+                : L["ping.viaServerFail"];
+        }
+
+        // Working through the server first (fastest on top), then by the direct ping and name.
+        ReplaceProfiles(Profiles
+            .OrderBy(p => p.ProxyLatencyMs ?? int.MaxValue)
+            .ThenBy(p => p.LatencyMs ?? int.MaxValue)
+            .ThenBy(p => p.Tag, StringComparer.OrdinalIgnoreCase)
+            .ToList());
+        SaveProfiles();
+        var done = L.Format("status.proxyPingDone", results.Count(r => r is not null), list.Count);
+        StatusText = done;
+        if (IsConnected)
+            _ = RestoreConnectedStatusAsync(done);
+    }
+
     private async Task RestoreConnectedStatusAsync(string transientMessage)
     {
         await Task.Delay(3000);

@@ -3,6 +3,30 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Ping through the server.** A new "Ping via server" button checks that the VPN really works:
+  through each server on screen it requests the same test page the auto-switch uses and shows a
+  second figure per server (green ms, or red "no answer"); working servers are sorted first. It
+  works while disconnected and also tests UDP protocols (WireGuard, Hysteria2). For the
+  duration of the check a separate sing-box runs on 127.0.0.1 only, behind a random
+  username/password, then is stopped and its config deleted; the current connection is not
+  touched. If one server's config is broken, the others are still checked one by one.
+- **Ping explained.** Both ping buttons have tooltips: the old one is a direct TCP connection to
+  the server's port (port open, not "VPN works"), the new one is the real check.
+
+### Русский
+- **Пинг через сервер.** Новая кнопка «Пинг через сервер» проверяет, что VPN реально работает:
+  через каждый сервер на экране запрашивается та же тестовая страница, что у автопереключателя,
+  и у сервера появляется вторая цифра (зелёные мс или красное «нет ответа»); рабочие серверы
+  сортируются наверх. Работает и без подключения, проверяет и UDP-протоколы (WireGuard,
+  Hysteria2). На время проверки запускается отдельный sing-box только на 127.0.0.1 со случайными
+  логином и паролем, затем он останавливается, а его конфиг удаляется; текущее подключение не
+  затрагивается. Если конфиг одного сервера сломан, остальные всё равно проверяются по одному.
+- **Пояснения к пингу.** У обеих кнопок пинга есть подсказки: старая — прямое TCP-подключение к
+  порту сервера (порт открыт, а не «VPN работает»), новая — настоящая проверка.
+
 ## 0.3.6 — 2026-11-09
 
 ### English

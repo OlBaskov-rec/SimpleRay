@@ -142,6 +142,26 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
+                                <!-- Ping through the server: green ms = works, red = no answer, gray … = running. -->
+                                <TextBlock FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center"
+                                           Text="{Binding ProxyLatencyText}" ToolTip="{loc:Loc tip.pingProxy}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#2E7D32" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ProxyLatencyMs}" Value="{x:Null}">
+                                                    <Setter Property="Foreground" Value="#C0392B" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ProxyLatencyText}" Value="…">
+                                                    <Setter Property="Foreground" Value="Gray" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ProxyLatencyText}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                         </StackPanel>
                     </DataTemplate>
@@ -189,7 +209,17 @@
             <!-- Tools -->
             <StackPanel Orientation="Horizontal">
                 <Button Content="{loc:Loc profile.ping}" Command="{Binding PingCommand}"
-                        Padding="10,4" Margin="0,0,6,0" ToolTip="{loc:Loc tip.ping}" />
+                        Padding="10,4" Margin="0,0,6,0" ToolTipService.ShowDuration="30000">
+                    <Button.ToolTip>
+                        <TextBlock Text="{loc:Loc tip.ping}" TextWrapping="Wrap" MaxWidth="420" />
+                    </Button.ToolTip>
+                </Button>
+                <Button Content="{loc:Loc profile.pingProxy}" Command="{Binding PingProxyCommand}"
+                        Padding="10,4" Margin="0,0,6,0" ToolTipService.ShowDuration="30000">
+                    <Button.ToolTip>
+                        <TextBlock Text="{loc:Loc tip.pingProxy}" TextWrapping="Wrap" MaxWidth="420" />
+                    </Button.ToolTip>
+                </Button>
                 <Button Content="{loc:Loc subscription.refresh}" Command="{Binding RefreshSubscriptionsCommand}"
                         Padding="10,4" ToolTip="{loc:Loc tip.refreshSelected}" />
             </StackPanel>

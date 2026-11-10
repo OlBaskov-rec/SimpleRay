@@ -154,7 +154,7 @@
 
   "profile.ping": "Ping",
   "profile.rename": "Renombrar",
-  "tip.ping": "Medir la latencia de cada servidor y ordenar",
+  "tip.ping": "Comprobación rápida: conexión TCP directa desde este equipo a la dirección y el puerto del servidor, ordenada por tiempo. Solo muestra que el puerto está abierto, no que la VPN funcione; los protocolos UDP (WireGuard, Hysteria2) no se pueden comprobar así.",
   "status.pinging": "Midiendo la latencia…",
   "status.pingDone": "Latencia medida",
   "rename.title": "Renombrar",
@@ -192,5 +192,13 @@
   "status.noLinksText": "No se reconoció nada: no hay enlaces de servidor ni URL de suscripción",
   "tip.renameAny": "Renombrar lo seleccionado en la última lista pulsada: una suscripción (nombre y User-Agent) o un servidor",
   "tip.removeAny": "Eliminar lo seleccionado en la última lista pulsada: una suscripción (con sus servidores) o un servidor",
-  "tip.refreshSelected": "Actualizar la suscripción elegida en el panel, o todas si está elegido «Todos los servidores»"
+  "tip.refreshSelected": "Actualizar la suscripción elegida en el panel, o todas si está elegido «Todos los servidores»",
+  "profile.pingProxy": "Ping por el servidor",
+  "tip.pingProxy": "Comprobación real: a través de cada servidor en pantalla se solicita la página de prueba que usa el cambio automático y se muestra el tiempo. Funciona también sin conexión: durante la prueba se ejecuta un sing-box aparte solo en este equipo (127.0.0.1, con contraseña), sin afectar a la conexión actual.",
+  "ping.viaServer": "por servidor {0} ms",
+  "ping.viaServerFail": "por servidor: sin respuesta",
+  "status.proxyPinging": "Comprobando {0} servidores a través de cada uno…",
+  "status.proxyPingDone": "Comprobación por servidor: funcionan {0} de {1}",
+  "status.proxyPingFail": "Falló la comprobación por servidor: {0}",
+  "status.proxyPingNoCore": "No se encontró sing-box: la comprobación por servidor necesita la carpeta core junto a SimpleRay.exe"
 }

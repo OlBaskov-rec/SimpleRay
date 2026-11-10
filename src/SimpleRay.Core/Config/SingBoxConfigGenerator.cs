@@ -86,6 +86,68 @@ public static class SingBoxConfigGenerator
         return root;
     }
 
+    /// <summary>
+    /// Config for "ping through the server": a throwaway sing-box with one local proxy inbound
+    /// per server (127.0.0.1 only, username/password required), each routed to just that
+    /// server. No TUN, no routing rules, nothing system-wide. auto_detect_interface makes it
+    /// reach the servers over the physical interface even while the main tunnel is up.
+    /// </summary>
+    public static string GenerateProbeJson(IReadOnlyList<ProfileConfig> profiles, IReadOnlyList<int> ports,
+        string username, string password)
+        => GenerateProbe(profiles, ports, username, password).ToJsonString(WriteOptions);
+
+    public static JsonObject GenerateProbe(IReadOnlyList<ProfileConfig> profiles, IReadOnlyList<int> ports,
+        string username, string password)
+    {
+        if (profiles is null || profiles.Count == 0)
+            throw new ArgumentException("At least one profile is required.", nameof(profiles));
+        if (ports.Count != profiles.Count)
+            throw new ArgumentException("One port per profile is required.", nameof(ports));
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            throw new ArgumentException("The probe inbounds must require credentials.");
+
+        var inbounds = new JsonArray();
+        var outbounds = new JsonArray();
+        var endpoints = new JsonArray();
+        var rules = new JsonArray();
+        for (int i = 0; i < profiles.Count; i++)
+        {
+            string inTag = $"probe-in-{i + 1}", outTag = $"probe-{i + 1}";
+            inbounds.Add(new JsonObject
+            {
+                ["type"] = "mixed",
+                ["tag"] = inTag,
+                ["listen"] = "127.0.0.1",
+                ["listen_port"] = ports[i],
+                ["users"] = new JsonArray { new JsonObject { ["username"] = username, ["password"] = password } },
+            });
+            if (profiles[i].Protocol == ProxyProtocol.WireGuard)
+                endpoints.Add(BuildWireGuardEndpoint(profiles[i], outTag));
+            else
+                outbounds.Add(BuildProxyOutbound(profiles[i], outTag));
+            rules.Add(new JsonObject { ["inbound"] = new JsonArray { inTag }, ["outbound"] = outTag });
+        }
+        // Nothing should fall through, but if it did it must not leave the machine unproxied.
+        rules.Add(new JsonObject { ["action"] = "reject" });
+
+        var root = new JsonObject
+        {
+            ["log"] = new JsonObject { ["level"] = "warn" },
+            ["dns"] = new JsonObject { ["servers"] = new JsonArray { new JsonObject { ["type"] = "local", ["tag"] = "local" } } },
+            ["inbounds"] = inbounds,
+            ["outbounds"] = outbounds,
+            ["route"] = new JsonObject
+            {
+                ["rules"] = rules,
+                ["default_domain_resolver"] = "local",
+                ["auto_detect_interface"] = true,
+            },
+        };
+        if (endpoints.Count > 0)
+            root["endpoints"] = endpoints;
+        return root;
+    }
+
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
     // Resolvers are addressed by IP: a hostname here would itself need resolving first.
     private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites, IReadOnlyList<string> proxyDomains, bool enableIpv6)

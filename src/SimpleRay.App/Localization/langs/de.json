@@ -154,7 +154,7 @@
 
   "profile.ping": "Ping",
   "profile.rename": "Umbenennen",
-  "tip.ping": "Latenz zu jedem Server messen und danach sortieren",
+  "tip.ping": "Schnelltest: direkte TCP-Verbindung von diesem Computer zu Adresse und Port des Servers, nach Zeit sortiert. Zeigt nur, dass der Port offen ist, nicht dass das VPN darüber funktioniert; UDP-Protokolle (WireGuard, Hysteria2) lassen sich so nicht prüfen.",
   "status.pinging": "Latenz wird gemessen…",
   "status.pingDone": "Latenz gemessen",
   "rename.title": "Umbenennen",
@@ -192,5 +192,13 @@
   "status.noLinksText": "Nichts erkannt: keine Server-Links oder Abo-URL",
   "tip.renameAny": "Auswahl in der zuletzt angeklickten Liste umbenennen: ein Abo (Name und User-Agent) oder einen Server",
   "tip.removeAny": "Auswahl in der zuletzt angeklickten Liste entfernen: ein Abo (mit seinen Servern) oder einen Server",
-  "tip.refreshSelected": "Das im Bereich gewählte Abo aktualisieren, oder alle, wenn „Alle Server“ gewählt ist"
+  "tip.refreshSelected": "Das im Bereich gewählte Abo aktualisieren, oder alle, wenn „Alle Server“ gewählt ist",
+  "profile.pingProxy": "Ping über Server",
+  "tip.pingProxy": "Echter Test: Über jeden angezeigten Server wird die Testseite der automatischen Umschaltung abgerufen und die Zeit angezeigt. Funktioniert auch ohne Verbindung: Für die Dauer des Tests läuft ein separates sing-box nur auf diesem Computer (127.0.0.1, mit Passwort), die aktuelle Verbindung bleibt unberührt.",
+  "ping.viaServer": "über Server {0} ms",
+  "ping.viaServerFail": "über Server: keine Antwort",
+  "status.proxyPinging": "Prüfe {0} Server über den jeweiligen Server…",
+  "status.proxyPingDone": "Test über Server: {0} von {1} funktionieren",
+  "status.proxyPingFail": "Test über Server fehlgeschlagen: {0}",
+  "status.proxyPingNoCore": "sing-box nicht gefunden: Für den Test über Server wird der Ordner core neben SimpleRay.exe benötigt"
 }

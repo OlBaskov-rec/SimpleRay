@@ -154,7 +154,7 @@
 
   "profile.ping": "Ping",
   "profile.rename": "Rename",
-  "tip.ping": "Measure latency to each server and sort by it",
+  "tip.ping": "Quick check: a direct TCP connection from this computer to the server's address and port, sorted by time. It only shows the port is open, not that the VPN works through it; UDP protocols (WireGuard, Hysteria2) can't be checked this way.",
   "status.pinging": "Measuring latency…",
   "status.pingDone": "Latency measured",
   "rename.title": "Rename",
@@ -192,5 +192,13 @@
   "status.noLinksText": "Nothing recognized: no server links or subscription URL",
   "tip.renameAny": "Rename what's selected in the list you clicked last: a subscription (name and User-Agent) or a server",
   "tip.removeAny": "Remove what's selected in the list you clicked last: a subscription (with its servers) or a server",
-  "tip.refreshSelected": "Refresh the subscription selected in the panel, or all of them when “All servers” is selected"
+  "tip.refreshSelected": "Refresh the subscription selected in the panel, or all of them when “All servers” is selected",
+  "profile.pingProxy": "Ping via server",
+  "tip.pingProxy": "Real check: through each server on screen, the test page the auto-switch uses is requested, and the time is shown. Works while disconnected: a separate sing-box runs only for the duration of the check, on this computer only (127.0.0.1, password-protected), without touching the current connection.",
+  "ping.viaServer": "via server {0} ms",
+  "ping.viaServerFail": "via server: no answer",
+  "status.proxyPinging": "Checking {0} servers through each server…",
+  "status.proxyPingDone": "Check through servers: {0} of {1} work",
+  "status.proxyPingFail": "Check through servers failed: {0}",
+  "status.proxyPingNoCore": "sing-box not found: the check through servers needs the core folder next to SimpleRay.exe"
 }

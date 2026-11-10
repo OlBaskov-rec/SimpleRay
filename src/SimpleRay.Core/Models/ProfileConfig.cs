@@ -95,6 +95,20 @@ public sealed class ProfileConfig : INotifyPropertyChanged
         set { if (_latencyText != value) { _latencyText = value; OnPropertyChanged(nameof(LatencyText)); } }
     }
 
+    /// <summary>Last "ping through the server" result in ms (transient); null = untested or failed.</summary>
+    [JsonIgnore]
+    public int? ProxyLatencyMs { get; set; }
+
+    private string? _proxyLatencyText;
+
+    /// <summary>Display text of the last ping through the server (transient); null = never run.</summary>
+    [JsonIgnore]
+    public string? ProxyLatencyText
+    {
+        get => _proxyLatencyText;
+        set { if (_proxyLatencyText != value) { _proxyLatencyText = value; OnPropertyChanged(nameof(ProxyLatencyText)); } }
+    }
+
     private bool _isActive;
 
     /// <summary>True while this server is the currently connected one (transient, drives list highlight).</summary>

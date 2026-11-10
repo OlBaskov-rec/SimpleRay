@@ -360,4 +360,20 @@ public static class LocKeys
     public const string TipRemoveAny = "tip.removeAny";
     /// <summary>tip.refreshSelected</summary>
     public const string TipRefreshSelected = "tip.refreshSelected";
+    /// <summary>profile.pingProxy</summary>
+    public const string ProfilePingProxy = "profile.pingProxy";
+    /// <summary>tip.pingProxy</summary>
+    public const string TipPingProxy = "tip.pingProxy";
+    /// <summary>ping.viaServer</summary>
+    public const string PingViaServer = "ping.viaServer";
+    /// <summary>ping.viaServerFail</summary>
+    public const string PingViaServerFail = "ping.viaServerFail";
+    /// <summary>status.proxyPinging</summary>
+    public const string StatusProxyPinging = "status.proxyPinging";
+    /// <summary>status.proxyPingDone</summary>
+    public const string StatusProxyPingDone = "status.proxyPingDone";
+    /// <summary>status.proxyPingFail</summary>
+    public const string StatusProxyPingFail = "status.proxyPingFail";
+    /// <summary>status.proxyPingNoCore</summary>
+    public const string StatusProxyPingNoCore = "status.proxyPingNoCore";
 }

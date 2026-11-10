@@ -154,7 +154,7 @@
 
   "profile.ping": "Ping",
   "profile.rename": "Yeniden adlandır",
-  "tip.ping": "Her sunucunun gecikmesini ölç ve buna göre sırala",
+  "tip.ping": "Hızlı kontrol: bu bilgisayardan sunucunun adres ve portuna doğrudan TCP bağlantısı, süreye göre sıralı. Yalnızca portun açık olduğunu gösterir, VPN'in çalıştığını değil; UDP protokolleri (WireGuard, Hysteria2) bu şekilde kontrol edilemez.",
   "status.pinging": "Gecikme ölçülüyor…",
   "status.pingDone": "Gecikme ölçüldü",
   "rename.title": "Yeniden adlandır",
@@ -192,5 +192,13 @@
   "status.noLinksText": "Hiçbir şey tanınmadı: sunucu bağlantısı veya abonelik URL'si yok",
   "tip.renameAny": "Son tıkladığınız listede seçili olanı yeniden adlandır: abonelik (ad ve User-Agent) veya sunucu",
   "tip.removeAny": "Son tıkladığınız listede seçili olanı kaldır: abonelik (sunucularıyla birlikte) veya sunucu",
-  "tip.refreshSelected": "Panelde seçili aboneliği, \"Tüm sunucular\" seçiliyse hepsini yenile"
+  "tip.refreshSelected": "Panelde seçili aboneliği, \"Tüm sunucular\" seçiliyse hepsini yenile",
+  "profile.pingProxy": "Sunucu üzerinden ping",
+  "tip.pingProxy": "Gerçek kontrol: ekrandaki her sunucu üzerinden otomatik geçişin kullandığı test sayfası istenir ve süre gösterilir. Bağlantı olmadan da çalışır: kontrol süresince yalnızca bu bilgisayarda (127.0.0.1, parolalı) ayrı bir sing-box çalışır, mevcut bağlantıya dokunulmaz.",
+  "ping.viaServer": "sunucu üzerinden {0} ms",
+  "ping.viaServerFail": "sunucu üzerinden: yanıt yok",
+  "status.proxyPinging": "{0} sunucu kendi üzerinden kontrol ediliyor…",
+  "status.proxyPingDone": "Sunucu üzerinden kontrol: {1} sunucudan {0} tanesi çalışıyor",
+  "status.proxyPingFail": "Sunucu üzerinden kontrol başarısız: {0}",
+  "status.proxyPingNoCore": "sing-box bulunamadı: sunucu üzerinden kontrol için SimpleRay.exe yanında core klasörü gerekir"
 }
