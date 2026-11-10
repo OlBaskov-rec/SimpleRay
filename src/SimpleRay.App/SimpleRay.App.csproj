@@ -56,7 +56,7 @@
     <AssemblyName>SimpleRay</AssemblyName>
 
     <!-- Product version (source of truth for the in-app updater; compared to GitHub release tag). -->
-    <Version>0.3.6</Version>
+    <Version>0.3.7</Version>
     <Company>OlBaskov-rec</Company>
     <Product>SimpleRay</Product>
     <Copyright>Copyright (C) 2026 OlBaskov-rec</Copyright>
