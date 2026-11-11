@@ -72,4 +72,7 @@ public sealed class RoutingSettings
 
     /// <summary>Whether the subscriptions panel in the main window is expanded (UI state, persisted).</summary>
     public bool SubscriptionsPanelOpen { get; set; } = true;
+
+    /// <summary>Whether the "still running in the tray" hint was already shown (first close only).</summary>
+    public bool TrayHintShown { get; set; }
 }

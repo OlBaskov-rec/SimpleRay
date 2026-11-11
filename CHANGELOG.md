@@ -3,6 +3,50 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Release files carry no version.** The portable archive is now `SimpleRay-win-x64.zip` and the
+  installer `SimpleRay-setup.exe`, so an unzipped folder never shows an old version after an
+  in-app update. The folder holds `ABOUT.txt` with the current version and the changelog; it is
+  replaced on every update. Older installs still find and install updates.
+- **Close goes to the tray.** The window's close button hides SimpleRay to the tray instead of
+  quitting (the connection keeps running); the first time, a balloon from the tray icon says so.
+  Quit with right-click on the tray icon → Exit.
+- **Updates in the background.** "Updates" is now a link next to "About". The app checks GitHub
+  quietly 20 s after launch and every 6 hours; when a new version is out the link turns green,
+  shows the version and blinks three times. Installing still asks first. The language picker
+  moved to the left edge.
+- **Clearer settings.** "Directly, bypassing VPN" now comes first, with the custom lists
+  (apps, direct domains, via-VPN domains) labeled in their own box; the options (ads, autostart,
+  kill-switch, IPv6) follow. The auto-switch is a single checkbox — the old "manual (selector)"
+  mode had no way to pick a server and only used the first grouped one.
+- **Tooltips everywhere.** Every control explains itself: a bold headline, what it does, and how
+  it works, in larger text, also on disabled buttons. "Refresh" is now "Refresh subscriptions",
+  set further apart from the tools.
+- **Lists.** Rows keep clear of the scrollbar.
+
+### Русский
+- **Файлы релиза без номера версии.** Портативный архив теперь `SimpleRay-win-x64.zip`, установщик —
+  `SimpleRay-setup.exe`, поэтому распакованная папка не показывает старую версию после обновления
+  из программы. В папке лежит `ABOUT.txt` с текущей версией и changelog; он заменяется при каждом
+  обновлении. Уже установленные копии по-прежнему находят и ставят обновления.
+- **Крестик сворачивает в трей.** Кнопка закрытия окна прячет SimpleRay в трей, а не закрывает
+  программу (подключение продолжает работать); в первый раз об этом скажет всплывающее сообщение
+  у значка в трее. Выход — правый щелчок по значку → «Выход».
+- **Обновления в фоне.** «Обновления» — теперь надпись рядом с «О программе». Программа тихо
+  проверяет GitHub через 20 с после запуска и раз в 6 часов; при выходе новой версии надпись
+  становится зелёной, показывает версию и мигает три раза. Установка по-прежнему с вопросом.
+  Выбор языка перенесён к левому краю.
+- **Понятнее настройки.** Сначала идёт «Напрямую, минуя VPN», свои списки (приложения, прямые
+  домены, домены через VPN) подписаны и выделены отдельным блоком; за ними — параметры (реклама,
+  автозапуск, kill-switch, IPv6). Автопереключение — одна галочка: старый режим «ручной
+  (selector)» не давал выбрать сервер и просто брал первый из группы.
+- **Подсказки везде.** Каждый элемент объясняет себя: жирный заголовок, что делает и как
+  работает, крупнее, в том числе на неактивных кнопках. «Обновить» стало «Обновить подписки» и
+  стоит дальше от инструментов.
+- **Списки.** Строки не заходят под полосу прокрутки.
+
 ## 0.3.8 — 2026-11-10
 
 ### English

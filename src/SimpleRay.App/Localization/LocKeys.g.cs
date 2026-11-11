@@ -168,10 +168,6 @@ public static class LocKeys
     public const string ModeRule = "mode.rule";
     /// <summary>mode.direct</summary>
     public const string ModeDirect = "mode.direct";
-    /// <summary>failover.urltest</summary>
-    public const string FailoverUrltest = "failover.urltest";
-    /// <summary>failover.selector</summary>
-    public const string FailoverSelector = "failover.selector";
     /// <summary>group.hintActive</summary>
     public const string GroupHintActive = "group.hintActive";
     /// <summary>group.hintInactive</summary>
@@ -180,8 +176,6 @@ public static class LocKeys
     public const string ActiveGroup = "active.group";
     /// <summary>active.auto</summary>
     public const string ActiveAuto = "active.auto";
-    /// <summary>active.manual</summary>
-    public const string ActiveManual = "active.manual";
     /// <summary>update.consentTitle</summary>
     public const string UpdateConsentTitle = "update.consentTitle";
     /// <summary>update.consent</summary>
@@ -390,4 +384,36 @@ public static class LocKeys
     public const string StatusSpeedDone = "status.speedDone";
     /// <summary>status.speedFail</summary>
     public const string StatusSpeedFail = "status.speedFail";
+    /// <summary>routing.listsTitle</summary>
+    public const string RoutingListsTitle = "routing.listsTitle";
+    /// <summary>routing.autoSwitch</summary>
+    public const string RoutingAutoSwitch = "routing.autoSwitch";
+    /// <summary>group.hintOff</summary>
+    public const string GroupHintOff = "group.hintOff";
+    /// <summary>tray.hintTitle</summary>
+    public const string TrayHintTitle = "tray.hintTitle";
+    /// <summary>tray.hintText</summary>
+    public const string TrayHintText = "tray.hintText";
+    /// <summary>updates.available</summary>
+    public const string UpdatesAvailable = "updates.available";
+    /// <summary>tip.about</summary>
+    public const string TipAbout = "tip.about";
+    /// <summary>tip.connect</summary>
+    public const string TipConnect = "tip.connect";
+    /// <summary>tip.mode</summary>
+    public const string TipMode = "tip.mode";
+    /// <summary>tip.blockAds</summary>
+    public const string TipBlockAds = "tip.blockAds";
+    /// <summary>tip.directRuSites</summary>
+    public const string TipDirectRuSites = "tip.directRuSites";
+    /// <summary>tip.directRuIp</summary>
+    public const string TipDirectRuIp = "tip.directRuIp";
+    /// <summary>tip.directLan</summary>
+    public const string TipDirectLan = "tip.directLan";
+    /// <summary>tip.dnsProvider</summary>
+    public const string TipDnsProvider = "tip.dnsProvider";
+    /// <summary>tip.autoSwitch</summary>
+    public const string TipAutoSwitch = "tip.autoSwitch";
+    /// <summary>tip.importManual</summary>
+    public const string TipImportManual = "tip.importManual";
 }

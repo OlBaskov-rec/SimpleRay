@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 
 namespace SimpleRay.App;
 
@@ -21,7 +20,7 @@ public partial class TextInputWindow : Window
     public TextInputWindow WithHint(string line, string details)
     {
         HintText.Text = line;
-        HintText.ToolTip = new TextBlock { Text = details, TextWrapping = TextWrapping.Wrap, MaxWidth = 460 };
+        HintText.ToolTip = details; // the app-wide ToolTip style wraps and formats it
         HintText.Visibility = Visibility.Visible;
         return this;
     }

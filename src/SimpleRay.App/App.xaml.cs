@@ -12,6 +12,35 @@ namespace SimpleRay.App;
 
 public partial class App : Application
 {
+    /// <summary>
+    /// True once the app is really exiting (tray "Exit", update, elevated relaunch, Windows
+    /// logoff). Until then the main window's close button only hides it to the tray.
+    /// </summary>
+    public static bool IsExiting { get; private set; }
+
+    /// <summary>The one way to quit for real: lets the main window close instead of hiding.</summary>
+    public static void Quit()
+    {
+        IsExiting = true;
+        Current.Shutdown();
+    }
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        IsExiting = true; // logoff/shutdown must not be blocked by hide-to-tray
+        base.OnSessionEnding(e);
+    }
+
+    static App()
+    {
+        // App-wide tooltip behaviour: long enough to read the structured tips, and also shown on
+        // disabled controls (a greyed-out button should still say what it would do).
+        System.Windows.Controls.ToolTipService.ShowDurationProperty.OverrideMetadata(
+            typeof(FrameworkElement), new FrameworkPropertyMetadata(60000));
+        System.Windows.Controls.ToolTipService.ShowOnDisabledProperty.OverrideMetadata(
+            typeof(FrameworkElement), new FrameworkPropertyMetadata(true));
+    }
+
     public App()
     {
         // Last-resort safety net: an unhandled exception must not silently kill the

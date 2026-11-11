@@ -31,6 +31,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly SubscriptionStore _subscriptionStore = new();
     private readonly List<SubscriptionEntry> _subscriptions;
     private readonly DispatcherTimer _subscriptionTimer;
+    private readonly DispatcherTimer _updateTimer;
     private bool _subscriptionsBusy;
     private readonly ConnectionController _connection;
     private readonly RoutingSettings _routing;
@@ -137,6 +138,19 @@ public sealed class MainViewModel : ObservableObject
         _subscriptionTimer.Start();
         _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, async () => await AutoUpdateSubscriptionsAsync());
 
+        // Background update check: once shortly after launch, then every 6 hours. It only lights
+        // up the footer link; nothing is downloaded without the user's consent.
+        _updateTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+        {
+            Interval = TimeSpan.FromSeconds(20),
+        };
+        _updateTimer.Tick += async (_, _) =>
+        {
+            _updateTimer.Interval = TimeSpan.FromHours(6);
+            await CheckForUpdatesInBackgroundAsync();
+        };
+        _updateTimer.Start();
+
         L.CultureChanged += OnCultureChanged;
         Profiles.CollectionChanged += (_, _) =>
         {
@@ -169,9 +183,9 @@ public sealed class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(ConnectButtonText));
         OnPropertyChanged(nameof(Modes));
-        OnPropertyChanged(nameof(FailoverModes));
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SelectedLanguage));
+        OnPropertyChanged(nameof(UpdateLinkText));
         RaiseSubscriptionInfoChanged();
         // Probe results carry localized text ("unavailable", units); drop them rather
         // than leave the picker mixing two languages.
@@ -187,6 +201,19 @@ public sealed class MainViewModel : ObservableObject
     public const string SourceUrl = "https://github.com/OlBaskov-rec/SimpleRay";
 
     public string AboutTitle => L["about.title"];
+
+    public string TrayHintTitle => L["tray.hintTitle"];
+    public string TrayHintText => L["tray.hintText"];
+
+    /// <summary>True only the first time the window is closed to the tray (then remembered).</summary>
+    public bool TakeFirstTrayHint()
+    {
+        if (_routing.TrayHintShown)
+            return false;
+        _routing.TrayHintShown = true;
+        SaveRouting();
+        return true;
+    }
 
     /// <summary>
     /// About text including the GPL notice. GPL-3.0 asks an interactive program to show
@@ -599,6 +626,36 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SubscriptionWebPageUrl));
     }
 
+    private string? _availableUpdate;
+
+    /// <summary>A newer release was found by the background check (the footer link turns green and blinks).</summary>
+    public bool UpdateAvailable => _availableUpdate is not null;
+
+    /// <summary>Footer link: "Updates", or "Update 1.2.3" once a newer release is known.</summary>
+    public string UpdateLinkText => _availableUpdate is { } v ? L.Format("updates.available", v) : L["updates.check"];
+
+    /// <summary>
+    /// Quiet periodic check (no dialogs, failures ignored): only flags the footer link. Installing
+    /// still goes through the normal consent flow when the user clicks it.
+    /// </summary>
+    private async Task CheckForUpdatesInBackgroundAsync()
+    {
+        try
+        {
+            var info = await _updateService.CheckAsync();
+            var version = info?.Version.ToString(3);
+            if (version == _availableUpdate)
+                return;
+            _availableUpdate = version;
+            OnPropertyChanged(nameof(UpdateAvailable));
+            OnPropertyChanged(nameof(UpdateLinkText));
+        }
+        catch (Exception)
+        {
+            // Offline, GitHub unreachable, rate-limited: try again on the next tick.
+        }
+    }
+
     private async Task CheckForUpdatesAsync()
     {
         if (IsConnected)
@@ -642,7 +699,7 @@ public sealed class MainViewModel : ObservableObject
             StatusText = L["status.updateApplying"];
             await _connection.ShutdownAsync(); // stop sing-box so its files aren't locked
             _updateService.ApplyAndRestart(staging);
-            Application.Current.Shutdown();
+            App.Quit();
         }
         catch (Exception ex)
         {
@@ -652,22 +709,21 @@ public sealed class MainViewModel : ObservableObject
 
     // --- Failover group ---------------------------------------------------
 
-    public sealed record FailoverModeItem(string Label, FailoverMode Mode);
-
-    public IReadOnlyList<FailoverModeItem> FailoverModes => new[]
+    /// <summary>
+    /// Auto-switch between the servers marked "in group" (sing-box urltest). Off: connect only
+    /// the selected server. Replaces the old urltest/selector choice — the app never offered a
+    /// way to pick inside a selector, so "manual" just meant "the first grouped server".
+    /// </summary>
+    public bool AutoSwitch
     {
-        new FailoverModeItem(L["failover.urltest"], FailoverMode.UrlTest),
-        new FailoverModeItem(L["failover.selector"], FailoverMode.Selector),
-    };
-
-    public FailoverMode SelectedFailoverMode
-    {
-        get => _routing.Failover.Mode;
+        get => _routing.Failover.Mode == FailoverMode.UrlTest;
         set
         {
-            if (_routing.Failover.Mode == value) return;
-            _routing.Failover.Mode = value;
+            var mode = value ? FailoverMode.UrlTest : FailoverMode.Selector;
+            if (_routing.Failover.Mode == mode) return;
+            _routing.Failover.Mode = mode;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(GroupHint));
             SaveRouting();
         }
     }
@@ -677,6 +733,8 @@ public sealed class MainViewModel : ObservableObject
     {
         get
         {
+            if (!AutoSwitch)
+                return L["group.hintOff"];
             int n = Profiles.Count(p => p.InGroup);
             return n >= 2 ? L.Format("group.hintActive", n) : L["group.hintInactive"];
         }
@@ -943,7 +1001,7 @@ public sealed class MainViewModel : ObservableObject
             if (!Elevation.RelaunchElevated("--connect"))
                 StatusText = L["status.adminCancelled"];
             else
-                Application.Current.Shutdown();
+                App.Quit();
             return;
         }
 
@@ -951,7 +1009,7 @@ public sealed class MainViewModel : ObservableObject
         {
             _activeLabel = targets.Count > 1
                 ? L.Format("active.group", targets.Count,
-                    L[SelectedFailoverMode == FailoverMode.UrlTest ? "active.auto" : "active.manual"])
+                    L["active.auto"])
                 : targets[0].Tag;
             StatusText = L["status.connecting"];
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
@@ -972,7 +1030,7 @@ public sealed class MainViewModel : ObservableObject
     private List<ProfileConfig> ResolveConnectTargets()
     {
         var group = Profiles.Where(p => p.InGroup).ToList();
-        if (group.Count >= 2) return group;
+        if (AutoSwitch && group.Count >= 2) return group;
         if (SelectedProfile is not null) return new List<ProfileConfig> { SelectedProfile };
         return new List<ProfileConfig>();
     }

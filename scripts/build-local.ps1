@@ -5,9 +5,9 @@
 
 .DESCRIPTION
   Produces, in -OutDir (default: <repo>\build):
-    SimpleRay-<version>-win-x64.zip        portable (unzip, run SimpleRay.exe)
-    SimpleRay-<version>-win-x64.zip.sha256
-    SimpleRay-<version>-setup.exe           per-user installer (if Inno Setup is present)
+    SimpleRay-win-x64.zip                  portable (unzip, run SimpleRay.exe)
+    SimpleRay-win-x64.zip.sha256
+    SimpleRay-setup.exe                     per-user installer (if Inno Setup is present)
 
   Steps: fetch runtime deps if missing -> publish portable -> build installer -> copy to OutDir.
   Requires the .NET 8 SDK on PATH. The installer step also needs Inno Setup 6 (ISCC.exe);
@@ -40,7 +40,7 @@ if (-not (Test-Path (Join-Path $runtime "core\sing-box.exe"))) {
     & (Join-Path $PSScriptRoot "fetch-deps.ps1")
 }
 
-# --- 2. portable package (produces dist\SimpleRay-<ver>-win-x64.zip + .sha256) ---
+# --- 2. portable package (produces dist\SimpleRay-win-x64.zip + .sha256) ---
 Write-Host "Building portable package ($Configuration)..." -ForegroundColor Cyan
 & (Join-Path $PSScriptRoot "publish-portable.ps1") -Configuration $Configuration
 
@@ -75,9 +75,9 @@ if ($LASTEXITCODE -ne 0) { Write-Warning "harness publish failed (skipping)" }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 Get-ChildItem $OutDir -Filter "SimpleRay-*" -ErrorAction SilentlyContinue | Remove-Item -Force
 foreach ($pattern in @(
-    "SimpleRay-$ver-win-x64.zip",
-    "SimpleRay-$ver-win-x64.zip.sha256",
-    "SimpleRay-$ver-setup.exe"
+    "SimpleRay-win-x64.zip",
+    "SimpleRay-win-x64.zip.sha256",
+    "SimpleRay-setup.exe"
 )) {
     $src = Join-Path $dist $pattern
     if (Test-Path $src) { Copy-Item $src $OutDir -Force }
@@ -105,9 +105,9 @@ $releases = Join-Path $repo "releases"
 New-Item -ItemType Directory -Force $releases | Out-Null
 Get-ChildItem $releases -Filter "SimpleRay-*" -File -ErrorAction SilentlyContinue | Remove-Item -Force
 foreach ($pattern in @(
-    "SimpleRay-$ver-win-x64.zip",
-    "SimpleRay-$ver-win-x64.zip.sha256",
-    "SimpleRay-$ver-setup.exe"
+    "SimpleRay-win-x64.zip",
+    "SimpleRay-win-x64.zip.sha256",
+    "SimpleRay-setup.exe"
 )) {
     $src = Join-Path $dist $pattern
     if (Test-Path $src) { Copy-Item $src $releases -Force }

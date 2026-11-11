@@ -3,10 +3,15 @@
 .SYNOPSIS
   Builds the portable, self-contained, single-file x64 release of SimpleRay.
 
-  Produces dist\SimpleRay-<version>-win-x64.zip (+ .sha256) containing:
+  Produces dist\SimpleRay-win-x64.zip (+ .sha256) containing:
     SimpleRay.exe   (single-file, .NET runtime bundled)
     core\           (sing-box.exe, wintun.dll)
     geo\            (geoip/geosite *.srs)
+    ABOUT.txt       (version, build date, source link, then the changelog)
+
+  The file names carry no version on purpose: unzipping gives a "SimpleRay-win-x64" folder that
+  stays correct after in-app updates (the version lives in ABOUT.txt). The in-app updater finds
+  the zip by its "win-x64.zip" suffix, so older installs still update.
 
   Run scripts\fetch-deps.ps1 first so the runtime binaries exist.
 #>
@@ -59,6 +64,21 @@ Copy-Item (Join-Path $Runtime "geo")  (Join-Path $PubDir "geo")  -Recurse -Force
 # Never ship a stale generated config.
 Remove-Item (Join-Path $PubDir "core\config.json") -Force -ErrorAction SilentlyContinue
 
+# ABOUT.txt: which version this folder holds (folder names carry no version), plus the changelog.
+$changelog = Join-Path $RepoRoot "CHANGELOG.md"
+$about = @(
+    "SimpleRay $version",
+    "Built: $(Get-Date -Format 'yyyy-MM-dd')",
+    "Source: https://github.com/OlBaskov-rec/SimpleRay (GPL-3.0)",
+    "",
+    "This file is replaced on every update.",
+    "",
+    "----------------------------------------------------------------------",
+    ""
+)
+if (Test-Path $changelog) { $about += Get-Content $changelog -Encoding UTF8 }
+[System.IO.File]::WriteAllLines((Join-Path $PubDir "ABOUT.txt"), [string[]]$about, [System.Text.UTF8Encoding]::new($true))
+
 Write-Host "Published files:" -ForegroundColor Green
 Get-ChildItem -Recurse $PubDir | ForEach-Object {
     $_.FullName.Substring($PubDir.Length + 1)
@@ -66,12 +86,12 @@ Get-ChildItem -Recurse $PubDir | ForEach-Object {
 
 # --- Package --------------------------------------------------------------
 New-Item -ItemType Directory -Force $DistDir | Out-Null
-$zip = Join-Path $DistDir "SimpleRay-$version-win-x64.zip"
+$zip = Join-Path $DistDir "SimpleRay-win-x64.zip"
 if (Test-Path $zip) { Remove-Item -Force $zip }
 Compress-Archive -Path (Join-Path $PubDir "*") -DestinationPath $zip
 
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
-Set-Content -Path "$zip.sha256" -Value "$hash *SimpleRay-$version-win-x64.zip" -Encoding ascii
+Set-Content -Path "$zip.sha256" -Value "$hash *SimpleRay-win-x64.zip" -Encoding ascii
 
 Write-Host "`nPackaged:" -ForegroundColor Cyan
 Write-Host "  $zip"

@@ -31,6 +31,20 @@ public partial class MainWindow : Window
     private void Servers_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e) =>
         _viewModel.SetActiveList(sources: false);
 
+    // The close button hides to the tray instead of quitting (quit via the tray menu). The first
+    // time, a balloon from the tray icon shows where the app went.
+    private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (App.IsExiting)
+            return;
+        e.Cancel = true;
+        Hide();
+        ShowInTaskbar = false;
+        if (_viewModel.TakeFirstTrayHint())
+            TrayIcon.ShowBalloonTip(_viewModel.TrayHintTitle, _viewModel.TrayHintText,
+                Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+    }
+
     // Minimize hides the window to the tray instead of the taskbar.
     private void Window_StateChanged(object sender, System.EventArgs e)
     {
@@ -55,8 +69,7 @@ public partial class MainWindow : Window
     private void Tray_CheckUpdates(object sender, RoutedEventArgs e) =>
         _viewModel.CheckUpdatesCommand.Execute(null);
 
-    private void Tray_Exit(object sender, RoutedEventArgs e) =>
-        Application.Current.Shutdown();
+    private void Tray_Exit(object sender, RoutedEventArgs e) => App.Quit();
 
     // No owner window: this is also reachable from the tray while the window is hidden.
     private void About_Click(object sender, RoutedEventArgs e) =>

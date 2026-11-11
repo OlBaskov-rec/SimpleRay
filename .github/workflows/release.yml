@@ -43,9 +43,9 @@ jobs:
           choco install innosetup -y --no-progress
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $iscc "/DAppVersion=$env:VERSION" scripts\installer.iss
-          $setup = "dist\SimpleRay-$env:VERSION-setup.exe"
+          $setup = "dist\SimpleRay-setup.exe"
           $hash = (Get-FileHash $setup -Algorithm SHA256).Hash
-          Set-Content -Path "$setup.sha256" -Value "$hash *SimpleRay-$env:VERSION-setup.exe" -Encoding ascii
+          Set-Content -Path "$setup.sha256" -Value "$hash *SimpleRay-setup.exe" -Encoding ascii
 
       - name: Sign portable zip (if signing key configured)
         shell: pwsh
@@ -58,7 +58,7 @@ jobs:
           } else {
             $key = New-TemporaryFile
             Set-Content -Path $key -Value $env:UPDATE_SIGNING_KEY -Encoding ascii
-            $zip = "dist/SimpleRay-$env:VERSION-win-x64.zip"
+            $zip = "dist/SimpleRay-win-x64.zip"
             & openssl dgst -sha256 -sign $key -out "$zip.sig" $zip
             Remove-Item $key -Force
             if (-not (Test-Path "$zip.sig")) { throw "Signing failed." }
@@ -75,14 +75,14 @@ jobs:
           $prerelease = if ("${{ github.ref_name }}" -match '-') { '--prerelease' } else { '' }
           $args = @(
             'release','create',"${{ github.ref_name }}",
-            "dist/SimpleRay-$ver-setup.exe",
-            "dist/SimpleRay-$ver-setup.exe.sha256",
-            "dist/SimpleRay-$ver-win-x64.zip",
-            "dist/SimpleRay-$ver-win-x64.zip.sha256",
+            "dist/SimpleRay-setup.exe",
+            "dist/SimpleRay-setup.exe.sha256",
+            "dist/SimpleRay-win-x64.zip",
+            "dist/SimpleRay-win-x64.zip.sha256",
             '--title',"SimpleRay $ver",
             '--generate-notes'
           )
           # Upload the signature too, when one was produced.
-          if ($env:SIGNED -eq '1') { $args += "dist/SimpleRay-$ver-win-x64.zip.sig" }
+          if ($env:SIGNED -eq '1') { $args += "dist/SimpleRay-win-x64.zip.sig" }
           if ($prerelease) { $args += $prerelease }
           gh @args

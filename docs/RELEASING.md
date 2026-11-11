@@ -40,8 +40,11 @@ This value is the source of truth the updater compares against the release tag.
 ./scripts/publish-portable.ps1
 ```
 Produces, in `dist/`:
-- `SimpleRay-<version>-win-x64.zip`
-- `SimpleRay-<version>-win-x64.zip.sha256`
+- `SimpleRay-win-x64.zip` (plus `ABOUT.txt` inside: version, build date, changelog)
+- `SimpleRay-win-x64.zip.sha256`
+
+Asset names carry no version (the release tag does), so an unzipped folder never shows a stale
+version after an in-app update. The updater only needs the `win-x64.zip` suffix.
 
 ## 3b. (Optional) Build the installer
 Requires Inno Setup 6 (`winget install JRSoftware.InnoSetup`). Builds a per-user
@@ -49,7 +52,7 @@ installer from the portable output:
 ```powershell
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=<version> scripts\installer.iss
 ```
-Produces `dist/SimpleRay-<version>-setup.exe`. It installs to
+Produces `dist/SimpleRay-setup.exe`. It installs to
 `%LocalAppData%\Programs\SimpleRay` (no admin needed; the app self-elevates for TUN,
 and the in-app updater can write there). Upload it to the release as an extra asset
 — the updater ignores non-`.zip` assets, so it won't interfere.
@@ -91,7 +94,7 @@ update. Until a key is embedded, the updater falls back to the SHA-256 check.
 
 To sign manually (fallback):
 ```powershell
-./scripts/sign-release.ps1 -Zip dist/SimpleRay-<version>-win-x64.zip -KeyPath update-signing.key
+./scripts/sign-release.ps1 -Zip dist/SimpleRay-win-x64.zip -KeyPath update-signing.key
 ```
 
 > Migration: the first signed release must still carry the `.sha256` sidecar so clients on

@@ -64,10 +64,12 @@ public class LocalizationTests
         "tr:crash.title", "zh:crash.title", "fa:crash.title",
         "de:routing.title", "de:routing.apps", "de:updates.check", "de:active.auto", "de:profile.ping", "de:dns.latency",
         "fr:routing.mode", "fr:active.auto", "fr:apps.toDirect", "fr:profile.ping", "fr:dns.latency",
-        "es:status.error", "es:active.auto", "es:active.manual", "es:profile.ping", "es:dns.latency",
+        "es:status.error", "es:active.auto", "es:profile.ping", "es:dns.latency",
         "tr:profile.ping", "tr:dns.latency",
         // Unit: "Mbit/s" is written the same way in these languages.
         "de:speed.value", "fr:speed.value", "es:speed.value",
+        // Loanword: German uses "Update" too.
+        "de:updates.available",
     };
 
     /// <summary>
