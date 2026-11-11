@@ -3,7 +3,7 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
-## Unreleased
+## 0.3.9 — 2026-11-11
 
 ### English
 - **Release files carry no version.** The portable archive is now `SimpleRay-win-x64.zip` and the
