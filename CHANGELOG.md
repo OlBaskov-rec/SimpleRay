@@ -3,6 +3,34 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## 0.3.10 — 2026-11-12
+
+### English
+- **Fix — switching the language blanked the routing mode.** After a language change the mode box
+  went empty with a red border: the list of modes was rebuilt on every switch, so the selection
+  was lost. The choices now stay the same and only their labels change.
+- **Your routing lists.** The box is titled that way, and its three buttons carry icons — a program
+  window (per-app rules, either way), a globe (sites going direct), a shield (sites through the
+  VPN) — and are evenly spaced.
+- **Clearer wording.** The DNS resolver hint now says what it resolves: the sites that go direct,
+  queried straight from this computer, while every other site is resolved separately, encrypted,
+  through the VPN. Its tooltip adds that a plain-UDP resolver (Yandex) needs outbound port 53. In
+  Russian and Ukrainian the via-VPN button no longer says "в обход" ("bypass") — the same panel used
+  that word for the opposite, direct traffic.
+
+### Русский
+- **Исправлено: смена языка сбрасывала режим маршрутизации.** После переключения языка поле режима
+  становилось пустым с красной рамкой: список режимов пересоздавался при каждой смене, и выбор
+  терялся. Теперь варианты остаются те же, меняются только подписи.
+- **Свои списки маршрутизации.** Блок так и называется, у трёх кнопок появились значки — окно
+  программы (правила для приложений, в обе стороны), глобус (сайты напрямую), щит (сайты через
+  VPN), — и ровные отступы.
+- **Понятнее тексты.** Подсказка DNS-резолвера объясняет, что он разрешает: сайты, которые идут
+  напрямую, — запросы уходят прямо с этого компьютера; остальные сайты разрешаются отдельно,
+  шифрованно, через VPN. Во всплывающей подсказке — что резолверу на UDP (Яндекс) нужен открытый
+  исходящий порт 53. В русском и украинском кнопка «через VPN» больше не называется «в обход»: тем
+  же словом в этом же блоке обозначался противоположный, прямой трафик.
+
 ## 0.3.9 — 2026-11-11
 
 ### English
