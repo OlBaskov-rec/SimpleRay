@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Channel group (auto-switch)",
 
   "dns.title": "DNS resolver",
-  "dns.hint": "Used for traffic that bypasses the VPN. Which one is fastest depends on where you are — check and pick.",
+  "dns.hint": "Resolves the sites that go direct, without the VPN (the direct rules and your direct domains) — the queries leave straight from this computer. All other sites are resolved separately, encrypted, through the VPN. Which resolver is fastest depends on where you are — check and pick.",
   "dns.check": "Check",
   "dns.checking": "Checking DNS resolvers…",
   "dns.fastest": "Fastest resolver: {0}",
@@ -205,7 +205,7 @@
   "status.speedTesting": "Measuring speed through “{0}” (up to 10 MB / 10 s)…",
   "status.speedDone": "Speed through “{0}”: {1}",
   "status.speedFail": "Couldn't measure speed through “{0}”: the server didn't pass the download",
-  "routing.listsTitle": "Your own lists:",
+  "routing.listsTitle": "Your routing lists:",
   "routing.autoSwitch": "Auto-switch between marked servers",
   "group.hintOff": "Auto-switch is off: the connection goes through the selected server",
   "tray.hintTitle": "SimpleRay is still running",
@@ -218,7 +218,7 @@
   "tip.directRuSites": "Russian sites directly\nSites from the geosite-category-ru list (ya.ru, vk.com, banks, government services…) open without the VPN — fast, and with your real region.",
   "tip.directRuIp": "Russian IPs directly\nConnections to addresses that belong to Russia (geoip-ru list) bypass the VPN — covers services the site list doesn't know.",
   "tip.directLan": "Local network directly\nPrinters, NAS, the router and other devices at home or in the office stay reachable while the VPN is on.",
-  "tip.dnsProvider": "DNS for direct traffic\nWhich resolver turns site names into addresses for traffic that bypasses the VPN. Sites going through the VPN are resolved through the VPN.",
+  "tip.dnsProvider": "DNS for direct traffic\nWhich resolver turns site names into addresses for traffic that bypasses the VPN. Sites going through the VPN are resolved through the VPN.\n\nA plain-UDP resolver (marked “UDP”, e.g. Yandex) needs outbound port 53 to be open; on networks that block it — common in offices — only the encrypted (DoH) ones work.",
   "tip.autoSwitch": "Auto-switch\nOn: the connection uses the servers marked “in group” and moves to the fastest working one by itself. Off: only the selected server is used.\n\nHow: every 3 minutes the VPN core opens a test page through each marked server and measures the time; it switches when another server is faster by more than 50 ms or the current one stops answering.",
   "tip.importManual": "Type or paste\nEnter a server link, a subscription URL or another app's import link by hand; it's sorted the same way as the clipboard."
 }

@@ -71,7 +71,7 @@
   "routing.failoverTitle": "线路分组（自动切换）",
 
   "dns.title": "DNS 解析器",
-  "dns.hint": "用于绕过 VPN 的流量。哪个最快取决于你所在的位置——请检测后选择。",
+  "dns.hint": "解析不经 VPN、直连的网站（直连规则和你的直连域名）——查询直接从这台电脑发出。其他网站另行通过 VPN 加密解析。哪个解析器最快取决于你所在的位置——请检测后选择。",
   "dns.check": "检测",
   "dns.checking": "正在检测 DNS 解析器…",
   "dns.fastest": "最快的解析器：{0}",
@@ -205,7 +205,7 @@
   "status.speedTesting": "正在经“{0}”测速（最多 10 MB / 10 秒）…",
   "status.speedDone": "经“{0}”的速度：{1}",
   "status.speedFail": "无法经“{0}”测速：服务器未放行下载",
-  "routing.listsTitle": "自定义列表：",
+  "routing.listsTitle": "自定义路由列表：",
   "routing.autoSwitch": "在勾选的服务器间自动切换",
   "group.hintOff": "自动切换已关闭：连接走所选服务器",
   "tray.hintTitle": "SimpleRay 仍在运行",
@@ -218,7 +218,7 @@
   "tip.directRuSites": "俄罗斯网站直连\ngeosite-category-ru 列表中的网站（ya.ru、vk.com、银行、政务服务……）不经 VPN 打开——快速且显示您的真实地区。",
   "tip.directRuIp": "俄罗斯 IP 直连\n连接到属于俄罗斯的地址（geoip-ru 列表）时不经 VPN——覆盖网站列表中没有的服务。",
   "tip.directLan": "局域网直连\n开启 VPN 时，家里或办公室的打印机、NAS、路由器等设备仍可访问。",
-  "tip.dnsProvider": "直连流量的 DNS\n为不经 VPN 的流量把网站名称解析为地址的解析器。走 VPN 的网站经 VPN 解析。",
+  "tip.dnsProvider": "直连流量的 DNS\n为不经 VPN 的流量把网站名称解析为地址的解析器。走 VPN 的网站经 VPN 解析。\n\n普通 UDP 解析器（标有“UDP”，如 Yandex）需要放行出站 53 端口；在封锁该端口的网络中（办公网络常见），只有加密（DoH）解析器可用。",
   "tip.autoSwitch": "自动切换\n开启：连接使用标记为“加入组”的服务器，并自动切到最快的可用服务器。关闭：只使用所选服务器。\n\n原理：VPN 核心每 3 分钟经每个勾选的服务器打开测试页面并计时；当另一服务器快 50 毫秒以上或当前服务器无响应时切换。",
   "tip.importManual": "输入或粘贴\n手动输入服务器链接、订阅 URL 或其他应用的导入链接；分类方式与剪贴板相同。"
 }

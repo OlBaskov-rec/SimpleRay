@@ -12,6 +12,13 @@
         FontFamily="Segoe UI" FontSize="13">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <!-- Icon glyph in front of a button label (Segoe MDL2 Assets ships with Windows 10/11). -->
+        <Style x:Key="ButtonGlyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
     </Window.Resources>
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
@@ -309,11 +316,19 @@
             <GroupBox Grid.Row="2" Header="{loc:Loc routing.title}" Padding="8,4" Margin="0,0,0,8">
                 <StackPanel>
                     <TextBlock Text="{loc:Loc routing.mode}" Foreground="#666" Margin="0,0,0,2" />
+                    <!-- ItemTemplate (not DisplayMemberPath) so the closed box re-renders the
+                         label when the language changes; the items themselves never change. -->
                     <ComboBox ItemsSource="{Binding Modes}"
-                              DisplayMemberPath="Label"
                               SelectedValuePath="Mode"
                               SelectedValue="{Binding SelectedMode, Mode=TwoWay}"
-                              ToolTip="{loc:Loc tip.mode}" />
+                              TextSearch.TextPath="Label"
+                              ToolTip="{loc:Loc tip.mode}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <!-- Direct, bypassing the VPN (Rules mode): geo sets, then the user's own lists. -->
                     <TextBlock Text="{loc:Loc routing.directHint}"
@@ -328,19 +343,35 @@
                               IsChecked="{Binding DirectLan, Mode=TwoWay}"
                               IsEnabled="{Binding IsRuleMode}" Margin="0,2,0,0" ToolTip="{loc:Loc tip.directLan}" />
 
-                    <!-- The user's own lists, labeled and set apart; "Via VPN" stands further off
-                         because it does the opposite of the other two. -->
+                    <!-- The user's own routing lists. Each button carries a glyph for what it routes:
+                         a program window (per-app rules, either way), a globe (sites direct),
+                         a shield (sites through the VPN). -->
                     <Border Background="#F6F8FA" BorderBrush="#E1E4E8" BorderThickness="1" CornerRadius="4"
                             Padding="8,6,8,2" Margin="0,8,0,0">
                         <StackPanel>
                             <TextBlock Text="{loc:Loc routing.listsTitle}" Foreground="#555" FontSize="12" Margin="0,0,0,4" />
                             <WrapPanel>
-                                <Button Content="{loc:Loc routing.apps}" Command="{Binding OpenAppsCommand}"
-                                        Padding="10,4" Margin="0,0,8,6" ToolTip="{loc:Loc tip.apps}" />
-                                <Button Content="{loc:Loc routing.directDomains}" Command="{Binding DirectDomainsCommand}"
-                                        Padding="10,4" Margin="0,0,16,6" ToolTip="{loc:Loc tip.directDomains}" />
-                                <Button Content="{loc:Loc routing.proxyDomains}" Command="{Binding ProxyDomainsCommand}"
-                                        Padding="10,4" Margin="0,0,0,6" ToolTip="{loc:Loc tip.proxyDomains}" />
+                                <Button Command="{Binding OpenAppsCommand}" Padding="10,4" Margin="0,0,8,6"
+                                        ToolTip="{loc:Loc tip.apps}" AutomationProperties.Name="{loc:Loc routing.apps}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource ButtonGlyph}" Text="&#xE737;" />
+                                        <TextBlock Text="{loc:Loc routing.apps}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding DirectDomainsCommand}" Padding="10,4" Margin="0,0,8,6"
+                                        ToolTip="{loc:Loc tip.directDomains}" AutomationProperties.Name="{loc:Loc routing.directDomains}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource ButtonGlyph}" Text="&#xE774;" />
+                                        <TextBlock Text="{loc:Loc routing.directDomains}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ProxyDomainsCommand}" Padding="10,4" Margin="0,0,0,6"
+                                        ToolTip="{loc:Loc tip.proxyDomains}" AutomationProperties.Name="{loc:Loc routing.proxyDomains}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource ButtonGlyph}" Text="&#xEA18;" />
+                                        <TextBlock Text="{loc:Loc routing.proxyDomains}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                             </WrapPanel>
                         </StackPanel>
                     </Border>

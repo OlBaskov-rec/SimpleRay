@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Kanal grubu (otomatik geçiş)",
 
   "dns.title": "DNS çözümleyici",
-  "dns.hint": "VPN'i atlayan trafik için kullanılır. Hangisinin en hızlı olduğu bulunduğunuz yere bağlıdır — test edip seçin.",
+  "dns.hint": "VPN olmadan doğrudan giden siteleri (doğrudan kurallar ve kendi doğrudan alan adlarınız) çözümler — sorgular doğrudan bu bilgisayardan gider. Diğer tüm siteler ayrıca, şifreli olarak VPN üzerinden çözümlenir. Hangisinin en hızlı olduğu bulunduğunuz yere bağlıdır — test edip seçin.",
   "dns.check": "Test et",
   "dns.checking": "DNS çözümleyiciler test ediliyor…",
   "dns.fastest": "En hızlı çözümleyici: {0}",
@@ -205,7 +205,7 @@
   "status.speedTesting": "\"{0}\" üzerinden hız ölçülüyor (en fazla 10 MB / 10 sn)…",
   "status.speedDone": "\"{0}\" üzerinden hız: {1}",
   "status.speedFail": "\"{0}\" üzerinden hız ölçülemedi: sunucu indirmeye izin vermedi",
-  "routing.listsTitle": "Kendi listeleriniz:",
+  "routing.listsTitle": "Kendi yönlendirme listeleriniz:",
   "routing.autoSwitch": "İşaretliler arasında otomatik geçiş",
   "group.hintOff": "Otomatik geçiş kapalı: bağlantı seçili sunucu üzerinden gider",
   "tray.hintTitle": "SimpleRay çalışmaya devam ediyor",
@@ -218,7 +218,7 @@
   "tip.directRuSites": "Rus siteleri doğrudan\ngeosite-category-ru listesindeki siteler (ya.ru, vk.com, bankalar, kamu hizmetleri…) VPN'siz açılır — hızlı ve gerçek bölgenizle.",
   "tip.directRuIp": "Rus IP'leri doğrudan\nRusya'ya ait adreslere (geoip-ru listesi) bağlantılar VPN'i atlar — site listesinin bilmediği hizmetleri kapsar.",
   "tip.directLan": "Yerel ağ doğrudan\nVPN açıkken evdeki veya ofisteki yazıcılar, NAS, modem ve diğer cihazlar erişilebilir kalır.",
-  "tip.dnsProvider": "Doğrudan trafik için DNS\nVPN'i atlayan trafik için site adlarını adrese çeviren çözümleyici. VPN'den giden siteler VPN üzerinden çözülür.",
+  "tip.dnsProvider": "Doğrudan trafik için DNS\nVPN'i atlayan trafik için site adlarını adrese çeviren çözümleyici. VPN'den giden siteler VPN üzerinden çözülür.\n\nDüz UDP çözümleyicisi (“UDP” ile işaretli, ör. Yandex) giden 53 numaralı portun açık olmasını gerektirir; bunu engelleyen ağlarda (ofislerde yaygın) yalnızca şifreli (DoH) olanlar çalışır.",
   "tip.autoSwitch": "Otomatik geçiş\nAçık: bağlantı \"gruba\" işaretli sunucuları kullanır ve kendiliğinden en hızlı çalışana geçer. Kapalı: yalnızca seçili sunucu kullanılır.\n\nNasıl: VPN çekirdeği her 3 dakikada bir işaretli her sunucu üzerinden bir test sayfası açar ve süreyi ölçer; başka bir sunucu 50 ms'den fazla hızlıysa veya mevcut yanıt vermezse geçer.",
   "tip.importManual": "Yaz veya yapıştır\nBir sunucu bağlantısı, abonelik URL'si veya başka bir uygulamanın içe aktarma bağlantısını elle girin; pano gibi ayrılır."
 }

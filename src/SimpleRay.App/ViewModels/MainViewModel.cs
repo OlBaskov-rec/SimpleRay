@@ -182,7 +182,8 @@ public sealed class MainViewModel : ObservableObject
     private void OnCultureChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(ConnectButtonText));
-        OnPropertyChanged(nameof(Modes));
+        foreach (var mode in Modes)
+            mode.RefreshLabel();
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SelectedLanguage));
         OnPropertyChanged(nameof(UpdateLinkText));
@@ -779,14 +780,36 @@ public sealed class MainViewModel : ObservableObject
 
     // --- Routing settings -------------------------------------------------
 
-    public sealed record RoutingModeItem(string Label, RoutingMode Mode);
-
-    public IReadOnlyList<RoutingModeItem> Modes => new[]
+    /// <summary>A routing-mode choice whose label follows the UI language.</summary>
+    public sealed class RoutingModeItem : ObservableObject
     {
-        new RoutingModeItem(L["mode.global"], RoutingMode.Global),
-        new RoutingModeItem(L["mode.rule"], RoutingMode.Rule),
-        new RoutingModeItem(L["mode.direct"], RoutingMode.Direct),
+        private readonly string _labelKey;
+
+        public RoutingModeItem(string labelKey, RoutingMode mode)
+        {
+            _labelKey = labelKey;
+            Mode = mode;
+        }
+
+        public RoutingMode Mode { get; }
+        public string Label => L[_labelKey];
+
+        /// <summary>Re-reads the label after a language switch (the item itself stays).</summary>
+        public void RefreshLabel() => OnPropertyChanged(nameof(Label));
+    }
+
+    /// <summary>The mode choices, created once.</summary>
+    public static IReadOnlyList<RoutingModeItem> CreateModeItems() => new[]
+    {
+        new RoutingModeItem(LocKeys.ModeGlobal, RoutingMode.Global),
+        new RoutingModeItem(LocKeys.ModeRule, RoutingMode.Rule),
+        new RoutingModeItem(LocKeys.ModeDirect, RoutingMode.Direct),
     };
+
+    // The SAME items for the window's lifetime, relabelled in place on a language switch.
+    // Rebuilding the list made the ComboBox drop its selection and push null into
+    // SelectedMode (a non-nullable enum): the mode box went blank with a red error border.
+    public IReadOnlyList<RoutingModeItem> Modes { get; } = CreateModeItems();
 
     public RoutingMode SelectedMode
     {

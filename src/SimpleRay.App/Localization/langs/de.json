@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Kanalgruppe (Auto-Umschaltung)",
 
   "dns.title": "DNS-Resolver",
-  "dns.hint": "Wird für Datenverkehr am VPN vorbei verwendet. Welcher am schnellsten ist, hängt von Ihrem Standort ab — prüfen und auswählen.",
+  "dns.hint": "Löst die Seiten auf, die direkt, ohne VPN, laufen (die Direktregeln und Ihre direkten Domains) — die Anfragen gehen direkt von diesem Computer aus. Alle anderen Seiten werden separat, verschlüsselt, über das VPN aufgelöst. Welcher Resolver am schnellsten ist, hängt von Ihrem Standort ab — prüfen und auswählen.",
   "dns.check": "Prüfen",
   "dns.checking": "DNS-Resolver werden geprüft…",
   "dns.fastest": "Schnellster Resolver: {0}",
@@ -205,7 +205,7 @@
   "status.speedTesting": "Messe Geschwindigkeit über „{0}“ (bis 10 MB / 10 s)…",
   "status.speedDone": "Geschwindigkeit über „{0}“: {1}",
   "status.speedFail": "Geschwindigkeit über „{0}“ nicht messbar: Der Server hat den Download nicht durchgelassen",
-  "routing.listsTitle": "Eigene Listen:",
+  "routing.listsTitle": "Eigene Routing-Listen:",
   "routing.autoSwitch": "Automatisch zwischen markierten Servern umschalten",
   "group.hintOff": "Automatische Umschaltung aus: Die Verbindung läuft über den gewählten Server",
   "tray.hintTitle": "SimpleRay läuft weiter",
@@ -218,7 +218,7 @@
   "tip.directRuSites": "Russische Seiten direkt\nSeiten aus der Liste geosite-category-ru (ya.ru, vk.com, Banken, Behörden…) öffnen ohne VPN — schnell und mit Ihrer echten Region.",
   "tip.directRuIp": "Russische IPs direkt\nVerbindungen zu Adressen in Russland (Liste geoip-ru) umgehen das VPN — deckt Dienste ab, die die Seitenliste nicht kennt.",
   "tip.directLan": "Lokales Netz direkt\nDrucker, NAS, Router und andere Geräte zu Hause oder im Büro bleiben erreichbar, solange das VPN an ist.",
-  "tip.dnsProvider": "DNS für direkten Verkehr\nWelcher Resolver Seitennamen für den Verkehr am VPN vorbei in Adressen auflöst. Seiten über das VPN werden über das VPN aufgelöst.",
+  "tip.dnsProvider": "DNS für direkten Verkehr\nWelcher Resolver Seitennamen für den Verkehr am VPN vorbei in Adressen auflöst. Seiten über das VPN werden über das VPN aufgelöst.\n\nEin Resolver über einfaches UDP (mit „UDP“ markiert, z. B. Yandex) braucht einen offenen ausgehenden Port 53; in Netzen, die ihn sperren (häufig in Büros), funktionieren nur die verschlüsselten (DoH).",
   "tip.autoSwitch": "Automatische Umschaltung\nAn: Die Verbindung nutzt die als „in Gruppe“ markierten Server und wechselt selbst zum schnellsten funktionierenden. Aus: Nur der gewählte Server wird genutzt.\n\nWie: Alle 3 Minuten öffnet der VPN-Kern über jeden markierten Server eine Testseite und misst die Zeit; gewechselt wird, wenn ein anderer Server mehr als 50 ms schneller ist oder der aktuelle nicht mehr antwortet.",
   "tip.importManual": "Eingeben oder einfügen\nGeben Sie einen Server-Link, eine Abo-URL oder den Import-Link einer anderen App von Hand ein; wird wie die Zwischenablage sortiert."
 }

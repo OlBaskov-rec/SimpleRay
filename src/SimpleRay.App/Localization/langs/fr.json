@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Groupe de canaux (bascule auto)",
 
   "dns.title": "Résolveur DNS",
-  "dns.hint": "Utilisé pour le trafic qui contourne le VPN. Le plus rapide dépend de votre localisation — testez puis choisissez.",
+  "dns.hint": "Résout les sites qui passent en direct, sans VPN (règles directes et vos domaines directs) — les requêtes partent directement de cet ordinateur. Tous les autres sites sont résolus à part, chiffrés, via le VPN. Le plus rapide dépend de votre localisation — testez puis choisissez.",
   "dns.check": "Tester",
   "dns.checking": "Test des résolveurs DNS…",
   "dns.fastest": "Résolveur le plus rapide : {0}",
@@ -205,7 +205,7 @@
   "status.speedTesting": "Mesure du débit via « {0} » (jusqu'à 10 Mo / 10 s)…",
   "status.speedDone": "Débit via « {0} » : {1}",
   "status.speedFail": "Impossible de mesurer le débit via « {0} » : le serveur n'a pas laissé passer le téléchargement",
-  "routing.listsTitle": "Vos propres listes :",
+  "routing.listsTitle": "Vos listes de routage :",
   "routing.autoSwitch": "Basculer automatiquement entre les serveurs cochés",
   "group.hintOff": "Bascule automatique désactivée : la connexion passe par le serveur sélectionné",
   "tray.hintTitle": "SimpleRay continue de fonctionner",
@@ -218,7 +218,7 @@
   "tip.directRuSites": "Sites russes en direct\nLes sites de la liste geosite-category-ru (ya.ru, vk.com, banques, services publics…) s'ouvrent sans VPN — rapidement et avec votre vraie région.",
   "tip.directRuIp": "IP russes en direct\nLes connexions vers des adresses situées en Russie (liste geoip-ru) contournent le VPN — couvre les services absents de la liste de sites.",
   "tip.directLan": "Réseau local en direct\nImprimantes, NAS, routeur et autres appareils à la maison ou au bureau restent accessibles pendant que le VPN est actif.",
-  "tip.dnsProvider": "DNS pour le trafic direct\nQuel résolveur traduit les noms de sites en adresses pour le trafic qui contourne le VPN. Les sites passant par le VPN sont résolus via le VPN.",
+  "tip.dnsProvider": "DNS pour le trafic direct\nQuel résolveur traduit les noms de sites en adresses pour le trafic qui contourne le VPN. Les sites passant par le VPN sont résolus via le VPN.\n\nUn résolveur en UDP simple (marqué « UDP », p. ex. Yandex) nécessite le port 53 sortant ouvert ; sur les réseaux qui le bloquent (fréquent en entreprise), seuls les chiffrés (DoH) fonctionnent.",
   "tip.autoSwitch": "Bascule automatique\nActivée : la connexion utilise les serveurs cochés « dans le groupe » et passe d'elle-même au plus rapide qui fonctionne. Désactivée : seul le serveur sélectionné est utilisé.\n\nComment : toutes les 3 minutes, le cœur VPN ouvre une page de test via chaque serveur coché et mesure le temps ; il bascule quand un autre serveur est plus rapide de plus de 50 ms ou que l'actuel ne répond plus.",
   "tip.importManual": "Saisir ou coller\nSaisissez à la main un lien de serveur, une URL d'abonnement ou le lien d'import d'une autre application ; trié comme le presse-papiers."
 }

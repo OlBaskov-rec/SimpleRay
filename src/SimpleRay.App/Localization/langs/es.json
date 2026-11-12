@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Grupo de canales (conmutación auto)",
 
   "dns.title": "Resolutor DNS",
-  "dns.hint": "Se usa para el tráfico que evita la VPN. Cuál es el más rápido depende de dónde estés: compruébalo y elige.",
+  "dns.hint": "Resuelve los sitios que van directos, sin VPN (las reglas directas y tus dominios directos): las consultas salen directamente de este equipo. Los demás sitios se resuelven aparte, cifrados, por la VPN. Cuál es el más rápido depende de dónde estés: compruébalo y elige.",
   "dns.check": "Comprobar",
   "dns.checking": "Comprobando resolutores DNS…",
   "dns.fastest": "Resolutor más rápido: {0}",
@@ -205,7 +205,7 @@
   "status.speedTesting": "Midiendo la velocidad por «{0}» (hasta 10 MB / 10 s)…",
   "status.speedDone": "Velocidad por «{0}»: {1}",
   "status.speedFail": "No se pudo medir la velocidad por «{0}»: el servidor no dejó pasar la descarga",
-  "routing.listsTitle": "Sus propias listas:",
+  "routing.listsTitle": "Listas de enrutamiento propias:",
   "routing.autoSwitch": "Cambio automático entre los marcados",
   "group.hintOff": "Cambio automático desactivado: la conexión va por el servidor seleccionado",
   "tray.hintTitle": "SimpleRay sigue funcionando",
@@ -218,7 +218,7 @@
   "tip.directRuSites": "Sitios rusos directos\nLos sitios de la lista geosite-category-ru (ya.ru, vk.com, bancos, servicios públicos…) se abren sin VPN — rápido y con su región real.",
   "tip.directRuIp": "IP rusas directas\nLas conexiones a direcciones de Rusia (lista geoip-ru) evitan la VPN — cubre servicios que la lista de sitios no conoce.",
   "tip.directLan": "Red local directa\nImpresoras, NAS, router y otros dispositivos de casa o la oficina siguen accesibles con la VPN activa.",
-  "tip.dnsProvider": "DNS para el tráfico directo\nQué resolutor convierte nombres de sitios en direcciones para el tráfico que evita la VPN. Los sitios que van por la VPN se resuelven por la VPN.",
+  "tip.dnsProvider": "DNS para el tráfico directo\nQué resolutor convierte nombres de sitios en direcciones para el tráfico que evita la VPN. Los sitios que van por la VPN se resuelven por la VPN.\n\nUn resolutor por UDP simple (marcado «UDP», p. ej. Yandex) necesita el puerto 53 de salida abierto; en redes que lo bloquean (habitual en oficinas) solo funcionan los cifrados (DoH).",
   "tip.autoSwitch": "Cambio automático\nActivado: la conexión usa los servidores marcados «en el grupo» y pasa sola al más rápido que funcione. Desactivado: solo se usa el servidor seleccionado.\n\nCómo: cada 3 minutos el núcleo VPN abre una página de prueba por cada servidor marcado y mide el tiempo; cambia cuando otro es más rápido por más de 50 ms o el actual deja de responder.",
   "tip.importManual": "Escribir o pegar\nIntroduzca a mano un enlace de servidor, una URL de suscripción o el enlace de importación de otra app; se clasifica igual que el portapapeles."
 }
