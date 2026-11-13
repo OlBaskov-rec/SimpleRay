@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Channel group (auto-switch)",
 
   "dns.title": "DNS resolver",
-  "dns.hint": "Resolves the sites that go direct, without the VPN (the direct rules and your direct domains) — the queries leave straight from this computer. All other sites are resolved separately, encrypted, through the VPN. Which resolver is fastest depends on where you are — check and pick.",
+  "dns.hint": "Used for direct traffic (without the VPN). The fastest one depends on where you are.",
   "dns.check": "Check",
   "dns.checking": "Checking DNS resolvers…",
   "dns.fastest": "Fastest resolver: {0}",

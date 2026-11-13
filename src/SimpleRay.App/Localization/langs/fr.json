@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Groupe de canaux (bascule auto)",
 
   "dns.title": "Résolveur DNS",
-  "dns.hint": "Résout les sites qui passent en direct, sans VPN (règles directes et vos domaines directs) — les requêtes partent directement de cet ordinateur. Tous les autres sites sont résolus à part, chiffrés, via le VPN. Le plus rapide dépend de votre localisation — testez puis choisissez.",
+  "dns.hint": "Utilisé pour le trafic direct (sans VPN). Le plus rapide dépend de votre localisation.",
   "dns.check": "Tester",
   "dns.checking": "Test des résolveurs DNS…",
   "dns.fastest": "Résolveur le plus rapide : {0}",

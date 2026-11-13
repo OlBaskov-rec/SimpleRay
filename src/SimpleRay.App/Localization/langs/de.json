@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Kanalgruppe (Auto-Umschaltung)",
 
   "dns.title": "DNS-Resolver",
-  "dns.hint": "Löst die Seiten auf, die direkt, ohne VPN, laufen (die Direktregeln und Ihre direkten Domains) — die Anfragen gehen direkt von diesem Computer aus. Alle anderen Seiten werden separat, verschlüsselt, über das VPN aufgelöst. Welcher Resolver am schnellsten ist, hängt von Ihrem Standort ab — prüfen und auswählen.",
+  "dns.hint": "Wird für direkten Verkehr (ohne VPN) verwendet. Welcher am schnellsten ist, hängt von Ihrem Standort ab.",
   "dns.check": "Prüfen",
   "dns.checking": "DNS-Resolver werden geprüft…",
   "dns.fastest": "Schnellster Resolver: {0}",

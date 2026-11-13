@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Kanal grubu (otomatik geçiş)",
 
   "dns.title": "DNS çözümleyici",
-  "dns.hint": "VPN olmadan doğrudan giden siteleri (doğrudan kurallar ve kendi doğrudan alan adlarınız) çözümler — sorgular doğrudan bu bilgisayardan gider. Diğer tüm siteler ayrıca, şifreli olarak VPN üzerinden çözümlenir. Hangisinin en hızlı olduğu bulunduğunuz yere bağlıdır — test edip seçin.",
+  "dns.hint": "Doğrudan trafik (VPN olmadan) için kullanılır. En hızlısı bulunduğunuz yere bağlıdır.",
   "dns.check": "Test et",
   "dns.checking": "DNS çözümleyiciler test ediliyor…",
   "dns.fastest": "En hızlı çözümleyici: {0}",

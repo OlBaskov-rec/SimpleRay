@@ -71,7 +71,7 @@
   "routing.failoverTitle": "线路分组（自动切换）",
 
   "dns.title": "DNS 解析器",
-  "dns.hint": "解析不经 VPN、直连的网站（直连规则和你的直连域名）——查询直接从这台电脑发出。其他网站另行通过 VPN 加密解析。哪个解析器最快取决于你所在的位置——请检测后选择。",
+  "dns.hint": "用于直连流量（不经 VPN）。哪个最快取决于你所在的位置。",
   "dns.check": "检测",
   "dns.checking": "正在检测 DNS 解析器…",
   "dns.fastest": "最快的解析器：{0}",

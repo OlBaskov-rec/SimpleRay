@@ -71,7 +71,7 @@
   "routing.failoverTitle": "Grupo de canales (conmutación auto)",
 
   "dns.title": "Resolutor DNS",
-  "dns.hint": "Resuelve los sitios que van directos, sin VPN (las reglas directas y tus dominios directos): las consultas salen directamente de este equipo. Los demás sitios se resuelven aparte, cifrados, por la VPN. Cuál es el más rápido depende de dónde estés: compruébalo y elige.",
+  "dns.hint": "Se usa para el tráfico directo (sin VPN). El más rápido depende de dónde estés.",
   "dns.check": "Comprobar",
   "dns.checking": "Comprobando resolutores DNS…",
   "dns.fastest": "Resolutor más rápido: {0}",
