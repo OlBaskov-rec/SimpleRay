@@ -167,6 +167,8 @@ public sealed class MainViewModel : ObservableObject
 
     public IReadOnlyList<LanguageOption> Languages => L.Languages;
 
+    public string LanguageShort => SelectedLanguage.ToUpperInvariant();
+
     public string SelectedLanguage
     {
         get => L.CurrentCulture;
@@ -186,6 +188,8 @@ public sealed class MainViewModel : ObservableObject
             mode.RefreshLabel();
         OnPropertyChanged(nameof(GroupHint));
         OnPropertyChanged(nameof(SelectedLanguage));
+        OnPropertyChanged(nameof(LanguageShort));
+        OnPropertyChanged(nameof(UpdateCheckStatus));
         OnPropertyChanged(nameof(UpdateLinkText));
         RaiseSubscriptionInfoChanged();
         // Probe results carry localized text ("unavailable", units); drop them rather
@@ -195,6 +199,8 @@ public sealed class MainViewModel : ObservableObject
         if (!IsConnected)
             StatusText = L["status.disconnected"];
     }
+
+    public string WindowTitle => "SimpleRay " + UpdateService.CurrentVersion.ToString(3);
 
     public string AppVersion => "v" + UpdateService.CurrentVersion.ToString(3);
 
@@ -629,14 +635,34 @@ public sealed class MainViewModel : ObservableObject
 
     private string? _availableUpdate;
 
-    /// <summary>A newer release was found by the background check (the footer link turns green and blinks).</summary>
+    /// <summary>A newer release was found by the background check (the info button turns green and blinks).</summary>
     public bool UpdateAvailable => _availableUpdate is not null;
 
-    /// <summary>Footer link: "Updates", or "Update 1.2.3" once a newer release is known.</summary>
+    /// <summary>Update button: "Updates", or "Update 1.2.3" once a newer release is known.</summary>
     public string UpdateLinkText => _availableUpdate is { } v ? L.Format("updates.available", v) : L["updates.check"];
 
+    private string? _updateStatusKey;
+    private object[] _updateStatusArgs = Array.Empty<object>();
+    public string UpdateCheckStatus => _updateStatusKey is null ? "" : L.Format(_updateStatusKey, _updateStatusArgs);
+
+    private void SetUpdateStatus(string key, params object[] args)
+    {
+        _updateStatusKey = key;
+        _updateStatusArgs = args;
+        OnPropertyChanged(nameof(UpdateCheckStatus));
+        StatusText = UpdateCheckStatus;
+    }
+
+    private void SetAvailableUpdate(string? version)
+    {
+        if (_availableUpdate == version) return;
+        _availableUpdate = version;
+        OnPropertyChanged(nameof(UpdateAvailable));
+        OnPropertyChanged(nameof(UpdateLinkText));
+    }
+
     /// <summary>
-    /// Quiet periodic check (no dialogs, failures ignored): only flags the footer link. Installing
+    /// Quiet periodic check (no dialogs, failures ignored): only flags the info button. Installing
     /// still goes through the normal consent flow when the user clicks it.
     /// </summary>
     private async Task CheckForUpdatesInBackgroundAsync()
@@ -645,11 +671,7 @@ public sealed class MainViewModel : ObservableObject
         {
             var info = await _updateService.CheckAsync();
             var version = info?.Version.ToString(3);
-            if (version == _availableUpdate)
-                return;
-            _availableUpdate = version;
-            OnPropertyChanged(nameof(UpdateAvailable));
-            OnPropertyChanged(nameof(UpdateLinkText));
+            SetAvailableUpdate(version);
         }
         catch (Exception)
         {
@@ -661,11 +683,11 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsConnected)
         {
-            StatusText = L["status.updateConnected"];
+            SetUpdateStatus("status.updateConnected");
             return;
         }
 
-        StatusText = L["status.updateChecking"];
+        SetUpdateStatus("status.updateChecking");
         ReleaseInfo? info;
         try
         {
@@ -673,13 +695,15 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = L.Format("status.updateCheckFail", ex.Message);
+            SetUpdateStatus("status.updateCheckFail", ex.Message);
             return;
         }
 
+        SetAvailableUpdate(info?.Version.ToString(3));
+
         if (info is null)
         {
-            StatusText = L.Format("status.updateLatest", AppVersion);
+            SetUpdateStatus("status.updateLatest", AppVersion);
             return;
         }
 
@@ -688,23 +712,23 @@ public sealed class MainViewModel : ObservableObject
             L["update.consentTitle"]);
         if (!consent)
         {
-            StatusText = L["status.updateDeferred"];
+            SetUpdateStatus("status.updateDeferred");
             return;
         }
 
         try
         {
-            var progress = new Progress<double>(p => StatusText = L.Format("status.updateDownloading", p.ToString("P0")));
+            var progress = new Progress<double>(p => SetUpdateStatus("status.updateDownloading", p.ToString("P0")));
             var staging = await _updateService.DownloadAndStageAsync(info, progress);
 
-            StatusText = L["status.updateApplying"];
+            SetUpdateStatus("status.updateApplying");
             await _connection.ShutdownAsync(); // stop sing-box so its files aren't locked
             _updateService.ApplyAndRestart(staging);
             App.Quit();
         }
         catch (Exception ex)
         {
-            StatusText = L.Format("status.updateError", ex.Message);
+            SetUpdateStatus("status.updateError", ex.Message);
         }
     }
 

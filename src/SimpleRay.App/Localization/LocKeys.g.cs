@@ -416,4 +416,8 @@ public static class LocKeys
     public const string TipAutoSwitch = "tip.autoSwitch";
     /// <summary>tip.importManual</summary>
     public const string TipImportManual = "tip.importManual";
+    /// <summary>tip.aboutUpdates</summary>
+    public const string TipAboutUpdates = "tip.aboutUpdates";
+    /// <summary>about.details</summary>
+    public const string AboutDetails = "about.details";
 }

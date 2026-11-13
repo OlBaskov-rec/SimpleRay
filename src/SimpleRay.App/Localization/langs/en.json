@@ -220,5 +220,7 @@
   "tip.directLan": "Local network directly\nPrinters, NAS, the router and other devices at home or in the office stay reachable while the VPN is on.",
   "tip.dnsProvider": "DNS for direct traffic\nWhich resolver turns site names into addresses for traffic that bypasses the VPN. Sites going through the VPN are resolved through the VPN.\n\nA plain-UDP resolver (marked “UDP”, e.g. Yandex) needs outbound port 53 to be open; on networks that block it — common in offices — only the encrypted (DoH) ones work.",
   "tip.autoSwitch": "Auto-switch\nOn: the connection uses the servers marked “in group” and moves to the fastest working one by itself. Off: only the selected server is used.\n\nHow: every 3 minutes the VPN core opens a test page through each marked server and measures the time; it switches when another server is faster by more than 50 ms or the current one stops answering.",
-  "tip.importManual": "Type or paste\nEnter a server link, a subscription URL or another app's import link by hand; it's sorted the same way as the clipboard."
+  "tip.importManual": "Type or paste\nEnter a server link, a subscription URL or another app's import link by hand; it's sorted the same way as the clipboard.",
+  "tip.aboutUpdates": "About and updates",
+  "about.details": "More details…"
 }

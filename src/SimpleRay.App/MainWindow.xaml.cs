@@ -1,4 +1,10 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Navigation;
+using SimpleRay.App.Infrastructure;
+using SimpleRay.App.Localization;
 using SimpleRay.App.ViewModels;
 
 namespace SimpleRay.App;
@@ -10,6 +16,7 @@ public partial class MainWindow : Window
     public MainWindow(bool connectOnStartup = false)
     {
         InitializeComponent();
+        AboutPopup.CustomPopupPlacementCallback = PlaceAboutPopup;
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
         Loaded += async (_, _) => await _viewModel.TryAutoConnectOnStartupAsync(connectOnStartup);
@@ -22,6 +29,40 @@ public partial class MainWindow : Window
             // Safe to block: the view model dispatches engine events via BeginInvoke.
             _viewModel.ShutdownAsync().GetAwaiter().GetResult();
         };
+    }
+
+    private void Language_Click(object sender, RoutedEventArgs e)
+    {
+        LanguageButton.ContextMenu.PlacementTarget = LanguageButton;
+        LanguageButton.ContextMenu.Placement = PlacementMode.Bottom;
+        LanguageButton.ContextMenu.IsOpen = true;
+    }
+
+    private void LanguageMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { DataContext: LanguageOption language })
+            _viewModel.SelectedLanguage = language.Code;
+    }
+
+    private void Info_Click(object sender, RoutedEventArgs e) => AboutPopup.IsOpen = !AboutPopup.IsOpen;
+
+    private static CustomPopupPlacement[] PlaceAboutPopup(Size popupSize, Size targetSize, Point offset) =>
+        new[] { new CustomPopupPlacement(new Point(targetSize.Width - popupSize.Width, targetSize.Height), PopupPrimaryAxis.Horizontal) };
+
+    private void AboutPopup_Opened(object sender, EventArgs e) => UpdateButton.Focus();
+
+    private void AboutPopup_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        AboutPopup.IsOpen = false;
+        InfoButton.Focus();
+        e.Handled = true;
+    }
+
+    private void Source_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        UrlLauncher.TryOpen(MainViewModel.SourceUrl);
+        e.Handled = true;
     }
 
     // Rename / Remove act on whichever list was used last: a subscription or a server.

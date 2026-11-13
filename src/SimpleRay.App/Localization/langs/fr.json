@@ -220,5 +220,7 @@
   "tip.directLan": "Réseau local en direct\nImprimantes, NAS, routeur et autres appareils à la maison ou au bureau restent accessibles pendant que le VPN est actif.",
   "tip.dnsProvider": "DNS pour le trafic direct\nQuel résolveur traduit les noms de sites en adresses pour le trafic qui contourne le VPN. Les sites passant par le VPN sont résolus via le VPN.\n\nUn résolveur en UDP simple (marqué « UDP », p. ex. Yandex) nécessite le port 53 sortant ouvert ; sur les réseaux qui le bloquent (fréquent en entreprise), seuls les chiffrés (DoH) fonctionnent.",
   "tip.autoSwitch": "Bascule automatique\nActivée : la connexion utilise les serveurs cochés « dans le groupe » et passe d'elle-même au plus rapide qui fonctionne. Désactivée : seul le serveur sélectionné est utilisé.\n\nComment : toutes les 3 minutes, le cœur VPN ouvre une page de test via chaque serveur coché et mesure le temps ; il bascule quand un autre serveur est plus rapide de plus de 50 ms ou que l'actuel ne répond plus.",
-  "tip.importManual": "Saisir ou coller\nSaisissez à la main un lien de serveur, une URL d'abonnement ou le lien d'import d'une autre application ; trié comme le presse-papiers."
+  "tip.importManual": "Saisir ou coller\nSaisissez à la main un lien de serveur, une URL d'abonnement ou le lien d'import d'une autre application ; trié comme le presse-papiers.",
+  "tip.aboutUpdates": "À propos et mises à jour",
+  "about.details": "Plus de détails…"
 }
