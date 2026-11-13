@@ -1060,6 +1060,19 @@ public sealed class MainViewModel : ObservableObject
                 : targets[0].Tag;
             StatusText = L["status.connecting"];
             var options = new GeneratorOptions { RuleSetDirectory = AppPaths.GeoDir };
+            string lanDnsLog;
+            try
+            {
+                options.LanDns = LanDnsDetector.Detect(options.TunInterfaceName);
+                lanDnsLog = options.LanDns is { } lanDns
+                    ? $"LAN DNS: {string.Join(", ", lanDns.Suffixes)} \u2192 {lanDns.Server}"
+                    : "LAN DNS: not enabled";
+            }
+            catch (Exception ex)
+            {
+                lanDnsLog = $"LAN DNS: not enabled ({ex.Message})";
+            }
+            OnEngineLog(this, lanDnsLog);
             var configJson = SingBoxConfigGenerator.GenerateJson(targets, _routing, options);
             await _connection.ConnectAsync(configJson, options.TunInterfaceName, AppPaths.CoreExe, _routing.KillSwitch);
         }

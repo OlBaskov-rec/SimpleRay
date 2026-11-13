@@ -11,6 +11,7 @@ public sealed class GeneratorOptions
     /// <summary>Directory holding *.srs rule-set files (geoip-*.srs, geosite-*.srs).</summary>
     public string RuleSetDirectory { get; set; } = "geo";
     public string TunInterfaceName { get; set; } = "simpleray";
+    public LanDns? LanDns { get; set; }
     public int Mtu { get; set; } = 9000;
     public string LogLevel { get; set; } = "info";
 
@@ -75,7 +76,7 @@ public static class SingBoxConfigGenerator
         var root = new JsonObject
         {
             ["log"] = new JsonObject { ["level"] = options.LogLevel, ["timestamp"] = true },
-            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites, proxyDomains, routing.EnableIpv6),
+            ["dns"] = BuildDns(routing.Dns, directDomains, directGeosites, proxyDomains, routing.EnableIpv6, options.LanDns),
             ["inbounds"] = new JsonArray { BuildTunInbound(options, routing.EnableIpv6) },
             ["outbounds"] = topology.Outbounds,
             ["route"] = BuildRoute(routing, options, directDomains, proxyDomains),
@@ -150,7 +151,7 @@ public static class SingBoxConfigGenerator
 
     // New DNS server format (sing-box 1.12+); the legacy "address" form is removed in 1.14.
     // Resolvers are addressed by IP: a hostname here would itself need resolving first.
-    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites, IReadOnlyList<string> proxyDomains, bool enableIpv6)
+    private static JsonObject BuildDns(DnsSettings dns, IReadOnlyList<string> directDomains, IReadOnlyList<string> directGeosites, IReadOnlyList<string> proxyDomains, bool enableIpv6, LanDns? lanDns)
     {
         dns ??= new DnsSettings();
         // ResolveRemote enforces DoH for the tunnelled server, so a UDP pick can never
@@ -178,6 +179,24 @@ public static class SingBoxConfigGenerator
         // outbound connects to region-correct IPs — otherwise they'd be resolved through the
         // tunnel and a direct connection to a foreign-resolved IP can be reset.
         var dnsRules = new JsonArray();
+        if (lanDns is not null)
+        {
+            root["servers"]!.AsArray().Add(new JsonObject
+            {
+                ["type"] = "udp",
+                ["tag"] = "lan",
+                ["server"] = lanDns.Server,
+            });
+            // LAN DNS must precede even explicit proxy domains. No detour means direct.
+            var suffixes = lanDns.Suffixes.Concat(new[] { "10.in-addr.arpa" })
+                .Concat(Enumerable.Range(16, 16).Select(n => $"{n}.172.in-addr.arpa"))
+                .Concat(new[] { "168.192.in-addr.arpa", "254.169.in-addr.arpa" });
+            dnsRules.Add(new JsonObject
+            {
+                ["domain_suffix"] = ToJsonArray(suffixes),
+                ["server"] = "lan",
+            });
+        }
         // Proxy-domains first: force them onto the remote (tunnel) resolver, overriding the
         // direct/geosite local rules below for any domain that appears in both.
         if (proxyDomains.Count > 0)
