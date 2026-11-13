@@ -9,27 +9,46 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
 - **Fix — switching the language blanked the routing mode.** After a language change the mode box
   went empty with a red border: the list of modes was rebuilt on every switch, so the selection
   was lost. The choices now stay the same and only their labels change.
+- **Fix — office network folders refused the sign-in while connected.** With the VPN on, shares of
+  an office domain (e.g. `\\server` in `hk.local`) failed with "this account cannot be used to log
+  on from this station": the office DNS was out of reach, so Windows could not find a domain
+  controller, could not use Kerberos and fell back to a refused NTLM sign-in. SimpleRay now sends the
+  network's internal domain, taken from the connection, to the network's own DNS server. Only
+  internal names are accepted (`.local`, `.lan`, `.corp`, `.internal`, `home.arpa` and the like), so
+  a hostile Wi-Fi can't redirect public domains this way.
+- **Language and About moved to the top right.** A square button with the language code opens the
+  language list; the ℹ button turns green and blinks when an update is out and opens a panel with the
+  version, the source link, the update check and the full About. The version is in the window title.
 - **Your routing lists.** The box is titled that way, and its three buttons carry icons — a program
   window (per-app rules, either way), a globe (sites going direct), a shield (sites through the
   VPN) — and are evenly spaced.
-- **Clearer wording.** The DNS resolver hint now says what it resolves: the sites that go direct,
-  queried straight from this computer, while every other site is resolved separately, encrypted,
-  through the VPN. Its tooltip adds that a plain-UDP resolver (Yandex) needs outbound port 53. In
-  Russian and Ukrainian the via-VPN button no longer says "в обход" ("bypass") — the same panel used
-  that word for the opposite, direct traffic.
+- **Clearer wording.** The DNS resolver hint is now short: used for direct traffic (without the
+  VPN), and the fastest depends on where you are. Its tooltip keeps the details, including that a
+  plain-UDP resolver (Yandex) needs outbound port 53. In Russian and Ukrainian the via-VPN button no
+  longer says "в обход" ("bypass") — the same panel used that word for the opposite, direct traffic.
 
 ### Русский
 - **Исправлено: смена языка сбрасывала режим маршрутизации.** После переключения языка поле режима
   становилось пустым с красной рамкой: список режимов пересоздавался при каждой смене, и выбор
   терялся. Теперь варианты остаются те же, меняются только подписи.
+- **Исправлено: при подключении не открывались сетевые папки офиса.** С включённым VPN папки
+  офисного домена (например, `\\server` в `hk.local`) выдавали «учётная запись не может быть
+  использована для входа в сеть с этой станции»: офисный DNS был недоступен, Windows не находила
+  контроллер домена, не могла войти по Kerberos и откатывалась на запрещённый вход по NTLM. Теперь
+  внутренний домен сети (берётся из подключения) SimpleRay отправляет на DNS-сервер этой же сети.
+  Принимаются только внутренние имена (`.local`, `.lan`, `.corp`, `.internal`, `home.arpa` и
+  подобные), так что чужой Wi-Fi не сможет так перехватить публичные домены.
+- **Язык и «О программе» — вверху справа.** Квадратная кнопка с кодом языка открывает список
+  языков; кнопка ℹ зеленеет и мигает, когда вышло обновление, и открывает панель с версией, ссылкой
+  на исходники, проверкой обновлений и полным окном «О программе». Версия — в заголовке окна.
 - **Свои списки маршрутизации.** Блок так и называется, у трёх кнопок появились значки — окно
   программы (правила для приложений, в обе стороны), глобус (сайты напрямую), щит (сайты через
   VPN), — и ровные отступы.
-- **Понятнее тексты.** Подсказка DNS-резолвера объясняет, что он разрешает: сайты, которые идут
-  напрямую, — запросы уходят прямо с этого компьютера; остальные сайты разрешаются отдельно,
-  шифрованно, через VPN. Во всплывающей подсказке — что резолверу на UDP (Яндекс) нужен открытый
-  исходящий порт 53. В русском и украинском кнопка «через VPN» больше не называется «в обход»: тем
-  же словом в этом же блоке обозначался противоположный, прямой трафик.
+- **Понятнее тексты.** Подсказка DNS-резолвера стала короткой: используется для трафика напрямую
+  (без VPN), самый быстрый зависит от вашего расположения. Подробности остались во всплывающей
+  подсказке, в том числе что резолверу на UDP (Яндекс) нужен открытый исходящий порт 53. В русском и
+  украинском кнопка «через VPN» больше не называется «в обход»: тем же словом в этом же блоке
+  обозначался противоположный, прямой трафик.
 
 ## 0.3.9 — 2026-11-11
 
