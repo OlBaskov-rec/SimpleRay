@@ -96,13 +96,19 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Tray_ShowWindow(object sender, RoutedEventArgs e)
+    private void Tray_ShowWindow(object sender, RoutedEventArgs e) => ShowFromTray();
+
+    internal void ShowFromTray()
     {
         ShowInTaskbar = true;
         Show();
         WindowState = WindowState.Normal;
         Activate();
+        SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle);
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(nint hWnd);
 
     private void Tray_ToggleConnect(object sender, RoutedEventArgs e) =>
         _viewModel.ConnectCommand.Execute(null);

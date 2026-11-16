@@ -118,6 +118,37 @@ public sealed class UpdateService
         Process.Start(psi);
     }
 
+    /// <summary>Only stale temp updater copies are eligible; never touch a recent updater.</summary>
+    internal static bool IsStaleTemporaryUpdater(string fileName, DateTime createdUtc, DateTime nowUtc)
+    {
+        const string prefix = "simpleray-updater-";
+        const string suffix = ".exe";
+        return fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            && fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+            && Guid.TryParseExact(fileName.Substring(prefix.Length,
+                fileName.Length - prefix.Length - suffix.Length), "N", out _)
+            && nowUtc - createdUtc > TimeSpan.FromMinutes(5);
+    }
+
+    internal static void CleanupTemporaryUpdaters()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            foreach (var file in Directory.EnumerateFiles(Path.GetTempPath(), "simpleray-updater-*.exe"))
+            {
+                try
+                {
+                    // File.Copy preserves LastWriteTime: age must refer to the temp copy itself.
+                    if (IsStaleTemporaryUpdater(Path.GetFileName(file), File.GetCreationTimeUtc(file), now))
+                        File.Delete(file);
+                }
+                catch { /* busy or inaccessible: retry on a later startup */ }
+            }
+        }
+        catch { /* temp directory may be inaccessible */ }
+    }
+
     // --- updater branch (runs in the temp copy) ---------------------------
 
     /// <summary>args: --apply-update &lt;staging&gt; &lt;targetDir&gt; &lt;relaunchExe&gt; &lt;waitPid&gt; [&lt;stagingManifest&gt;]</summary>

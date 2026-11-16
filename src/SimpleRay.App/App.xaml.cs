@@ -18,6 +18,8 @@ public partial class App : Application
     /// </summary>
     public static bool IsExiting { get; private set; }
 
+    private WindowActivationSignal? _activationSignal;
+
     /// <summary>The one way to quit for real: lets the main window close instead of hiding.</summary>
     public static void Quit()
     {
@@ -111,6 +113,8 @@ public partial class App : Application
             return;
         }
 
+        UpdateService.CleanupTemporaryUpdaters();
+
         // Single instance: if SimpleRay is already running, activate it and don't start a
         // second window. The elevated "--connect" relaunch is exempt — it deliberately replaces
         // the instance that spawned it (which is exiting).
@@ -133,34 +137,55 @@ public partial class App : Application
 
         // "--connect" is set by the elevated relaunch after a Connect click, so this
         // instance connects automatically instead of making the user click again.
-        new MainWindow(connectOnStartup: e.Args.Contains("--connect")).Show();
+        // Keep the auto-reset event alive until shutdown, including while hidden in the tray.
+        var window = new MainWindow(connectOnStartup: e.Args.Contains("--connect"));
+        window.Show();
+        // Best-effort: if the event can't be created (e.g. the name is taken by another
+        // object), the app still runs; a second launch then just shows the "already running" hint.
+        try { _activationSignal = WindowActivationSignal.Create(); }
+        catch { _activationSignal = null; }
+        _activationSignal?.Listen(() =>
+        {
+            if (!Dispatcher.HasShutdownStarted)
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!IsExiting) window.ShowFromTray();
+                }));
+        });
     }
 
-    /// <summary>
-    /// True if another SimpleRay process is already running (so this one should exit). Also makes
-    /// a best-effort attempt to restore and focus its window — which succeeds within the same
-    /// integrity level (e.g. before the other instance elevated) and is silently skipped across
-    /// integrity levels (UIPI), where simply not starting a second window is enough.
-    /// </summary>
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _activationSignal?.Dispose();
+        base.OnExit(e);
+    }
+
+    /// <summary>Signal the existing instance, or explain how to exit an older version.</summary>
     private static bool TryActivateRunningInstance()
     {
         try
         {
-            var me = Process.GetCurrentProcess();
-            var other = Process.GetProcessesByName(me.ProcessName)
-                .FirstOrDefault(p => p.Id != me.Id && SameImage(p, me));
-            if (other is null)
-                return false;
-
-            var h = other.MainWindowHandle;
-            if (h != nint.Zero)
+            using var me = Process.GetCurrentProcess();
+            var processes = Process.GetProcessesByName(me.ProcessName);
+            try
             {
-                ShowWindow(h, SW_RESTORE);
-                SetForegroundWindow(h);
+                var other = processes.FirstOrDefault(p => p.Id != me.Id && SameImage(p, me));
+                if (other is null)
+                    return false;
+
+                // Transfer our foreground permission before the receiver handles the event.
+                AllowSetForegroundWindow(other.Id);
+                if (!WindowActivationSignal.TrySignal())
+                    MessageBox.Show(Localization.LocalizationManager.Instance["startup.alreadyRunning"],
+                        "SimpleRay", MessageBoxButton.OK, MessageBoxImage.Information);
+                return true;
             }
-            return true;
+            finally
+            {
+                foreach (var process in processes) process.Dispose();
+            }
         }
-        catch { return false; } // never let the guard itself block startup
+        catch { return false; } // never let process enumeration itself block startup
     }
 
     /// <summary>Same executable image? Compares paths; if the other is unreadable (higher integrity), assume yes.</summary>
@@ -175,9 +200,7 @@ public partial class App : Application
         catch { return true; }
     }
 
-    private const int SW_RESTORE = 9;
-    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint hWnd);
-    [DllImport("user32.dll")] private static extern bool ShowWindow(nint hWnd, int nCmdShow);
+    [DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(int processId);
 
     private static async Task RunCameraSelfTestAsync()
     {

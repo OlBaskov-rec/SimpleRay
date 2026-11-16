@@ -222,5 +222,6 @@
   "tip.autoSwitch": "Automatische Umschaltung\nAn: Die Verbindung nutzt die als „in Gruppe“ markierten Server und wechselt selbst zum schnellsten funktionierenden. Aus: Nur der gewählte Server wird genutzt.\n\nWie: Alle 3 Minuten öffnet der VPN-Kern über jeden markierten Server eine Testseite und misst die Zeit; gewechselt wird, wenn ein anderer Server mehr als 50 ms schneller ist oder der aktuelle nicht mehr antwortet.",
   "tip.importManual": "Eingeben oder einfügen\nGeben Sie einen Server-Link, eine Abo-URL oder den Import-Link einer anderen App von Hand ein; wird wie die Zwischenablage sortiert.",
   "tip.aboutUpdates": "Über die Anwendung und Updates",
-  "about.details": "Weitere Informationen…"
+  "about.details": "Weitere Informationen…",
+  "startup.alreadyRunning": "SimpleRay wird bereits ausgeführt — das Symbol befindet sich im Infobereich (möglicherweise unter den ausgeblendeten Symbolen ^). Wenn Sie das Programm aktualisiert haben, schließen Sie die alte Kopie: Rechtsklick auf das Symbol → „Beenden“, dann erneut starten."
 }

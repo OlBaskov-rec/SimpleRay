@@ -222,5 +222,6 @@
   "tip.autoSwitch": "Auto-switch\nOn: the connection uses the servers marked “in group” and moves to the fastest working one by itself. Off: only the selected server is used.\n\nHow: every 3 minutes the VPN core opens a test page through each marked server and measures the time; it switches when another server is faster by more than 50 ms or the current one stops answering.",
   "tip.importManual": "Type or paste\nEnter a server link, a subscription URL or another app's import link by hand; it's sorted the same way as the clipboard.",
   "tip.aboutUpdates": "About and updates",
-  "about.details": "More details…"
+  "about.details": "More details…",
+  "startup.alreadyRunning": "SimpleRay is already running — its icon is in the notification area (possibly among the hidden icons ^). If you updated the program, close the old copy: right-click its icon → Exit, then start it again."
 }

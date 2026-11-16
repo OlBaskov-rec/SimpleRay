@@ -222,5 +222,6 @@
   "tip.autoSwitch": "Otomatik geçiş\nAçık: bağlantı \"gruba\" işaretli sunucuları kullanır ve kendiliğinden en hızlı çalışana geçer. Kapalı: yalnızca seçili sunucu kullanılır.\n\nNasıl: VPN çekirdeği her 3 dakikada bir işaretli her sunucu üzerinden bir test sayfası açar ve süreyi ölçer; başka bir sunucu 50 ms'den fazla hızlıysa veya mevcut yanıt vermezse geçer.",
   "tip.importManual": "Yaz veya yapıştır\nBir sunucu bağlantısı, abonelik URL'si veya başka bir uygulamanın içe aktarma bağlantısını elle girin; pano gibi ayrılır.",
   "tip.aboutUpdates": "Hakkında ve güncellemeler",
-  "about.details": "Daha fazla bilgi…"
+  "about.details": "Daha fazla bilgi…",
+  "startup.alreadyRunning": "SimpleRay zaten çalışıyor — simgesi bildirim alanında (gizli simgeler ^ arasında olabilir). Programı güncellediyseniz eski kopyayı kapatın: simgeye sağ tıklayın → «Çıkış», ardından yeniden başlatın."
 }

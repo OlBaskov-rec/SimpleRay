@@ -420,4 +420,6 @@ public static class LocKeys
     public const string TipAboutUpdates = "tip.aboutUpdates";
     /// <summary>about.details</summary>
     public const string AboutDetails = "about.details";
+    /// <summary>startup.alreadyRunning</summary>
+    public const string StartupAlreadyRunning = "startup.alreadyRunning";
 }
