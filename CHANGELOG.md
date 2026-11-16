@@ -6,6 +6,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
 ## 0.3.11 — 2026-11-16
 
 ### English
+- **Fix — 0.3.10 crashed on start ("Setting property Hyperlink.NavigateUri threw an exception").**
+  The source link in the new About panel was given in a form WPF can't read, so the main window
+  failed to load. Fixed; a test now loads the markup of every window, so a broken window can't
+  ship again.
 - **Fix — after an update the program seemed to hang with no window.** If an older copy was still
   running (often hidden in the tray, sometimes started as administrator), the new one quietly
   closed: it was visible in Task Manager for a moment, but no window appeared. Starting SimpleRay
@@ -16,6 +20,10 @@ then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `r
   updates are deleted at start.
 
 ### Русский
+- **Исправлено: 0.3.10 падала при запуске («Задание свойства Hyperlink.NavigateUri вызвало
+  исключение»).** Ссылка на исходники в новой панели «О программе» была задана в виде, который WPF
+  не понимает, и главное окно не загружалось. Исправлено; тест теперь загружает разметку всех
+  окон, так что сломанное окно больше не попадёт в релиз.
 - **Исправлено: после обновления программа «висла» без окна.** Если старая копия ещё работала
   (часто — свёрнутая в трей, иногда запущенная от администратора), новая молча закрывалась: в
   диспетчере задач она мелькала, а окна не было. Теперь повторный запуск SimpleRay выводит окно

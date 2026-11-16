@@ -111,7 +111,7 @@
                     <TextBlock Text="{Binding AppVersion}" Foreground="#555" Margin="0,4,0,0" />
                     <TextBlock Text="Copyright (C) 2026 OlBaskov-rec" TextWrapping="Wrap" Margin="0,4,0,0" />
                     <TextBlock FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" FlowDirection="LeftToRight">
-                        <Hyperlink NavigateUri="{x:Static vm:MainViewModel.SourceUrl}" RequestNavigate="Source_RequestNavigate">
+                        <Hyperlink Click="Source_Click">
                             <Run Text="{x:Static vm:MainViewModel.SourceUrl}" />
                         </Hyperlink>
                     </TextBlock>

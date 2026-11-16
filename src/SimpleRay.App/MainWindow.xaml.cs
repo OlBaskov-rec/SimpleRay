@@ -59,7 +59,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void Source_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    private void Source_Click(object sender, RoutedEventArgs e)
     {
         UrlLauncher.TryOpen(MainViewModel.SourceUrl);
         e.Handled = true;
