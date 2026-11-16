@@ -3,6 +3,28 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## 0.3.11 — 2026-11-16
+
+### English
+- **Fix — after an update the program seemed to hang with no window.** If an older copy was still
+  running (often hidden in the tray, sometimes started as administrator), the new one quietly
+  closed: it was visible in Task Manager for a moment, but no window appeared. Starting SimpleRay
+  again now brings the running window to the front, even if that copy runs as administrator. If it
+  can't be reached, a message says the program is already running and how to close the old copy
+  (tray icon → Exit).
+- **Old updater copies are cleaned up.** Temporary updater files left in the temp folder by earlier
+  updates are deleted at start.
+
+### Русский
+- **Исправлено: после обновления программа «висла» без окна.** Если старая копия ещё работала
+  (часто — свёрнутая в трей, иногда запущенная от администратора), новая молча закрывалась: в
+  диспетчере задач она мелькала, а окна не было. Теперь повторный запуск SimpleRay выводит окно
+  уже работающей копии на передний план, даже если та запущена от администратора. Если достучаться
+  до неё нельзя, появится сообщение, что программа уже запущена, и как закрыть старую копию (значок
+  в трее → «Выход»).
+- **Удаляются старые копии установщика обновлений.** Временные файлы, оставшиеся в папке TEMP
+  после прошлых обновлений, удаляются при запуске.
+
 ## 0.3.10 — 2026-11-12
 
 ### English
