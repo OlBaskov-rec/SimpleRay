@@ -16,6 +16,12 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Before the build, which copies them into bin: some tests validate generated configs
+      # with the real sing-box (and fail on purpose without it), as the release workflow does.
+      - name: Fetch verified runtime deps (sing-box, wintun, geo)
+        shell: pwsh
+        run: ./scripts/fetch-deps.ps1
+
       - name: Restore
         run: dotnet restore SimpleRay.sln
 
