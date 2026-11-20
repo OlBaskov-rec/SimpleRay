@@ -10,6 +10,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -38,8 +39,15 @@
                     Command="{Binding AddDirectCommand}" Padding="8,4" Margin="6,0,0,0" />
         </Grid>
 
+        <!-- Standard Windows utilities (RDP, SSH, PowerShell…): picking one fills the name above,
+             then "→ Through VPN" / "→ Direct" sends it to a list as usual. -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Content="{loc:Loc apps.systemUtils}" Click="SystemUtils_Click"
+                    Padding="10,4" ToolTip="{loc:Loc tip.systemUtils}" />
+        </StackPanel>
+
         <!-- Two lists -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="12" />
@@ -64,7 +72,7 @@
                     Command="{Binding RemoveDirectCommand}" Padding="10,4" Margin="0,6,0,0" />
         </Grid>
 
-        <Button Grid.Row="3" Content="{loc:Loc common.done}" IsDefault="True" IsCancel="True"
+        <Button Grid.Row="4" Content="{loc:Loc common.done}" IsDefault="True" IsCancel="True"
                 HorizontalAlignment="Right" Padding="16,5" Margin="0,12,0,0"
                 Click="Done_Click" />
     </Grid>

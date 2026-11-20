@@ -1,9 +1,16 @@
 using System.Collections.ObjectModel;
 using SimpleRay.App.Infrastructure;
+using SimpleRay.App.Localization;
 using SimpleRay.App.Services;
 using SimpleRay.Core.Models;
 
 namespace SimpleRay.App.ViewModels;
+
+/// <summary>A category of the "Standard utilities" menu.</summary>
+public sealed record UtilityGroup(string Title, IReadOnlyList<UtilityItem> Items);
+
+/// <summary>One utility in that menu; <see cref="Placement"/> says which list it is already in, if any.</summary>
+public sealed record UtilityItem(string Process, string Header, string Description, string? Placement);
 
 /// <summary>
 /// Edits the per-app routing lists (proxy / direct) of a <see cref="RoutingSettings"/>.
@@ -126,6 +133,35 @@ public sealed class AppRoutingViewModel : ObservableObject
         _routing.ProxyProcesses = ProxyApps.ToList();
         _routing.DirectProcesses = DirectApps.ToList();
     }
+
+    /// <summary>Standard utilities grouped for the "Standard utilities" menu, with where each one is now.</summary>
+    public IReadOnlyList<UtilityGroup> UtilityGroups()
+    {
+        var L = LocalizationManager.Instance;
+        return SystemUtilityCatalog.All
+            .GroupBy(u => u.Category)
+            .Select(g => new UtilityGroup(L[CategoryKey(g.Key)], g.Select(u => new UtilityItem(
+                u.Process,
+                $"{u.DisplayName} — {u.Process}.exe",
+                L["util." + u.Process.ToLowerInvariant()],
+                Contains(ProxyApps, u.Process) ? L["apps.inProxy"]
+                    : Contains(DirectApps, u.Process) ? L["apps.inDirect"]
+                    : null)).ToList()))
+            .ToList();
+    }
+
+    /// <summary>Puts a catalog utility into the name box; the usual buttons then route it.</summary>
+    public void PickUtility(string process) => ManualName = process;
+
+    private static string CategoryKey(SystemUtilityCategory c) => c switch
+    {
+        SystemUtilityCategory.RemoteAccess => "utilcat.remote",
+        SystemUtilityCategory.CommandLine => "utilcat.commandLine",
+        _ => "utilcat.apps",
+    };
+
+    private static bool Contains(IEnumerable<string> list, string name) =>
+        list.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase));
 
     private void RaiseAddCanExecute()
     {

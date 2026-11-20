@@ -3,6 +3,26 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## Unreleased
+
+### English
+- **Per-app routing — standard utilities.** A "Standard utilities ▾" button in the Apps window
+  lists built-in Windows programs that often need their own route, grouped by purpose: remote
+  access (Remote Desktop/mstsc, Remote Assistance, Quick Assist, ssh/scp/sftp), command line
+  (curl, ftp, telnet, PowerShell 5 and 7) and built-in apps (Edge, OneDrive, Microsoft Store).
+  Picking one fills the name box, then "→ Through VPN" / "→ Direct" as usual; utilities already
+  in a list are marked, and each has a tooltip on when to send it which way. They don't need to
+  be running.
+
+### Русский
+- **Правила для приложений — стандартные утилиты.** Кнопка «Стандартные утилиты ▾» в окне
+  «Приложения» показывает встроенные программы Windows, которым часто нужен свой маршрут, по
+  группам: удалённый доступ (удалённый рабочий стол/mstsc, удалённый помощник, «Быстрая помощь»,
+  ssh/scp/sftp), командная строка (curl, ftp, telnet, PowerShell 5 и 7) и встроенные приложения
+  (Edge, OneDrive, Microsoft Store). Выбор подставляет имя в поле, дальше как обычно «→ Через VPN»
+  / «→ Напрямую»; утилиты, уже стоящие в списке, отмечены, у каждой есть подсказка, когда куда её
+  отправлять. Запускать их заранее не нужно.
+
 ## 0.3.11 — 2026-11-16
 
 ### English

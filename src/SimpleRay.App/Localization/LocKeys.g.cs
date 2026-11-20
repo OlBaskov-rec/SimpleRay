@@ -422,4 +422,46 @@ public static class LocKeys
     public const string AboutDetails = "about.details";
     /// <summary>startup.alreadyRunning</summary>
     public const string StartupAlreadyRunning = "startup.alreadyRunning";
+    /// <summary>apps.systemUtils</summary>
+    public const string AppsSystemUtils = "apps.systemUtils";
+    /// <summary>tip.systemUtils</summary>
+    public const string TipSystemUtils = "tip.systemUtils";
+    /// <summary>apps.inProxy</summary>
+    public const string AppsInProxy = "apps.inProxy";
+    /// <summary>apps.inDirect</summary>
+    public const string AppsInDirect = "apps.inDirect";
+    /// <summary>utilcat.remote</summary>
+    public const string UtilcatRemote = "utilcat.remote";
+    /// <summary>utilcat.commandLine</summary>
+    public const string UtilcatCommandLine = "utilcat.commandLine";
+    /// <summary>utilcat.apps</summary>
+    public const string UtilcatApps = "utilcat.apps";
+    /// <summary>util.mstsc</summary>
+    public const string UtilMstsc = "util.mstsc";
+    /// <summary>util.msra</summary>
+    public const string UtilMsra = "util.msra";
+    /// <summary>util.quickassist</summary>
+    public const string UtilQuickassist = "util.quickassist";
+    /// <summary>util.ssh</summary>
+    public const string UtilSsh = "util.ssh";
+    /// <summary>util.scp</summary>
+    public const string UtilScp = "util.scp";
+    /// <summary>util.sftp</summary>
+    public const string UtilSftp = "util.sftp";
+    /// <summary>util.curl</summary>
+    public const string UtilCurl = "util.curl";
+    /// <summary>util.ftp</summary>
+    public const string UtilFtp = "util.ftp";
+    /// <summary>util.telnet</summary>
+    public const string UtilTelnet = "util.telnet";
+    /// <summary>util.powershell</summary>
+    public const string UtilPowershell = "util.powershell";
+    /// <summary>util.pwsh</summary>
+    public const string UtilPwsh = "util.pwsh";
+    /// <summary>util.msedge</summary>
+    public const string UtilMsedge = "util.msedge";
+    /// <summary>util.onedrive</summary>
+    public const string UtilOnedrive = "util.onedrive";
+    /// <summary>util.winstore.app</summary>
+    public const string UtilWinstoreApp = "util.winstore.app";
 }
