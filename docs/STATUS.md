@@ -223,7 +223,7 @@ Windows. Утверждения о коде проверены по исходн
    После каждого шага — тест привязок на настоящей VM.
 7. **Дублирование base64url** (`ShareLinkParser.cs:473`, `SubscriptionParser.cs:194`) → общий
    декодер; контракты ошибок у двух парсеров оставить разными.
-8. **Инфраструктура.** Добавить `Directory.Build.props` (Nullable, `AnalysisLevel`,
+8. **Инфраструктура — сделано 2026-11-23** (`Directory.Build.props`, `.editorconfig`; правила нашли неосвобождаемые CTS в watchdog и мониторе живости — исправлено). Добавить `Directory.Build.props` (Nullable, `AnalysisLevel`,
    `EnforceCodeStyleInBuild`, потом `TreatWarningsAsErrors`) и `.editorconfig` (UTF-8, 4
    пробела, CA2000/CA2012 = warning, `*.g.cs` = generated). Встроенные анализаторы SDK уже
    работают — нужна явная политика, а не новые пакеты.
