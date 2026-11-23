@@ -20,7 +20,9 @@ Console.WriteLine("[1/3] CleanupLeftovers() — remove filters from any previous
 try { WfpKillSwitch.CleanupLeftovers(); Console.WriteLine("      ok"); }
 catch (Exception e) { Console.WriteLine("      FAILED: " + e); return; }
 
+#pragma warning disable CA2000 // Explicit Disengage below reports cleanup failures; Dispose would retry outside that error handler.
 var ks = new WfpKillSwitch();
+#pragma warning restore CA2000
 
 Console.WriteLine("[2/3] Engage() — add the block + permit filters (WFP)...");
 try

@@ -52,11 +52,12 @@ public class TunnelLivenessMonitorTests
     {
         int deaths = 0;
         var gate = new TaskCompletionSource();
+        CancellationToken loopToken = default;
         var mon = new TunnelLivenessMonitor(
             probe: _ => Task.FromResult(true),                 // tunnel healthy
             onDead: _ => { deaths++; return Task.CompletedTask; },
             interval: TimeSpan.Zero, threshold: 3,
-            delay: (_, ct) => gate.Task.WaitAsync(ct));
+            delay: (_, ct) => { loopToken = ct; return gate.Task.WaitAsync(ct); });
 
         mon.Start();
         mon.Stop();          // cancel while parked in delay
@@ -64,5 +65,7 @@ public class TunnelLivenessMonitorTests
         try { await mon.LoopTask!; } catch { }
 
         Assert.Equal(0, deaths);
+        Assert.Throws<ObjectDisposedException>(() => loopToken.WaitHandle);
+        mon.Stop(); // repeated stop must not access the loop's disposed CTS
     }
 }

@@ -48,7 +48,9 @@ public class WfpCleanupTests
     [Fact]
     public void DisengageCore_FailureKeepsEngaged_ThenSuccessfulRetryClearsState()
     {
+#pragma warning disable CA2000 // Synthetic cleanup callbacks allocate no WFP resources; Dispose would invoke real WFP APIs.
         var killSwitch = new WfpKillSwitch();
+#pragma warning restore CA2000
         int attempts = 0;
         int closes = 0;
         IReadOnlyList<string> Cleanup()
@@ -76,7 +78,9 @@ public class WfpCleanupTests
     [Fact]
     public void SkipEngage_AfterFailedDisengage_CleansUpFirstInsteadOfSkipping()
     {
+#pragma warning disable CA2000 // Synthetic cleanup callbacks allocate no WFP resources; Dispose would invoke real WFP APIs.
         var killSwitch = new WfpKillSwitch();
+#pragma warning restore CA2000
         Assert.Throws<InvalidOperationException>(() => killSwitch.DisengageCore(
             () => new[] { "filter block-all (v4): 0x80320001" }, () => { }));
         Assert.True(killSwitch.IsEngaged);
@@ -92,7 +96,9 @@ public class WfpCleanupTests
     [Fact]
     public void SkipEngage_LeftoversStillStuck_Throws()
     {
+#pragma warning disable CA2000 // Synthetic cleanup callbacks allocate no WFP resources; Dispose would invoke real WFP APIs.
         var killSwitch = new WfpKillSwitch();
+#pragma warning restore CA2000
         IReadOnlyList<string> Stuck() => new[] { "filter block-all (v4): 0x80320001" };
         Assert.Throws<InvalidOperationException>(() => killSwitch.DisengageCore(Stuck, () => { }));
 

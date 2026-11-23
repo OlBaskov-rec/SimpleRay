@@ -30,6 +30,8 @@ public sealed class WatchdogOptions
 /// established) and <see cref="Disarm"/> (user disconnect), so a failed manual connect or
 /// a clean stop never triggers a reconnect.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The reconnect loop owns and disposes its CTS; the field only allows Disarm to cancel it.")]
 public sealed class EngineWatchdog
 {
     private readonly IVpnEngine _engine;
@@ -39,6 +41,7 @@ public sealed class EngineWatchdog
     private volatile bool _armed;
     private volatile bool _reconnecting;
     private CancellationTokenSource? _cts;
+    private readonly object _ctsSync = new();
 
     public EngineWatchdog(IVpnEngine engine, WatchdogOptions? options = null)
     {
@@ -67,7 +70,8 @@ public sealed class EngineWatchdog
     public void Disarm()
     {
         _armed = false;
-        _cts?.Cancel();
+        lock (_ctsSync)
+            _cts?.Cancel();
     }
 
     private void OnStateChanged(object? sender, EngineState state)
@@ -99,8 +103,10 @@ public sealed class EngineWatchdog
     private async Task ReconnectLoopAsync()
     {
         _reconnecting = true;
-        _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
+        using var cts = new CancellationTokenSource();
+        lock (_ctsSync)
+            _cts = cts;
+        var ct = cts.Token;
         try
         {
             for (int attempt = 1; attempt <= _opt.MaxAttempts && _armed; attempt++)
@@ -130,6 +136,8 @@ public sealed class EngineWatchdog
         }
         finally
         {
+            lock (_ctsSync)
+                _cts = null;
             _reconnecting = false;
         }
     }

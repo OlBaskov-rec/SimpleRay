@@ -11,6 +11,8 @@ namespace SimpleRay.App.Engine;
 /// events onto them. Extracted from MainViewModel to give this behaviour-sensitive flow a
 /// testable seam; the call sequence is unchanged from the original inline orchestration.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The gate is a SemaphoreSlim without a wait handle (nothing to release), and a disconnect may still hold it during shutdown. ConnectCoreAsync owns its CTS.")]
 public sealed class ConnectionController
 {
     private readonly IVpnEngine _engine;
@@ -117,9 +119,11 @@ public sealed class ConnectionController
     private async Task ConnectCoreAsync(string configJson, string tunInterfaceName, string coreExePath, bool killSwitch, CancellationToken token)
     {
         var cts = _connectCts; // capture for reference equality check in finally
-        await _gate.WaitAsync(token).ConfigureAwait(false);
+        bool entered = false;
         try
         {
+            await _gate.WaitAsync(token).ConfigureAwait(false);
+            entered = true;
             token.ThrowIfCancellationRequested();
             await StartWithRetryAsync(configJson, coreExePath, token);
             token.ThrowIfCancellationRequested();
@@ -137,7 +141,7 @@ public sealed class ConnectionController
         }
         finally
         {
-            _gate.Release();
+            if (entered) _gate.Release();
             lock (_sync)
             {
                 if (ReferenceEquals(_connectCts, cts))

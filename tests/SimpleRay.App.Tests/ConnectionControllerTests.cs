@@ -82,8 +82,10 @@ public class ConnectionControllerTests
     [Fact]
     public async Task DisconnectAsync_CleanupFails_StopsBeforeRethrowing()
     {
+#pragma warning disable CA2000 // Resource-free fake: Dispose deliberately throws; cleanup is exercised explicitly.
         var ks = new DisengageFailingKillSwitch();
-        var engine = new FakeEngine(_ => true) { OnStop = () => Assert.True(ks.Attempted) };
+#pragma warning restore CA2000
+        await using var engine = new FakeEngine(_ => true) { OnStop = () => Assert.True(ks.Attempted) };
         var controller = Make(engine, ks, () => true);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.DisconnectAsync());
@@ -95,8 +97,10 @@ public class ConnectionControllerTests
     [Fact]
     public async Task ShutdownAsync_CleanupFails_DisposesBeforeReturningFailure()
     {
+#pragma warning disable CA2000 // Resource-free fake: Dispose deliberately throws; cleanup is exercised explicitly.
         var ks = new DisengageFailingKillSwitch();
-        var engine = new FakeEngine(_ => true) { OnDispose = () => Assert.True(ks.Attempted) };
+#pragma warning restore CA2000
+        await using var engine = new FakeEngine(_ => true) { OnDispose = () => Assert.True(ks.Attempted) };
         var controller = Make(engine, ks, () => true);
         Task? shutdown = null;
 
@@ -129,8 +133,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task ConnectAsync_Starts_Arms_And_EngagesKillSwitch()
     {
-        var engine = new FakeEngine(_ => true);
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(_ => true);
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => true);
 
         await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: true);
@@ -144,8 +148,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task ConnectAsync_WithoutKillSwitch_DoesNotEngage()
     {
-        var engine = new FakeEngine(_ => true);
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(_ => true);
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => false);
 
         await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
@@ -157,8 +161,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task DisconnectAsync_Disengages_Stops_AndDisarms()
     {
-        var engine = new FakeEngine(_ => true);
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(_ => true);
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => true);
 
         await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: true);
@@ -176,8 +180,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task GaveUp_WithKillSwitchWanted_KeepsBlocking()
     {
-        var engine = new FakeEngine(call => call == 1); // initial ok, reconnects fail
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(call => call == 1); // initial ok, reconnects fail
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => true, Instant());
         var blocked = new TaskCompletionSource();
         var disengaged = false;
@@ -196,8 +200,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task GaveUp_WithoutKillSwitch_Disengages()
     {
-        var engine = new FakeEngine(call => call == 1);
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(call => call == 1);
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => false, Instant());
         var disengaged = new TaskCompletionSource();
         c.GaveUpDisengaged += () => disengaged.TrySetResult();
@@ -215,8 +219,9 @@ public class ConnectionControllerTests
     public async Task ConnectAsync_RetriesOnceOnExitedImmediately_ThenSucceeds()
     {
         // First start fails with the "exited immediately" signature (stale TUN adapter); retry works.
-        var engine = new FakeEngine(call => call == 1 ? "sing-box exited immediately (code 1)" : null);
-        var c = Make(engine, new CountingKillSwitch(), () => false);
+        await using var engine = new FakeEngine(call => call == 1 ? "sing-box exited immediately (code 1)" : null);
+        using var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false);
 
         await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
 
@@ -227,8 +232,9 @@ public class ConnectionControllerTests
     [Fact]
     public async Task ConnectAsync_ExitedImmediatelyEveryTime_GivesUpAfterThreeAndThrows()
     {
-        var engine = new FakeEngine(_ => "sing-box exited immediately (code 1)");
-        var c = Make(engine, new CountingKillSwitch(), () => false);
+        await using var engine = new FakeEngine(_ => "sing-box exited immediately (code 1)");
+        using var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false));
@@ -240,8 +246,9 @@ public class ConnectionControllerTests
     public async Task ConnectAsync_NonRetryableStartFailure_ThrowsWithoutRetrying()
     {
         // A start failure that is NOT "exited immediately" must not be retried.
-        var engine = new FakeEngine(_ => "invalid configuration: something");
-        var c = Make(engine, new CountingKillSwitch(), () => false);
+        await using var engine = new FakeEngine(_ => "invalid configuration: something");
+        using var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false));
@@ -252,8 +259,9 @@ public class ConnectionControllerTests
     [Fact]
     public async Task ConnectAsync_KillSwitchEngageFails_RaisesEventAndStaysConnected()
     {
-        var engine = new FakeEngine(_ => (string?)null); // engine starts fine
-        var c = Make(engine, new ThrowingKillSwitch(), () => true);
+        await using var engine = new FakeEngine(_ => (string?)null); // engine starts fine
+        using var ks = new ThrowingKillSwitch();
+        var c = Make(engine, ks, () => true);
         Exception? reported = null;
         c.KillSwitchEngageFailed += ex => reported = ex;
 
@@ -266,8 +274,9 @@ public class ConnectionControllerTests
     [Fact]
     public async Task Crash_AfterConnect_AutoReconnects()
     {
-        var engine = new FakeEngine(_ => (string?)null); // every start succeeds
-        var c = Make(engine, new CountingKillSwitch(), () => false, Instant());
+        await using var engine = new FakeEngine(_ => (string?)null); // every start succeeds
+        using var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false, Instant());
 
         await c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false); // Running (call 1)
 
@@ -283,8 +292,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task DisconnectDuringRetry_DoesNotResurrect()
     {
-        var engine = new FakeEngine(call => call == 1 ? "sing-box exited immediately (code 1)" : null);
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(call => call == 1 ? "sing-box exited immediately (code 1)" : null);
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => false, retryDelay: TimeSpan.FromSeconds(10));
 
         var connectTask = c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
@@ -306,9 +315,10 @@ public class ConnectionControllerTests
     public async Task ConcurrentConnect_IsSingleFlight()
     {
         var startGate = new TaskCompletionSource();
-        var engine = new FakeEngine(_ => (string?)null);
+        await using var engine = new FakeEngine(_ => (string?)null);
         engine.SetStartGate(startGate);
-        var c = Make(engine, new CountingKillSwitch(), () => false);
+        using var ks = new CountingKillSwitch();
+        var c = Make(engine, ks, () => false);
 
         var t1 = c.ConnectAsync("cfg", "simpleray", Core, killSwitch: false);
         await Task.Delay(50); // give t1 time to enter StartAsync
@@ -325,8 +335,8 @@ public class ConnectionControllerTests
     [Fact]
     public async Task DisconnectAsync_Idempotent()
     {
-        var engine = new FakeEngine(_ => (string?)null);
-        var ks = new CountingKillSwitch();
+        await using var engine = new FakeEngine(_ => (string?)null);
+        using var ks = new CountingKillSwitch();
         var c = Make(engine, ks, () => false);
 
         await c.DisconnectAsync();

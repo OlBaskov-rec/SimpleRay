@@ -183,7 +183,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task Start_Success_ReachesRunning()
     {
         var run = Running();
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
         var states = new List<EngineState>();
         engine.StateChanged += (_, s) => states.Add(s);
 
@@ -199,7 +199,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task Start_LaunchFails_Faults()
     {
         var run = new FakeProcess { StartResult = false };
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
 
@@ -210,7 +210,7 @@ public class SingBoxEngineTests : IDisposable
     [Fact]
     public async Task Start_ProcessExitsImmediately_Faults()
     {
-        var engine = new SingBoxEngine(Options(new FakeLauncher(ExitsWith(1))));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(ExitsWith(1))));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
 
@@ -223,7 +223,7 @@ public class SingBoxEngineTests : IDisposable
     {
         var run = Running();
         run.AfterHasExitedRead = () => run.RaiseExit(23);
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
         var states = new List<EngineState>();
         engine.StateChanged += (_, state) => states.Add(state);
 
@@ -240,7 +240,7 @@ public class SingBoxEngineTests : IDisposable
     {
         var run = Running();
         run.OnExitedSubscription = () => run.RaiseExit(24);
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
         var states = new List<EngineState>();
         engine.StateChanged += (_, state) => states.Add(state);
 
@@ -258,7 +258,7 @@ public class SingBoxEngineTests : IDisposable
         var failure = new InvalidOperationException("launch failed");
         var failed = new FakeProcess { StartException = failure };
         var next = Running();
-        var engine = new SingBoxEngine(Options(new FakeLauncher(failed, next)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(failed, next)));
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
 
@@ -274,7 +274,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task CheckConfig_CancelledWhileWaiting_KillsWaitsAndDisposes()
     {
         var check = Running();
-        var engine = new SingBoxEngine(Options(new FakeLauncher(check)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(check)));
         using var cancellation = new CancellationTokenSource();
         var task = engine.CheckConfigAsync("{}", cancellation.Token);
         await check.WaitStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -292,7 +292,7 @@ public class SingBoxEngineTests : IDisposable
     [Fact]
     public async Task Start_WhenAlreadyRunning_Throws()
     {
-        var engine = new SingBoxEngine(Options(new FakeLauncher(Running())));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(Running())));
         await engine.StartAsync("{}");
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
@@ -304,7 +304,7 @@ public class SingBoxEngineTests : IDisposable
     {
         var run = Running();
         var term = new FakeTerminator { Result = true };
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run), terminator: term));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run), terminator: term));
         await engine.StartAsync("{}");
 
         await engine.StopAsync();
@@ -319,7 +319,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task Stop_NoTerminator_HardKills()
     {
         var run = Running();
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
         await engine.StartAsync("{}");
 
         await engine.StopAsync();
@@ -334,7 +334,7 @@ public class SingBoxEngineTests : IDisposable
         foreach (var term in new[] { new FakeTerminator { Result = false }, new FakeTerminator { Throw = true } })
         {
             var run = Running();
-            var engine = new SingBoxEngine(Options(new FakeLauncher(run), terminator: term));
+            await using var engine = new SingBoxEngine(Options(new FakeLauncher(run), terminator: term));
             await engine.StartAsync("{}");
 
             await engine.StopAsync();
@@ -348,7 +348,7 @@ public class SingBoxEngineTests : IDisposable
     [Fact]
     public async Task Stop_WhenNeverStarted_IsStopped()
     {
-        var engine = new SingBoxEngine(Options(new FakeLauncher()));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher()));
         await engine.StopAsync();
         Assert.Equal(EngineState.Stopped, engine.State);
     }
@@ -357,7 +357,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task UnexpectedExit_WhileRunning_Faults()
     {
         var run = Running();
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
         await engine.StartAsync("{}");
         Assert.Equal(EngineState.Running, engine.State);
 
@@ -370,7 +370,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task Output_IsForwardedToLog()
     {
         var run = Running();
-        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
         var log = new List<string>();
         engine.LogReceived += (_, line) => log.Add(line);
 
@@ -389,7 +389,7 @@ public class SingBoxEngineTests : IDisposable
         // would throw "no fake queued" — so this also proves run is never reached.
         var check = ExitsWith(1, "FATAL[0000] bad config");
         var launcher = new FakeLauncher(check);
-        var engine = new SingBoxEngine(Options(launcher, validate: true));
+        await using var engine = new SingBoxEngine(Options(launcher, validate: true));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
 
@@ -405,7 +405,7 @@ public class SingBoxEngineTests : IDisposable
         var check = ExitsWith(0);          // check passes
         var run = Running();
         var launcher = new FakeLauncher(check, run);
-        var engine = new SingBoxEngine(Options(launcher, validate: true));
+        await using var engine = new SingBoxEngine(Options(launcher, validate: true));
 
         await engine.StartAsync("{}");
 
@@ -419,7 +419,7 @@ public class SingBoxEngineTests : IDisposable
     public async Task CheckConfig_ReturnsExitAndOutput()
     {
         var check = ExitsWith(1, "FATAL[0000] decode config: boom");
-        var engine = new SingBoxEngine(Options(new FakeLauncher(check)));
+        await using var engine = new SingBoxEngine(Options(new FakeLauncher(check)));
 
         var (ok, output) = await engine.CheckConfigAsync("{}");
 
@@ -436,7 +436,7 @@ public class SingBoxEngineTests : IDisposable
         var check1 = new FakeProcess();          // does NOT exit until released
         var run1 = Running();
         var launcher = new FakeLauncher(check1, run1);
-        var engine = new SingBoxEngine(Options(launcher, validate: true));
+        await using var engine = new SingBoxEngine(Options(launcher, validate: true));
 
         var t1 = engine.StartAsync("{}");
         var sw = System.Diagnostics.Stopwatch.StartNew();

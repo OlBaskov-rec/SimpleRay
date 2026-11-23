@@ -53,7 +53,7 @@ public class EngineWatchdogTests
     [Fact]
     public async Task Crash_WhileArmed_ReconnectsOnFirstAttempt()
     {
-        var engine = new FakeEngine(_ => true); // every start succeeds
+        await using var engine = new FakeEngine(_ => true); // every start succeeds
         var wd = new EngineWatchdog(engine, Instant());
         int reconnectingFired = 0;
         wd.Reconnecting += (_, _) => reconnectingFired++;
@@ -87,7 +87,7 @@ public class EngineWatchdogTests
                 return Task.CompletedTask;
             },
         };
-        engine = new FakeEngine(_ => true); // StartAsync always reaches Running
+        await using var ownedEngine = engine = new FakeEngine(_ => true); // StartAsync always reaches Running
         var wd = new EngineWatchdog(engine, opt);
         bool gaveUp = false;
         wd.GaveUp += () => gaveUp = true;
@@ -107,7 +107,7 @@ public class EngineWatchdogTests
     {
         // Initial connect (call 1) succeeds, reconnect attempts 1 and 2 (calls 2,3) fail,
         // attempt 3 (call 4) succeeds.
-        var engine = new FakeEngine(call => call == 1 || call >= 4);
+        await using var engine = new FakeEngine(call => call == 1 || call >= 4);
         var wd = new EngineWatchdog(engine, Instant());
 
         await engine.StartAsync("cfg");
@@ -122,7 +122,7 @@ public class EngineWatchdogTests
     [Fact]
     public async Task Crash_AllAttemptsFail_GivesUp()
     {
-        var engine = new FakeEngine(call => call == 1); // only the initial connect works
+        await using var engine = new FakeEngine(call => call == 1); // only the initial connect works
         var wd = new EngineWatchdog(engine, Instant(maxAttempts: 3));
         bool gaveUp = false;
         wd.GaveUp += () => gaveUp = true;
@@ -140,7 +140,7 @@ public class EngineWatchdogTests
     [Fact]
     public async Task NotifyUnhealthy_WhileArmed_StopsThenReconnects()
     {
-        var engine = new FakeEngine(_ => true);
+        await using var engine = new FakeEngine(_ => true);
         var wd = new EngineWatchdog(engine, Instant());
 
         await engine.StartAsync("cfg");
@@ -155,7 +155,7 @@ public class EngineWatchdogTests
     [Fact]
     public async Task NotifyUnhealthy_WhenNotArmed_DoesNothing()
     {
-        var engine = new FakeEngine(_ => true);
+        await using var engine = new FakeEngine(_ => true);
         var wd = new EngineWatchdog(engine, Instant());
 
         await engine.StartAsync("cfg");
@@ -169,7 +169,7 @@ public class EngineWatchdogTests
     [Fact]
     public async Task Crash_WhenNotArmed_DoesNothing()
     {
-        var engine = new FakeEngine(_ => true);
+        await using var engine = new FakeEngine(_ => true);
         var wd = new EngineWatchdog(engine, Instant());
 
         await engine.StartAsync("cfg");
@@ -185,13 +185,14 @@ public class EngineWatchdogTests
     {
         // Delay blocks until we release it, so we can disarm mid-backoff.
         var release = new TaskCompletionSource();
+        CancellationToken loopToken = default;
         var opt = new WatchdogOptions
         {
             MaxAttempts = 5,
             Backoff = _ => TimeSpan.Zero,
-            Delay = (_, ct) => release.Task.WaitAsync(ct),
+            Delay = (_, ct) => { loopToken = ct; return release.Task.WaitAsync(ct); },
         };
-        var engine = new FakeEngine(_ => true);
+        await using var engine = new FakeEngine(_ => true);
         var wd = new EngineWatchdog(engine, opt);
 
         await engine.StartAsync("cfg");
@@ -202,12 +203,14 @@ public class EngineWatchdogTests
         await wd.ReconnectTask!;
 
         Assert.Equal(1, engine.StartCalls); // no reconnect happened
+        Assert.Throws<ObjectDisposedException>(() => loopToken.WaitHandle);
+        wd.Disarm(); // a completed loop must not leave a disposed CTS in the field
     }
 
     [Fact]
     public async Task GivenUp_ThenManualReconnect_ReArms()
     {
-        var engine = new FakeEngine(call => call == 1); // initial ok, reconnects fail
+        await using var engine = new FakeEngine(call => call == 1); // initial ok, reconnects fail
         var wd = new EngineWatchdog(engine, Instant(maxAttempts: 2));
 
         await engine.StartAsync("cfg");

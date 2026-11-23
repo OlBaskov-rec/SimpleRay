@@ -40,7 +40,7 @@ public class LanDnsEngineValidationTests
                 RuleSetDirectory = dir,
                 LanDns = new LanDns(new[] { "hk.local" }, "172.17.0.2"),
             });
-            var engine = new SingBoxEngine(new EngineOptions
+            await using var engine = new SingBoxEngine(new EngineOptions
             {
                 ExecutablePath = exe!, WorkingDirectory = dir,
             });

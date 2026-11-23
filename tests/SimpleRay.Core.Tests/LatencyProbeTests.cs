@@ -11,7 +11,7 @@ public class LatencyProbeTests
     [Fact]
     public async Task OpenPort_ReturnsNonNegativeLatency()
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         try
@@ -30,7 +30,7 @@ public class LatencyProbeTests
     public async Task ClosedPort_ReturnsNull()
     {
         // Reserve then release a port so it's (almost certainly) closed.
-        var l = new TcpListener(IPAddress.Loopback, 0);
+        using var l = new TcpListener(IPAddress.Loopback, 0);
         l.Start();
         var port = ((IPEndPoint)l.LocalEndpoint).Port;
         l.Stop();

@@ -3,8 +3,6 @@
   <PropertyGroup>
     <!-- Match the App's TFM so we can reference its WPF/WinRT types. -->
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
 
     <IsPackable>false</IsPackable>

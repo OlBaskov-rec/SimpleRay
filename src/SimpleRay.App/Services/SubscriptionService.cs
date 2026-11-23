@@ -12,6 +12,8 @@ public sealed class SubscriptionService
 {
     private static readonly HttpClient Http = CreateClient();
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "The handler is owned by the returned HttpClient, which is retained for the application lifetime.")]
     private static HttpClient CreateClient()
     {
         var handler = new SocketsHttpHandler

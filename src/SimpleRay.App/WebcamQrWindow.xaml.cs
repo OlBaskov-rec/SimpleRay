@@ -7,6 +7,8 @@ using SimpleRay.Core.Profiles;
 
 namespace SimpleRay.App;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "WPF owns the window lifetime; the Closed event starts scanner disposal.")]
 public partial class WebcamQrWindow : Window
 {
     private readonly WebcamQrScanner _scanner = new();
@@ -96,6 +98,6 @@ public partial class WebcamQrWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _scanner.FrameBgra -= OnFrame;
-        _ = _scanner.DisposeAsync(); // fire-and-forget teardown
+        _ = _scanner.DisposeAsync().AsTask(); // fire-and-forget teardown; it swallows its own errors
     }
 }
