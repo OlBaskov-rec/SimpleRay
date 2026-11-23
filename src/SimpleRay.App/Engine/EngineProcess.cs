@@ -81,10 +81,19 @@ internal sealed class SystemProcess : IEngineProcess
     {
         if (!_process.Start())
             return false;
-        // Tie the child to a kill-on-close job so it dies with the app even when the app is
-        // force-killed (Task Manager / Stop-Process) — otherwise sing-box is orphaned, keeps the
-        // TUN adapter, and the next connect fails with "Cannot create ... already exists".
-        try { KillOnCloseJob.Assign(_process.Handle); } catch { /* best-effort */ }
+        // Best-effort attachment to a kill-on-close job prevents an orphaned TUN adapter
+        // when the app is force-killed (Task Manager / Stop-Process).
+        bool assigned;
+        int error;
+        try { assigned = KillOnCloseJob.Assign(_process.Handle, out error); }
+        catch
+        {
+            assigned = false;
+            error = Marshal.GetLastWin32Error();
+        }
+        if (!assigned)
+            OutputReceived?.Invoke(
+                $"[SimpleRay] warning: could not attach sing-box to the kill-on-close job (error {error}); it may outlive the app if the app is killed.");
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
         return true;
@@ -100,25 +109,36 @@ internal sealed class SystemProcess : IEngineProcess
 /// <summary>
 /// A single process-wide Windows job object with KILL_ON_JOB_CLOSE. Child processes assigned to
 /// it are terminated when the last handle to the job closes — which, since only this process holds
-/// it, happens when the app exits by ANY means (clean exit, crash, or Task Manager kill). This
-/// guarantees sing-box never outlives the app and orphans the TUN adapter.
+/// it, happens when the app exits by ANY means (clean exit, crash, or Task Manager kill).
+/// Attachment can fail; callers report that failure and continue without this protection.
 /// </summary>
 internal static class KillOnCloseJob
 {
-    private static readonly nint _job = Create();
+    private static readonly int _creationError;
+    private static readonly nint _job = Create(out _creationError);
 
-    public static void Assign(nint processHandle)
+    public static bool Assign(nint processHandle, out int error)
     {
-        if (_job != nint.Zero && processHandle != nint.Zero)
-            AssignProcessToJobObject(_job, processHandle);
+        error = _creationError;
+        if (_job == nint.Zero)
+            return false;
+
+        bool assigned = AssignProcessToJobObject(_job, processHandle);
+        error = assigned ? 0 : Marshal.GetLastWin32Error();
+        return assigned;
     }
 
-    private static nint Create()
+    private static nint Create(out int error)
     {
+        error = 0;
         try
         {
             var job = CreateJobObject(nint.Zero, null);
-            if (job == nint.Zero) return nint.Zero;
+            if (job == nint.Zero)
+            {
+                error = Marshal.GetLastWin32Error();
+                return nint.Zero;
+            }
 
             var info = new JOBOBJECT_EXTENDED_LIMIT_INFORMATION
             {
@@ -131,6 +151,7 @@ internal static class KillOnCloseJob
                 Marshal.StructureToPtr(info, ptr, false);
                 if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ptr, (uint)len))
                 {
+                    error = Marshal.GetLastWin32Error();
                     CloseHandle(job);
                     return nint.Zero;
                 }
@@ -138,7 +159,11 @@ internal static class KillOnCloseJob
             finally { Marshal.FreeHGlobal(ptr); }
             return job; // intentionally never closed: the OS closes it when the app dies -> kills children
         }
-        catch { return nint.Zero; }
+        catch
+        {
+            error = Marshal.GetLastWin32Error();
+            return nint.Zero;
+        }
     }
 
     private const int JobObjectExtendedLimitInformation = 9;

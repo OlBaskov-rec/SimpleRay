@@ -104,19 +104,22 @@ public sealed class SingBoxEngine : IVpnEngine
                 $"run -c \"{ConfigPath}\" -D \"{_options.WorkingDirectory}\"",
                 _options.WorkingDirectory);
             process.OutputReceived += line => LogReceived?.Invoke(this, line);
-            // The crash handler is attached only once we know the process is up, so the
-            // fail-fast probe below can read HasExited/ExitCode without racing a disposal.
 
             lock (_gate)
             {
                 _process = process;
             }
 
-            if (!process.Start())
+            try
+            {
+                if (!process.Start())
+                    throw new InvalidOperationException("Failed to start sing-box.");
+            }
+            catch
             {
                 ClearProcess(process);
                 SetState(EngineState.Faulted);
-                throw new InvalidOperationException("Failed to start sing-box.");
+                throw;
             }
 
             // Give the process a moment to fail fast (bad config, no admin for TUN).
@@ -130,17 +133,25 @@ public sealed class SingBoxEngine : IVpnEngine
                 throw;
             }
 
-            if (process.HasExited)
+            lock (_gate)
             {
-                int code = process.ExitCode;
-                ClearProcess(process);
-                SetState(EngineState.Faulted);
-                throw new InvalidOperationException(
-                    $"sing-box exited immediately (code {code}). Check logs / admin rights for TUN.");
+                // Subscribe before probing; the handler shares this gate with Running publication.
+                // During startup it leaves disposal to this path so ExitCode remains readable.
+                process.Exited += OnProcessExited;
+                bool hasExited = process.HasExited;
+                if (ReferenceEquals(_process, process) && !hasExited && State == EngineState.Starting)
+                {
+                    SetState(EngineState.Running);
+                }
+                else
+                {
+                    int code = process.ExitCode;
+                    ClearProcess(process);
+                    SetState(EngineState.Faulted);
+                    throw new InvalidOperationException(
+                        $"sing-box exited immediately (code {code}). Check logs / admin rights for TUN.");
+                }
             }
-
-            process.Exited += OnProcessExited;
-            SetState(EngineState.Running);
         }
         finally
         {
@@ -196,7 +207,21 @@ public sealed class SingBoxEngine : IVpnEngine
 
         if (!process.Start())
             return (-1, "Failed to start sing-box.");
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(); } catch { /* best-effort teardown */ }
+            try
+            {
+                await process.WaitForExitAsync(CancellationToken.None)
+                    .WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            }
+            catch { /* preserve cancellation even if teardown fails or times out */ }
+            throw;
+        }
         lock (sb) return (process.ExitCode, sb.ToString());
     }
 
@@ -280,8 +305,16 @@ public sealed class SingBoxEngine : IVpnEngine
     {
         // Fault only when the process that exited is the one we currently own. A stale exit
         // (from a process already replaced or stopped) must not flip a fresh state to Faulted.
-        if (sender is IEngineProcess p && ClearProcess(p))
+        lock (_gate)
+        {
+            if (sender is not IEngineProcess p || !ReferenceEquals(_process, p))
+                return;
+
+            // StartAsync still needs ExitCode for its fail-fast diagnostic and owns disposal.
+            if (State != EngineState.Starting)
+                ClearProcess(p);
             SetState(EngineState.Faulted);
+        }
     }
 
     /// <summary>Detaches, clears and disposes the process; returns true if it was the current one.</summary>

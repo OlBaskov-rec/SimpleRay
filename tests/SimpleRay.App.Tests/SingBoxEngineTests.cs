@@ -36,6 +36,15 @@ public class SingBoxEngineTests : IDisposable
         private readonly TaskCompletionSource _exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public bool StartResult { get; set; } = true;
+        public Exception? StartException { get; set; }
+        public Action? AfterHasExitedRead { get; set; }
+        public Action? OnExitedSubscription { get; set; }
+        public TaskCompletionSource WaitStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int KillCount { get; private set; }
+        public int DisposeCount { get; private set; }
+        public int UncancelledWaitCount { get; private set; }
+        private bool _hasExited;
+        private EventHandler? _exited;
         public bool ExitImmediately { get; set; }
         public int ImmediateExitCode { get; set; } = 1;
         public List<string> OutputOnStart { get; } = new();
@@ -45,15 +54,34 @@ public class SingBoxEngineTests : IDisposable
         public bool Disposed { get; private set; }
 
         public int Id => 4242;
-        public bool HasExited { get; private set; }
+        public bool HasExited
+        {
+            get
+            {
+                bool exited = _hasExited;
+                var action = AfterHasExitedRead;
+                AfterHasExitedRead = null;
+                action?.Invoke();
+                return exited;
+            }
+        }
         public int ExitCode { get; private set; }
 
-        public event EventHandler? Exited;
+        public event EventHandler? Exited
+        {
+            add
+            {
+                _exited += value;
+                OnExitedSubscription?.Invoke();
+            }
+            remove => _exited -= value;
+        }
         public event Action<string>? OutputReceived;
 
         public bool Start()
         {
             StartCalled = true;
+            if (StartException is { } exception) throw exception;
             if (!StartResult) return false;
             foreach (var line in OutputOnStart) OutputReceived?.Invoke(line);
             if (ExitImmediately) MarkExited(ImmediateExitCode);
@@ -63,11 +91,22 @@ public class SingBoxEngineTests : IDisposable
         public void Kill()
         {
             KillCalled = true;
+            KillCount++;
             MarkExited(137);
         }
 
-        public Task WaitForExitAsync(CancellationToken ct = default) => _exit.Task.WaitAsync(ct);
-        public void Dispose() => Disposed = true;
+        public Task WaitForExitAsync(CancellationToken ct = default)
+        {
+            WaitStarted.TrySetResult();
+            if (!ct.CanBeCanceled) UncancelledWaitCount++;
+            return _exit.Task.WaitAsync(ct);
+        }
+
+        public void Dispose()
+        {
+            Disposed = true;
+            DisposeCount++;
+        }
 
         public void Emit(string line) => OutputReceived?.Invoke(line);
 
@@ -75,14 +114,14 @@ public class SingBoxEngineTests : IDisposable
         public void RaiseExit(int code)
         {
             MarkExited(code);
-            Exited?.Invoke(this, EventArgs.Empty);
+            _exited?.Invoke(this, EventArgs.Empty);
         }
 
         private void MarkExited(int code)
         {
-            if (HasExited) return;
+            if (_hasExited) return;
             ExitCode = code;
-            HasExited = true;
+            _hasExited = true;
             _exit.TrySetResult();
         }
     }
@@ -177,6 +216,77 @@ public class SingBoxEngineTests : IDisposable
 
         Assert.Contains("exited immediately", ex.Message);
         Assert.Equal(EngineState.Faulted, engine.State);
+    }
+
+    [Fact]
+    public async Task Start_ExitAfterHasExitedReturnsFalse_Faults()
+    {
+        var run = Running();
+        run.AfterHasExitedRead = () => run.RaiseExit(23);
+        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        var states = new List<EngineState>();
+        engine.StateChanged += (_, state) => states.Add(state);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
+
+        Assert.Contains("exited immediately (code 23)", error.Message);
+        Assert.Equal(EngineState.Faulted, engine.State);
+        Assert.DoesNotContain(EngineState.Running, states);
+        Assert.Equal(1, run.DisposeCount);
+    }
+
+    [Fact]
+    public async Task Start_ExitDuringSubscription_Faults()
+    {
+        var run = Running();
+        run.OnExitedSubscription = () => run.RaiseExit(24);
+        var engine = new SingBoxEngine(Options(new FakeLauncher(run)));
+        var states = new List<EngineState>();
+        engine.StateChanged += (_, state) => states.Add(state);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
+
+        Assert.Contains("exited immediately (code 24)", error.Message);
+        Assert.Equal(EngineState.Faulted, engine.State);
+        Assert.DoesNotContain(EngineState.Running, states);
+        Assert.Equal(1, run.DisposeCount);
+    }
+
+    [Fact]
+    public async Task Start_LaunchThrows_FaultsDisposesAndAllowsRetry()
+    {
+        var failure = new InvalidOperationException("launch failed");
+        var failed = new FakeProcess { StartException = failure };
+        var next = Running();
+        var engine = new SingBoxEngine(Options(new FakeLauncher(failed, next)));
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartAsync("{}"));
+
+        Assert.Same(failure, error);
+        Assert.Equal(EngineState.Faulted, engine.State);
+        Assert.Equal(1, failed.DisposeCount);
+        await engine.StartAsync("{}");
+        Assert.Equal(EngineState.Running, engine.State);
+        await engine.StopAsync();
+    }
+
+    [Fact]
+    public async Task CheckConfig_CancelledWhileWaiting_KillsWaitsAndDisposes()
+    {
+        var check = Running();
+        var engine = new SingBoxEngine(Options(new FakeLauncher(check)));
+        using var cancellation = new CancellationTokenSource();
+        var task = engine.CheckConfigAsync("{}", cancellation.Token);
+        await check.WaitStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cancellation.Cancel();
+        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+
+        Assert.Equal(cancellation.Token, error.CancellationToken);
+        Assert.Equal(1, check.KillCount);
+        Assert.Equal(1, check.UncancelledWaitCount);
+        Assert.True(check.HasExited);
+        Assert.Equal(1, check.DisposeCount);
     }
 
     [Fact]
