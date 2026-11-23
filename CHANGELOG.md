@@ -3,6 +3,44 @@
 Notable changes to SimpleRay, newest first. Each entry is written in English first,
 then in Russian. `scripts/build-local.ps1` copies this file into `build/` and `releases/`.
 
+## 0.3.12 — 2026-11-23
+
+Reliability release: what happens when something goes wrong. Found in a code review and each
+covered by a test that fails on the old code.
+
+### English
+- **A failed update no longer leaves a broken install.** If the new version couldn't start, the
+  previous one wasn't restored and its backup was deleted; a copy that broke halfway left a mix of
+  old and new files. Now both cases restore the previous version, and if even that fails the backup
+  is kept for manual recovery. Each outcome is written to `%TEMP%\SimpleRay-update.log`.
+- **No "Connected" over a dead engine.** If sing-box exited in the instant right after start, the
+  window could show "Connected" with nothing running. An error at launch also no longer leaves the
+  window stuck on "Connecting", and a cancelled config check no longer leaves sing-box running.
+- **The kill-switch no longer claims to be off while it still blocks.** If Windows refused to remove
+  a blocking filter, SimpleRay reported the protection as removed while the network stayed blocked.
+  Now it reports the error, keeps trying on the next connect, and always stops the engine.
+- If sing-box can't be tied to the app's lifetime (so it might outlive a force-closed app), the log
+  now says so.
+
+### Русский
+Выпуск про надёжность: что происходит, когда что-то идёт не так. Найдено на ревью кода, на каждый
+случай есть тест, который падает на старом коде.
+
+- **Неудачное обновление больше не оставляет сломанную установку.** Если новая версия не
+  запускалась, старая не восстанавливалась, а её резервная копия удалялась; оборванное посередине
+  копирование оставляло смесь старых и новых файлов. Теперь в обоих случаях возвращается прежняя
+  версия, а если не удалось и это — резервная копия сохраняется для ручного восстановления. Исход
+  каждого обновления пишется в `%TEMP%\SimpleRay-update.log`.
+- **Нет «Подключено» при мёртвом движке.** Если sing-box завершался в первое мгновение после
+  запуска, окно могло показать «Подключено», хотя ничего не работало. Ошибка при запуске больше не
+  оставляет окно в «Подключение…», а отменённая проверка конфига не оставляет sing-box работать.
+- **Kill-switch больше не говорит «выключен», пока ещё блокирует.** Если Windows отказывалась
+  удалить блокирующий фильтр, SimpleRay сообщал, что защита снята, а сеть оставалась заблокированной.
+  Теперь показывается ошибка, при следующем подключении очистка повторяется, а движок
+  останавливается в любом случае.
+- Если sing-box не удалось привязать к времени жизни программы (тогда он может пережить
+  принудительно закрытую программу), это пишется в журнал.
+
 ## 0.3.11 — 2026-11-20
 
 ### English
