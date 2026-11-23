@@ -9,6 +9,14 @@ namespace SimpleRay.App.Services;
 /// <summary>Persists <see cref="RoutingSettings"/> as JSON under %AppData%\SimpleRay.</summary>
 public sealed class SettingsStore
 {
+    private readonly string _path;
+
+    /// <summary>Uses the user's data folder (<see cref="AppPaths.SettingsFile"/>).</summary>
+    public SettingsStore() : this(AppPaths.SettingsFile) { }
+
+    /// <summary>Uses <paramref name="path"/> instead, so tests keep away from the user's data.</summary>
+    public SettingsStore(string path) => _path = path;
+
     /// <summary>Bump when the on-disk settings shape changes; lets future loads migrate.</summary>
     public const int CurrentSchema = 1;
 
@@ -27,7 +35,7 @@ public sealed class SettingsStore
 
     public RoutingSettings Load()
     {
-        var path = AppPaths.SettingsFile;
+        var path = _path;
         if (!File.Exists(path))
             return new RoutingSettings();
         try
@@ -52,6 +60,6 @@ public sealed class SettingsStore
     public void Save(RoutingSettings settings)
     {
         var doc = new Document { SchemaVersion = CurrentSchema, Settings = settings };
-        AtomicFile.WriteAllText(AppPaths.SettingsFile, JsonSerializer.Serialize(doc, Options));
+        AtomicFile.WriteAllText(_path, JsonSerializer.Serialize(doc, Options));
     }
 }

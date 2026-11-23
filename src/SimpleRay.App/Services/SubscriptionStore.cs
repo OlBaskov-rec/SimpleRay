@@ -33,6 +33,14 @@ public sealed class SubscriptionEntry
 /// </summary>
 public sealed class SubscriptionStore
 {
+    private readonly string _path;
+
+    /// <summary>Uses the user's data folder (<see cref="AppPaths.SubscriptionsFile"/>).</summary>
+    public SubscriptionStore() : this(AppPaths.SubscriptionsFile) { }
+
+    /// <summary>Uses <paramref name="path"/> instead, so tests keep away from the user's data.</summary>
+    public SubscriptionStore(string path) => _path = path;
+
     /// <summary>2: entries with metadata (1 was a bare URL list, still read).</summary>
     public const int CurrentSchema = 2;
 
@@ -49,7 +57,7 @@ public sealed class SubscriptionStore
 
     public List<SubscriptionEntry> Load()
     {
-        var path = AppPaths.SubscriptionsFile;
+        var path = _path;
         if (!File.Exists(path))
             return new List<SubscriptionEntry>();
         try
@@ -71,7 +79,7 @@ public sealed class SubscriptionStore
     public void Save(IEnumerable<SubscriptionEntry> entries)
     {
         var doc = new Document { Items = Dedup(entries) };
-        EncryptedFile.WriteAllText(AppPaths.SubscriptionsFile, JsonSerializer.Serialize(doc, Options));
+        EncryptedFile.WriteAllText(_path, JsonSerializer.Serialize(doc, Options));
     }
 
     private static List<SubscriptionEntry> Dedup(IEnumerable<SubscriptionEntry> entries) =>

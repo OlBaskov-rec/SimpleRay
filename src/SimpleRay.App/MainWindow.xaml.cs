@@ -19,6 +19,7 @@ public partial class MainWindow : Window
         AboutPopup.CustomPopupPlacementCallback = PlaceAboutPopup;
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
+        _viewModel.Start();
         Loaded += async (_, _) => await _viewModel.TryAutoConnectOnStartupAsync(connectOnStartup);
         Closed += (_, _) =>
         {

@@ -24,11 +24,11 @@ public sealed class MainViewModel : ObservableObject
 
     private static LocalizationManager L => LocalizationManager.Instance;
 
-    private readonly ProfileStore _store = new();
-    private readonly SettingsStore _settingsStore = new();
-    private readonly UpdateService _updateService = new();
-    private readonly SubscriptionService _subscriptionService = new();
-    private readonly SubscriptionStore _subscriptionStore = new();
+    private readonly ProfileStore _store;
+    private readonly SettingsStore _settingsStore;
+    private readonly UpdateService _updateService;
+    private readonly SubscriptionService _subscriptionService;
+    private readonly SubscriptionStore _subscriptionStore;
     private readonly List<SubscriptionEntry> _subscriptions;
     private readonly DispatcherTimer _subscriptionTimer;
     private readonly DispatcherTimer _updateTimer;
@@ -37,8 +37,11 @@ public sealed class MainViewModel : ObservableObject
     private readonly RoutingSettings _routing;
     private readonly Dispatcher _dispatcher;
     private readonly IDialogService _dialogs;
-    private readonly ImportCoordinator _import = new();
-    private readonly ProxyProbe _proxyProbe = new();
+    private readonly ImportCoordinator _import;
+    private readonly ProxyProbe _proxyProbe;
+    private bool _started;
+    private bool _shutDown;
+    private Task? _shutdownTask;
 
     // geosite/geoip tags backing the routing presets (must exist as *.srs in GeoDir).
     private const string TagRuSites = "geosite-category-ru";
@@ -52,9 +55,23 @@ public sealed class MainViewModel : ObservableObject
     private string _activeLabel = "";
 
     public MainViewModel(IDialogService? dialogs = null, IKillSwitch? killSwitch = null)
+        : this(MainViewModelDependencies.CreateDefault(dialogs, killSwitch)) { }
+
+    /// <summary>
+    /// Builds the view model from <paramref name="deps"/>. Reads the saved data, but starts no
+    /// background work — call <see cref="Start"/> once the window is up.
+    /// </summary>
+    public MainViewModel(MainViewModelDependencies deps)
     {
-        _dialogs = dialogs ?? new MessageBoxDialogService();
-        _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        _store = deps.Profiles;
+        _settingsStore = deps.Settings;
+        _subscriptionStore = deps.Subscriptions;
+        _updateService = deps.Updates;
+        _subscriptionService = deps.SubscriptionService;
+        _import = deps.Import;
+        _proxyProbe = deps.ProxyProbe;
+        _dialogs = deps.Dialogs;
+        _dispatcher = deps.Dispatcher;
         _routing = _settingsStore.Load();
         _subscriptions = _subscriptionStore.Load();
         _statusText = L["status.disconnected"];
@@ -66,19 +83,7 @@ public sealed class MainViewModel : ObservableObject
         _selectedProfile = Profiles.FirstOrDefault(p => p.Tag == _routing.LastProfileTag)
                            ?? Profiles.FirstOrDefault();
 
-        // WfpKillSwitch validated on a real machine (harness Stage A: Engage/Disengage clean,
-        // block confirmed, filters cleaned by deterministic key). Engaged on connect only when
-        // the kill-switch setting is on; Engage failures never break the connection, and
-        // CleanupLeftovers (App startup) + Disengage (disconnect/exit) + the non-boot-persistent
-        // filters make it fail-closed but recoverable. The ConnectionController owns the engine +
-        // watchdog + liveness + kill-switch lifecycle; the view-model just maps its events to UI.
-        var engine = new SingBoxEngine(new EngineOptions
-        {
-            ExecutablePath = AppPaths.CoreExe,
-            WorkingDirectory = AppPaths.RuntimeDir,
-            Terminator = new ConsoleCtrlTerminator(),
-        });
-        _connection = new ConnectionController(engine, killSwitch ?? new WfpKillSwitch());
+        _connection = deps.Connection;
         _connection.StateChanged += OnEngineStateChanged;
         _connection.LogReceived += OnEngineLog;
         _connection.Reconnecting += (attempt, max) => _dispatcher.BeginInvoke(() =>
@@ -134,9 +139,10 @@ public sealed class MainViewModel : ObservableObject
         {
             Interval = TimeSpan.FromMinutes(15),
         };
-        _subscriptionTimer.Tick += async (_, _) => await AutoUpdateSubscriptionsAsync();
-        _subscriptionTimer.Start();
-        _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, async () => await AutoUpdateSubscriptionsAsync());
+        _subscriptionTimer.Tick += async (_, _) =>
+        {
+            if (!_shutDown) await AutoUpdateSubscriptionsAsync();
+        };
 
         // Background update check: once shortly after launch, then every 6 hours. It only lights
         // up the footer link; nothing is downloaded without the user's consent.
@@ -146,10 +152,10 @@ public sealed class MainViewModel : ObservableObject
         };
         _updateTimer.Tick += async (_, _) =>
         {
+            if (_shutDown) return;
             _updateTimer.Interval = TimeSpan.FromHours(6);
             await CheckForUpdatesInBackgroundAsync();
         };
-        _updateTimer.Start();
 
         L.CultureChanged += OnCultureChanged;
         Profiles.CollectionChanged += (_, _) =>
@@ -1405,7 +1411,7 @@ public sealed class MainViewModel : ObservableObject
     private static System.Windows.Media.ImageSource TrayImage(string name)
     {
         var img = new System.Windows.Media.Imaging.BitmapImage(
-            new Uri($"pack://application:,,,/Resources/{name}.ico"));
+            new Uri($"pack://application:,,,/SimpleRay;component/Resources/{name}.ico")); // assembly named: also resolves outside the app (tests)
         img.Freeze(); // shared across threads / reused
         return img;
     }
@@ -1437,5 +1443,40 @@ public sealed class MainViewModel : ObservableObject
     /// to a UI thread that is already blocked — deadlocking the app on exit. The engine
     /// uses ConfigureAwait(false) throughout, so the returned task completes off the UI thread.
     /// </summary>
-    public Task ShutdownAsync() => _connection.ShutdownAsync();
+    /// <summary>
+    /// Starts the background work: the subscription auto-update (first run once the window is
+    /// idle) and the periodic update check. Does nothing if already started or shut down.
+    /// </summary>
+    public void Start()
+    {
+        if (_started || _shutDown) return;
+        _started = true;
+        _subscriptionTimer.Start();
+        _updateTimer.Start();
+        _dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, async () =>
+        {
+            if (!_shutDown) await AutoUpdateSubscriptionsAsync();
+        });
+    }
+
+    /// <summary>
+    /// Stops the background work and the culture subscription right away, then shuts the
+    /// connection down. Safe to call more than once. The returned task must not need the
+    /// dispatcher: MainWindow.Closed blocks the UI thread on it.
+    /// </summary>
+    public Task ShutdownAsync()
+    {
+        if (_shutdownTask is not null) return _shutdownTask;
+        _shutDown = true;
+        _subscriptionTimer.Stop();
+        _updateTimer.Stop();
+        L.CultureChanged -= OnCultureChanged;
+        _connection.StateChanged -= OnEngineStateChanged;
+        _connection.LogReceived -= OnEngineLog;
+        return _shutdownTask = _connection.ShutdownAsync();
+    }
+
+    // Test seams: whether the background timers are running.
+    internal bool SubscriptionTimerRunning => _subscriptionTimer.IsEnabled;
+    internal bool UpdateTimerRunning => _updateTimer.IsEnabled;
 }

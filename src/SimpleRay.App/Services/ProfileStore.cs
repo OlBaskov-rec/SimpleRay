@@ -9,6 +9,14 @@ namespace SimpleRay.App.Services;
 /// <summary>Persists the user's profile list as JSON under %AppData%\SimpleRay.</summary>
 public sealed class ProfileStore
 {
+    private readonly string _path;
+
+    /// <summary>Uses the user's data folder (<see cref="AppPaths.ProfilesFile"/>).</summary>
+    public ProfileStore() : this(AppPaths.ProfilesFile) { }
+
+    /// <summary>Uses <paramref name="path"/> instead, so tests keep away from the user's data.</summary>
+    public ProfileStore(string path) => _path = path;
+
     /// <summary>Bump when the on-disk profile shape changes; lets future loads migrate.</summary>
     public const int CurrentSchema = 1;
 
@@ -27,7 +35,7 @@ public sealed class ProfileStore
 
     public List<ProfileConfig> Load()
     {
-        var path = AppPaths.ProfilesFile;
+        var path = _path;
         if (!File.Exists(path))
             return new List<ProfileConfig>();
         try
@@ -50,6 +58,6 @@ public sealed class ProfileStore
     public void Save(IEnumerable<ProfileConfig> profiles)
     {
         var doc = new Document { SchemaVersion = CurrentSchema, Profiles = profiles.ToList() };
-        EncryptedFile.WriteAllText(AppPaths.ProfilesFile, JsonSerializer.Serialize(doc, Options));
+        EncryptedFile.WriteAllText(_path, JsonSerializer.Serialize(doc, Options));
     }
 }
