@@ -175,8 +175,15 @@ public sealed class ConnectionController
         {
             _watchdog.Disarm();
             _liveness.Stop();
-            _killSwitch.Disengage();
-            await _engine.StopAsync().ConfigureAwait(false);
+            Exception? cleanupError = null;
+            try { _killSwitch.Disengage(); }
+            catch (Exception ex) { cleanupError = ex; }
+            try { await _engine.StopAsync().ConfigureAwait(false); }
+            finally
+            {
+                if (cleanupError is not null)
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cleanupError).Throw();
+            }
         }
         finally
         {
@@ -199,8 +206,20 @@ public sealed class ConnectionController
 
         _watchdog.Disarm();
         _liveness.Stop();
-        _killSwitch.Disengage();
-        return _engine.DisposeAsync().AsTask();
+        Exception? cleanupError = null;
+        try { _killSwitch.Disengage(); }
+        catch (Exception ex) { cleanupError = ex; }
+        return DisposeEngineAsync();
+
+        async Task DisposeEngineAsync()
+        {
+            try { await _engine.DisposeAsync().ConfigureAwait(false); }
+            finally
+            {
+                if (cleanupError is not null)
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cleanupError).Throw();
+            }
+        }
     }
 
 

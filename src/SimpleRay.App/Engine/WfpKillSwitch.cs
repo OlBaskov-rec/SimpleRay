@@ -65,6 +65,9 @@ public sealed class WfpKillSwitch : IKillSwitch
 
     private readonly object _gate = new();
     private nint _engine;
+    // Set when Disengage could not remove every filter: our objects may still be installed
+    // even though the tunnel they permitted is gone, so the next Engage must clean up first.
+    private bool _cleanupPending;
 
     public bool IsEngaged { get; private set; }
 
@@ -78,7 +81,7 @@ public sealed class WfpKillSwitch : IKillSwitch
     {
         lock (_gate)
         {
-            if (IsEngaged) return;
+            if (SkipEngage(CleanupWithOpen, CloseNoLock)) return;
 
             // Wait for the TUN adapter so permit-tun is actually installed. sing-box brings the
             // adapter up a second or two AFTER the process starts, and the app engages right after
@@ -114,29 +117,69 @@ public sealed class WfpKillSwitch : IKillSwitch
     {
         lock (_gate)
         {
-            if (_engine == 0) { IsEngaged = false; return; }
-            try { DeleteOurObjects(_engine); } catch { /* best-effort */ }
-            CloseNoLock();
-            IsEngaged = false;
+            if (_engine == 0 && !IsEngaged) return;
+            DisengageCore(CleanupWithOpen, CloseNoLock);
         }
+    }
+
+    private IReadOnlyList<string> CleanupWithOpen()
+    {
+        Open(); // A retry must also work if the previous handle was closed.
+        return DeleteOurObjects(_engine);
+    }
+
+    /// <summary>
+    /// True if Engage has nothing to do. Leftovers from a failed Disengage are removed first:
+    /// they hold a permit for the previous TUN adapter only, so keeping them would block the new
+    /// tunnel. Throws if they still can't be removed.
+    /// </summary>
+    internal bool SkipEngage(Func<IReadOnlyList<string>> cleanup, Action close)
+    {
+        if (_cleanupPending)
+            DisengageCore(cleanup, close);
+        return IsEngaged;
+    }
+
+    // Kept separate so state transitions can be verified without opening WFP.
+    internal void DisengageCore(Func<IReadOnlyList<string>> cleanup, Action close)
+    {
+        IsEngaged = true; // Until cleanup succeeds, filters may still be blocking traffic.
+        var errors = cleanup();
+        if (errors.Count != 0)
+        {
+            _cleanupPending = true;
+            throw new InvalidOperationException(
+                "Kill-switch filters could not be removed: " + string.Join("; ", errors));
+        }
+        _cleanupPending = false;
+        close();
+        IsEngaged = false;
     }
 
     public void Dispose() => Disengage();
 
     /// <summary>
     /// Remove any filters left over from a previous run (e.g. an app crash while engaged).
-    /// Safe to call on every startup; no-op if nothing is present or WFP can't be opened.
+    /// Safe to call on every startup; reports recovery errors through Trace.
     /// </summary>
     public static void CleanupLeftovers()
+    {
+        foreach (var error in CleanupLeftoversWithErrors())
+            Trace.TraceError("Kill-switch cleanup failed: {0}", error);
+    }
+
+    /// <summary>Remove leftover objects and return any open or deletion errors.</summary>
+    public static IReadOnlyList<string> CleanupLeftoversWithErrors()
     {
         nint engine = 0;
         try
         {
-            if (Native.FwpmEngineOpen0(null, Native.RPC_C_AUTHN_WINNT, 0, 0, out engine) != 0)
-                return;
-            DeleteOurObjects(engine);
+            var result = Native.FwpmEngineOpen0(null, Native.RPC_C_AUTHN_WINNT, 0, 0, out engine);
+            if (result != 0)
+                return new[] { $"engine open: 0x{result:X8}" };
+            return DeleteOurObjects(engine);
         }
-        catch { /* best-effort recovery */ }
+        catch (Exception ex) { return new[] { $"cleanup: 0x{ex.HResult:X8} ({ex.Message})" }; }
         finally
         {
             if (engine != 0) { try { Native.FwpmEngineClose0(engine); } catch { } }
@@ -294,21 +337,51 @@ public sealed class WfpKillSwitch : IKillSwitch
     private static void WritePtr(byte[] b, int off, nint p) => BitConverter.GetBytes((long)p).CopyTo(b, off);
     private static void WriteGuid(byte[] b, int off, Guid g) => g.ToByteArray().CopyTo(b, off);
 
-    private static void DeleteOurObjects(nint engine)
+    private static IReadOnlyList<string> DeleteOurObjects(nint engine)
+        => DeleteOurObjects(
+            (layer, tag) =>
+            {
+                var key = FilterKey(layer, tag);
+                return Native.FwpmFilterDeleteByKey0(engine, ref key);
+            },
+            () =>
+            {
+                var key = SubLayerKey;
+                return Native.FwpmSubLayerDeleteByKey0(engine, ref key);
+            },
+            () =>
+            {
+                var key = ProviderKey;
+                return Native.FwpmProviderDeleteByKey0(engine, ref key);
+            });
+
+    internal static IReadOnlyList<string> DeleteOurObjects(
+        Func<Guid, string, uint> deleteFilter, Func<uint> deleteSubLayer, Func<uint> deleteProvider)
     {
+        var errors = new List<string>();
+        void Delete(string name, Func<uint> delete, uint notFound)
+        {
+            try
+            {
+                var result = delete();
+                if (result != 0 && result != notFound)
+                    errors.Add($"{name}: 0x{result:X8}");
+            }
+            catch (Exception ex) { errors.Add($"{name}: 0x{ex.HResult:X8} ({ex.Message})"); }
+        }
+
         // Delete filters by their deterministic keys FIRST: deleting the sublayer does not
         // cascade to filters (and would fail while they reference it), so they'd otherwise
         // pile up across runs. Then remove the now-unused sublayer and provider.
         foreach (var layer in new[] { Native.FWPM_LAYER_ALE_AUTH_CONNECT_V4, Native.FWPM_LAYER_ALE_AUTH_CONNECT_V6 })
             foreach (var tag in FilterTags)
             {
-                var key = FilterKey(layer, tag);
-                try { Native.FwpmFilterDeleteByKey0(engine, ref key); } catch { }
+                var family = layer == Native.FWPM_LAYER_ALE_AUTH_CONNECT_V4 ? "v4" : "v6";
+                Delete($"filter {tag} ({family})", () => deleteFilter(layer, tag), Native.FWP_E_FILTER_NOT_FOUND);
             }
-        var sub = SubLayerKey;
-        var prov = ProviderKey;
-        try { Native.FwpmSubLayerDeleteByKey0(engine, ref sub); } catch { }
-        try { Native.FwpmProviderDeleteByKey0(engine, ref prov); } catch { }
+        Delete("sublayer", deleteSubLayer, Native.FWP_E_SUBLAYER_NOT_FOUND);
+        Delete("provider", deleteProvider, Native.FWP_E_PROVIDER_NOT_FOUND);
+        return errors;
     }
 
     /// <summary>

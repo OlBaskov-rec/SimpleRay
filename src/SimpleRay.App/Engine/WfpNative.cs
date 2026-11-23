@@ -12,6 +12,8 @@ internal static class Native
     public const uint RPC_C_AUTHN_WINNT = 10;
     public const uint FWP_E_ALREADY_EXISTS = 0x80320009;
     public const uint FWP_E_FILTER_NOT_FOUND = 0x80320003;
+    public const uint FWP_E_PROVIDER_NOT_FOUND = 0x80320005;
+    public const uint FWP_E_SUBLAYER_NOT_FOUND = 0x80320007;
 
     public const uint FWP_ACTION_FLAG_TERMINATING = 0x00001000;
     public const uint FWP_ACTION_BLOCK = 0x00000001 | FWP_ACTION_FLAG_TERMINATING;

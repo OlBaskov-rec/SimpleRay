@@ -6,8 +6,8 @@ namespace SimpleRay.App.Engine;
 /// Engaged after a successful connect and disengaged on user disconnect / give-up / exit.
 ///
 /// Implementations must fail safe: if the block can't be installed, connecting should still
-/// proceed (degraded, no kill-switch) rather than the app becoming unusable, and the block
-/// must never outlive the app in a way that leaves the machine with no network.
+/// proceed (degraded, no kill-switch) rather than the app becoming unusable. If removal
+/// fails, retain the engaged state and report the failure so cleanup can be retried.
 /// </summary>
 public interface IKillSwitch : IDisposable
 {
@@ -20,7 +20,12 @@ public interface IKillSwitch : IDisposable
     /// </summary>
     void Engage(string tunInterfaceName, string allowedExePath);
 
-    /// <summary>Remove the block. Must be safe to call when not engaged.</summary>
+    /// <summary>
+    /// Remove the block. Safe to call when not engaged and safe to retry after failure.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Filters could not be removed. The state remains engaged; calling again retries cleanup.
+    /// </exception>
     void Disengage();
 }
 

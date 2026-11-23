@@ -15,6 +15,10 @@ public class ConnectionControllerTests
         private TaskCompletionSource? _startGate;
 
         public int StartCalls { get; private set; }
+        public int StopCalls { get; private set; }
+        public bool Disposed { get; private set; }
+        public Action? OnStop { get; set; }
+        public Action? OnDispose { get; set; }
 
         public void SetStartGate(TaskCompletionSource gate) => _startGate = gate;
 
@@ -39,8 +43,8 @@ public class ConnectionControllerTests
             throw new InvalidOperationException(fail);
         }
 
-        public Task StopAsync() { SetState(EngineState.Stopped); return Task.CompletedTask; }
-        public ValueTask DisposeAsync() { SetState(EngineState.Stopped); return default; }
+        public Task StopAsync() { StopCalls++; OnStop?.Invoke(); SetState(EngineState.Stopped); return Task.CompletedTask; }
+        public ValueTask DisposeAsync() { Disposed = true; OnDispose?.Invoke(); SetState(EngineState.Stopped); return default; }
         public void Crash() => SetState(EngineState.Faulted);
         private void SetState(EngineState s) { State = s; StateChanged?.Invoke(this, s); }
     }
@@ -65,6 +69,45 @@ public class ConnectionControllerTests
         public void Dispose() { }
     }
 
+    private sealed class DisengageFailingKillSwitch : IKillSwitch
+    {
+        public bool IsEngaged => true;
+        public bool Attempted { get; private set; }
+        public InvalidOperationException Failure { get; } = new("cleanup failed");
+        public void Engage(string tun, string exe) { }
+        public void Disengage() { Attempted = true; throw Failure; }
+        public void Dispose() => Disengage();
+    }
+
+    [Fact]
+    public async Task DisconnectAsync_CleanupFails_StopsBeforeRethrowing()
+    {
+        var ks = new DisengageFailingKillSwitch();
+        var engine = new FakeEngine(_ => true) { OnStop = () => Assert.True(ks.Attempted) };
+        var controller = Make(engine, ks, () => true);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.DisconnectAsync());
+
+        Assert.Same(ks.Failure, error);
+        Assert.Equal(1, engine.StopCalls);
+    }
+
+    [Fact]
+    public async Task ShutdownAsync_CleanupFails_DisposesBeforeReturningFailure()
+    {
+        var ks = new DisengageFailingKillSwitch();
+        var engine = new FakeEngine(_ => true) { OnDispose = () => Assert.True(ks.Attempted) };
+        var controller = Make(engine, ks, () => true);
+        Task? shutdown = null;
+
+        var synchronousError = Record.Exception(() => { shutdown = controller.ShutdownAsync(); });
+
+        Assert.Null(synchronousError);
+        Assert.NotNull(shutdown);
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => shutdown!);
+        Assert.Same(ks.Failure, error);
+        Assert.True(engine.Disposed);
+    }
     // Instant watchdog: no real waits, so GaveUp is reached synchronously in tests.
     private static WatchdogOptions Instant(int maxAttempts = 2) => new()
     {
