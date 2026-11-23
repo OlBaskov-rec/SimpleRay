@@ -169,47 +169,145 @@ public sealed class UpdateService
         // manifest no longer matches what we staged, refuse to apply and relaunch the current build.
         if (expectedManifest is not null && !ManifestMatches(staging, expectedManifest))
         {
-            TryStart(relaunch, target);
+            using var current = TryStart(relaunch, target);
+            LogOutcome("ManifestRejected", new InvalidDataException("The staging manifest does not match."));
             return;
         }
 
-        // Snapshot the current install so a broken new build can be rolled back.
-        var backup = target.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + ".backup";
-        var backedUp = false;
-        try
-        {
-            SafeDeleteDir(backup);
-            CopyOver(target, backup);
-            backedUp = true;
-        }
-        catch { /* couldn't back up → we just won't be able to roll back */ }
-
-        CopyOver(staging, target);
-
-        var started = TryStart(relaunch, target);
-        if (backedUp && started is not null && !HealthyAfter(started, TimeSpan.FromSeconds(8)))
-        {
-            // The new build exited abnormally on startup — restore the previous version.
-            try { if (!started.HasExited) started.Kill(entireProcessTree: true); } catch { }
-            try { CopyOver(backup, target); } catch { }
-            TryStart(relaunch, target);
-        }
-
-        SafeDeleteDir(backup);
+        ApplyUpdate(staging, target, relaunch);
     }
 
-    private static Process? TryStart(string exe, string workingDir)
+    internal enum ApplyResult
+    {
+        Applied,
+        RolledBack, // Files restored; any relaunch failure is recorded in the log.
+        RollbackFailed,
+        AppliedWithoutBackup,
+        ApplyFailedWithoutBackup
+    }
+
+    internal static ApplyResult ApplyUpdate(string staging, string target, string relaunch,
+        Func<string, string, Process?>? start = null,
+        Action<string, string>? copyFile = null,
+        Func<Process, TimeSpan, bool>? healthy = null)
+    {
+        start ??= StartProcess;
+        healthy ??= HealthyAfter;
+        var backup = target.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + ".backup";
+        var backedUp = false;
+        Exception? error = null;
+        Process? started = null;
+
+        ApplyResult Finish(ApplyResult result, Exception? failure = null)
+        {
+            if (failure is not null)
+                error = error is null ? failure : new AggregateException(error, failure);
+            LogOutcome(result.ToString(), error);
+            return result;
+        }
+
+        try
+        {
+            // A failed deletion must not leave stale files in the new snapshot.
+            if (Directory.Exists(backup)) Directory.Delete(backup, true);
+            Directory.CreateDirectory(backup);
+            CopyOver(target, backup, copyFile);
+            backedUp = true;
+        }
+        catch (Exception ex) { error = ex; }
+
+        try
+        {
+            try
+            {
+                CopyOver(staging, target, copyFile);
+                started = start(relaunch, target);
+                if (started is null)
+                    throw new InvalidOperationException("The updated build did not start.");
+                if (!healthy(started, TimeSpan.FromSeconds(8)))
+                    throw new InvalidOperationException("The updated build failed its startup health check.");
+            }
+            catch (Exception ex)
+            {
+                error = error is null ? ex : new AggregateException(error, ex);
+                if (!backedUp) return Finish(ApplyResult.ApplyFailedWithoutBackup);
+
+                // Release executable handles before restoring the previous installation.
+                try
+                {
+                    if (started is not null && !started.HasExited)
+                    {
+                        started.Kill(entireProcessTree: true);
+                        started.WaitForExit(5000);
+                    }
+                }
+                catch { /* restoration will surface any remaining file locks */ }
+
+                try
+                {
+                    CopyOver(backup, target, copyFile);
+                    // Copy-over alone would leave files and directories added by the new build.
+                    foreach (var file in Directory.GetFiles(target, "*", SearchOption.AllDirectories))
+                        if (!File.Exists(Path.Combine(backup, Path.GetRelativePath(target, file))))
+                            File.Delete(file);
+                    foreach (var dir in Directory.GetDirectories(target, "*", SearchOption.AllDirectories)
+                        .OrderByDescending(d => d.Length))
+                        if (!Directory.Exists(Path.Combine(backup, Path.GetRelativePath(target, dir))))
+                            Directory.Delete(dir);
+                }
+                catch (Exception restoreError)
+                {
+                    // Keep the snapshot available for manual recovery.
+                    return Finish(ApplyResult.RollbackFailed, restoreError);
+                }
+
+                try
+                {
+                    using var previous = start(relaunch, target);
+                    if (previous is null)
+                        throw new InvalidOperationException("The restored build did not start.");
+                }
+                catch (Exception launchError)
+                {
+                    error = new AggregateException(error, launchError);
+                }
+                SafeDeleteDir(backup);
+                return Finish(ApplyResult.RolledBack);
+            }
+
+            SafeDeleteDir(backup);
+            return Finish(backedUp ? ApplyResult.Applied : ApplyResult.AppliedWithoutBackup);
+        }
+        finally { started?.Dispose(); }
+    }
+
+    private static void LogOutcome(string outcome, Exception? error)
     {
         try
         {
-            return Process.Start(new ProcessStartInfo
-            {
-                FileName = exe,
-                UseShellExecute = true,
-                WorkingDirectory = workingDir,
-            });
+            var detail = error?.ToString().Replace("\r", " ").Replace("\n", " ") ?? "none";
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "SimpleRay-update.log"),
+                $"{DateTime.UtcNow:O} {outcome}: {detail}{Environment.NewLine}", new UTF8Encoding(false));
         }
-        catch { return null; }
+        catch { /* diagnostics must never prevent update or recovery */ }
+    }
+
+    private static Process? StartProcess(string exe, string workingDir) =>
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = exe,
+            UseShellExecute = true,
+            WorkingDirectory = workingDir,
+        });
+
+    private static Process? TryStart(string exe, string workingDir)
+    {
+        try { return StartProcess(exe, workingDir); }
+        catch (Exception ex)
+        {
+            LogOutcome("LaunchFailed", ex);
+            return null;
+        }
     }
 
     /// <summary>Healthy if still running after <paramref name="window"/>, or it exited cleanly (0). A non-zero exit = crash.</summary>
@@ -241,14 +339,17 @@ public sealed class UpdateService
         Thread.Sleep(500); // grace period for file handles to release
     }
 
-    private static void CopyOver(string sourceDir, string targetDir)
+    private static void CopyOver(string sourceDir, string targetDir, Action<string, string>? copyFile = null)
     {
+        Directory.CreateDirectory(targetDir);
+        foreach (var dir in Directory.EnumerateDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(Path.Combine(targetDir, Path.GetRelativePath(sourceDir, dir)));
         foreach (var src in Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories))
         {
             var rel = Path.GetRelativePath(sourceDir, src);
             var dst = Path.Combine(targetDir, rel);
             Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
-            CopyWithRetry(src, dst);
+            (copyFile ?? CopyWithRetry)(src, dst);
         }
     }
 
